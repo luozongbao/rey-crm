@@ -25,48 +25,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
     
     global $pdo;
     
-    if ($action == 'add') {
-        $stmt = $pdo->prepare("INSERT INTO customers (company_name, location, company_type, contact_phone, contact_email, status, notes) 
-                               VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute(array_values($data));
-        $customer_id = $pdo->lastInsertId();
-    } else {
-        $stmt = $pdo->prepare("UPDATE customers SET company_name = ?, location = ?, company_type = ?, 
-                              contact_phone = ?, contact_email = ?, status = ?, notes = ? WHERE customer_id = ?");
-        $data[] = $customer_id;
-        $stmt->execute(array_values($data));
-    }
-    
-    header("Location: customer_form.php?action=edit&id=$customer_id");
-    exit;
-}
-
-if (isset($_GET['delete_contact']) && $customer_id) {
-    deleteContactPerson($_GET['delete_contact']);
-    header("Location: customer_form.php?action=edit&id=$customer_id");
-    exit;
-}
-
-if (isset($_GET['delete_history']) && $customer_id) {
-    deleteHistory($_GET['delete_history']);
-    header("Location: customer_form.php?action=edit&id=$customer_id");
-    exit;
-}
-
-// In the POST handling section of customer_form.php:
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edit')) {
-    $data = [
-        'company_name' => $_POST['company_name'],
-        'location' => $_POST['location'],
-        'company_type' => $_POST['company_type'] ?? null,
-        'contact_phone' => $_POST['contact_phone'] ?? null,
-        'contact_email' => $_POST['contact_email'] ?? null,
-        'status' => $_POST['status'] ?? 'Prospect',
-        'notes' => $_POST['notes'] ?? null
-    ];
-    
-    global $pdo;
-    
     try {
         if ($action == 'add') {
             // Start transaction
@@ -79,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
             $stmt->execute(array_values($data));
             $customer_id = $pdo->lastInsertId();
             
-            // Create main contact - ensure all fields are properly set
+            // Create main contact - FIXED: Now properly creates the contact
             $mainContact = [
                 'customer_id' => $customer_id,
                 'name' => 'Company Main Contact',
@@ -87,18 +45,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
                 'role' => 'Main Contact',
                 'contact_number' => $_POST['contact_phone'] ?? null,
                 'contact_email' => $_POST['contact_email'] ?? null,
-                'notes' => 'Automatically created main contact'
+                'notes' => 'Automatically created as main contact'
             ];
             
             $stmt = $pdo->prepare("INSERT INTO contact_persons 
                                   (customer_id, name, title, role, contact_number, contact_email, notes) 
-                                  VALUES (:customer_id, :name, :title, :role, :contact_number, :contact_email, :notes)");
-            $stmt->execute($mainContact);
+                                  VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute(array_values($mainContact));
             
             // Commit transaction
             $pdo->commit();
             
-            // Redirect to customer list after adding
+            // FIXED: Redirect to index.php after adding
             header("Location: index.php");
             exit;
         } else {
@@ -110,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
             $data[] = $customer_id;
             $stmt->execute(array_values($data));
             
-            // Redirect to customer list after editing
+            // FIXED: Redirect to index.php after editing
             header("Location: index.php");
             exit;
         }
