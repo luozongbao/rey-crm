@@ -1,66 +1,80 @@
 # Personal CRM System
 
-A simple PHP-based Customer Relationship Management (CRM) system designed for managing customer interactions, contacts, and activity history.
+A PHP-based Customer Relationship Management (CRM) system designed for managing customer interactions, contacts, and activity history. This system helps track customer relationships, follow-ups, and business activities in a simple yet effective way.
 
-## Features
+## Core Features
 
-- Customer Management
-  - Add, edit, view, and delete customer records
-  - Track company details, location, contact info, and status
-  - Status tracking (Active, Inactive, Prospect)
+### Customer Management
+- Create, view, edit, and delete customer records
+- Track company details:
+  - Company name and location
+  - Company type and status
+  - Contact information
+  - Custom notes
+- Status tracking (Active, Inactive, Prospect)
 
-- Contact Person Management
-  - Manage multiple contact persons per customer
-  - Track contact details including name, title, role, phone, and email
+### Contact Person Management
+- Multiple contacts per customer
+- Contact details include:
+  - Name and title
+  - Role
+  - Contact number and email
+  - Custom notes
 
-- Activity History
-  - Log customer interactions and follow-ups
-  - Track actions, responses, and next steps
-  - Schedule follow-up activities
+### Activity History
+- Log all customer interactions
+- Track responses and next steps
+- Schedule follow-up activities
+- Link activities to specific contacts
 
-- Dashboard
-  - Overview of total customers
-  - Customer location statistics
-  - Contact status tracking
-  - Recent activities timeline
-  - Upcoming follow-ups
-  - Export functionality for history and follow-ups
+### Dashboard Analytics
+- Total customer count
+- Customer location distribution
+- Contact status statistics
+- Recent activities timeline
+- Upcoming follow-ups
+- Export functionality
+  - Action history to CSV
+  - Follow-up schedule to CSV
 
-## Requirements
+## Technical Requirements
 
-- PHP 7.0 or higher
-- MySQL 5.6 or higher
+- PHP 7.0+
+- MySQL 5.6+
 - Web server (Apache/Nginx)
 - PDO PHP Extension
 
 ## Installation
 
-1. Clone or download this repository to your web server directory.
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/personal-crm.git
+   cd personal-crm
+   ```
 
-2. Create a new MySQL database and import the schema:
-   ```sql
+2. Import the database schema:
+   ```bash
    mysql -u your_username -p your_database_name < database.sql
    ```
 
-3. Configure the database connection:
-   - Open `includes/config.php`
-   - Update the following variables with your database credentials:
-     ```php
-     $host = 'localhost';
-     $dbname = 'your_database_name';
-     $username = 'your_username';
-     $password = 'your_password';
-     ```
+3. Configure database connection:
+   - Edit `includes/config.php`
+   ```php
+   $host = 'localhost';
+   $dbname = 'your_database_name';
+   $username = 'your_username';
+   $password = 'your_password';
+   ```
 
-4. Set appropriate permissions:
+4. Set file permissions:
    ```bash
    chmod 755 -R /path/to/crm
    chmod 644 includes/config.php
    ```
 
-5. Access the application through your web browser:
+5. Access the application:
    ```
-   http://your-domain/path-to-crm/
+   http://your-server/path-to-crm/
    ```
 
 ## Directory Structure
@@ -68,30 +82,38 @@ A simple PHP-based Customer Relationship Management (CRM) system designed for ma
 ```
 ├── assets/
 │   ├── css/
-│   │   └── style.css
+│   │   └── style.css       # Main stylesheet
 │   └── js/
-│       └── script.js
+│       └── script.js       # Client-side functionality
 ├── includes/
-│   ├── config.php
-│   └── functions.php
-├── contact_form.php
-├── customer_form.php
-├── dashboard.php
-├── history_form.php
-├── index.php
-└── README.md
+│   ├── config.php         # Database configuration
+│   └── functions.php      # Core PHP functions
+├── contact_form.php       # Contact person management
+├── customer_form.php      # Customer management
+├── dashboard.php         # Analytics dashboard
+├── history_form.php      # Activity history management
+├── index.php            # Main customer listing
+└── readme.md
 ```
 
-## Security Notes
+## Security Recommendations
 
-1. Make sure to update database credentials in `config.php`
-2. Place the `includes` directory outside of web root if possible
-3. Implement proper access control based on your requirements
-
-## Contributing
-
-Feel free to fork this repository and submit pull requests for any improvements.
+1. Store sensitive configuration outside web root
+2. Implement user authentication/authorization
+3. Use prepared statements for all database queries
+4. Validate and sanitize all user inputs
+5. Keep dependencies updated
+6. Enable error logging
+7. Use HTTPS
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is open source and available under the MIT License.
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
