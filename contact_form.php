@@ -11,32 +11,47 @@ if ($action == 'delete' && $contact_id) {
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$isViewMode) {
+    // Validate required fields
+    if (empty($_POST['name'])) {
+        die("Error: Name is required");
+    }
+
     $data = [
         'customer_id' => $_POST['customer_id'],
         'name' => $_POST['name'],
-        'title' => $_POST['title'],
-        'role' => $_POST['role'],
-        'contact_number' => $_POST['contact_number'],
-        'contact_email' => $_POST['contact_email']
+        'title' => $_POST['title'] ?? null,
+        'role' => $_POST['role'] ?? null,
+        'contact_number' => $_POST['contact_number'] ?? null,
+        'contact_email' => $_POST['contact_email'] ?? null,
+        'notes' => $_POST['notes'] ?? null
     ];
     
     global $pdo;
     
-    if ($action == 'add') {
-        $stmt = $pdo->prepare("INSERT INTO contact_persons (customer_id, name, title, role, contact_number, contact_email) 
-                              VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->execute(array_values($data));
-    } else {
-        $stmt = $pdo->prepare("UPDATE contact_persons SET customer_id = ?, name = ?, title = ?, 
-                              role = ?, contact_number = ?, contact_email = ? WHERE contact_id = ?");
-        $data[] = $contact_id;
-        $stmt->execute(array_values($data));
+    try {
+        if ($action == 'add') {
+            $stmt = $pdo->prepare("INSERT INTO contact_persons 
+                                  (customer_id, name, title, role, contact_number, contact_email, notes) 
+                                  VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute(array_values($data));
+        } else {
+            $stmt = $pdo->prepare("UPDATE contact_persons SET 
+                                  customer_id = ?, name = ?, title = ?, 
+                                  role = ?, contact_number = ?, contact_email = ?, notes = ? 
+                                  WHERE contact_id = ?");
+            $data[] = $contact_id;
+            $stmt->execute(array_values($data));
+        }
+        
+        header("Location: customer_form.php?action=edit&id=" . $data['customer_id']);
+        exit;
+    } catch (PDOException $e) {
+        die("Database error: " . $e->getMessage());
     }
-    
-    header("Location: customer_form.php?action=edit&id=" . $data['customer_id']);
-    exit;
 }
+
+
 
 $contact = $action == 'edit' ? getContactPersonById($contact_id) : null;
 $customer_id = $contact ? $contact['customer_id'] : $customer_id;
@@ -76,14 +91,16 @@ $customer_id = $contact ? $contact['customer_id'] : $customer_id;
             
             <div class="form-group">
                 <label for="contact_number">Contact Number:</label>
-                <input type="tel" id="contact_number" name="contact_number" required 
-                       value="<?php echo $contact ? htmlspecialchars($contact['contact_number']) : ''; ?>">
+                <input type="tel" id="contact_number" name="contact_number" 
+                    value="<?php echo $contact ? htmlspecialchars($contact['contact_number']) : ''; ?>" 
+                    <?php echo $isViewMode ? 'disabled' : ''; ?>>
             </div>
-            
+
             <div class="form-group">
                 <label for="contact_email">Contact Email:</label>
-                <input type="email" id="contact_email" name="contact_email" required 
-                       value="<?php echo $contact ? htmlspecialchars($contact['contact_email']) : ''; ?>">
+                <input type="email" id="contact_email" name="contact_email" 
+                    value="<?php echo $contact ? htmlspecialchars($contact['contact_email']) : ''; ?>" 
+                    <?php echo $isViewMode ? 'disabled' : ''; ?>>
             </div>
             
             <button type="submit" class="btn">Save</button>

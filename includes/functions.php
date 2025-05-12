@@ -177,4 +177,90 @@ function getFollowupsForExport($start_date, $end_date) {
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+function getAllLocations() {
+    global $pdo;
+    $stmt = $pdo->query("SELECT DISTINCT location FROM customers ORDER BY location");
+    return $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+}
+
+function getFilteredCustomers($conditions = [], $params = []) {
+    global $pdo;
+    
+    $query = "SELECT c.*, 
+             (SELECT MAX(action_datetime) FROM action_history WHERE customer_id = c.customer_id) as last_contact,
+             (SELECT status FROM customers WHERE customer_id = c.customer_id) as status
+             FROM customers c";
+    
+    if (!empty($conditions)) {
+        $query .= " WHERE " . implode(" AND ", $conditions);
+    }
+    
+    $query .= " ORDER BY company_name";
+    
+    $stmt = $pdo->prepare($query);
+    
+    foreach ($params as $key => &$val) {
+        $stmt->bindParam($key, $val);
+    }
+    
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function getCustomerCount($conditions = [], $params = []) {
+    global $pdo;
+    
+    $query = "SELECT COUNT(*) FROM customers";
+    
+    if (!empty($conditions)) {
+        $query .= " WHERE " . implode(" AND ", $conditions);
+    }
+    
+    $stmt = $pdo->prepare($query);
+    
+    foreach ($params as $key => &$val) {
+        $stmt->bindParam($key, $val);
+    }
+    
+    $stmt->execute();
+    return $stmt->fetchColumn();
+}
+
+function getPaginatedCustomers($conditions = [], $params = [], $page = 1, $perPage = 20) {
+    global $pdo;
+    
+    $offset = ($page - 1) * $perPage;
+    
+    $query = "SELECT c.*, 
+             (SELECT MAX(action_datetime) FROM action_history WHERE customer_id = c.customer_id) as last_contact,
+             (SELECT status FROM customers WHERE customer_id = c.customer_id) as status
+             FROM customers c";
+    
+    if (!empty($conditions)) {
+        $query .= " WHERE " . implode(" AND ", $conditions);
+    }
+    
+    $query .= " ORDER BY company_name LIMIT :limit OFFSET :offset";
+    
+    $stmt = $pdo->prepare($query);
+    
+    foreach ($params as $key => &$val) {
+        $stmt->bindParam($key, $val);
+    }
+    
+    $stmt->bindParam(':limit', $perPage, PDO::PARAM_INT);
+    $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
+    $stmt->execute();
+    
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function buildQueryString($newParams = []) {
+    $params = $_GET;
+    foreach ($newParams as $key => $value) {
+        $params[$key] = $value;
+    }
+    return http_build_query($params);
+}
+
 ?>

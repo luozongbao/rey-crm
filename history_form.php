@@ -85,8 +85,8 @@ $contact_persons = $customer_id ? getContactPersons($customer_id) : [];
             <div class="form-group">
                 <label for="action_datetime">Date & Time:</label>
                 <input type="datetime-local" id="action_datetime" name="action_datetime" required 
-                       value="<?php echo $history ? date('Y-m-d\TH:i', strtotime($history['action_datetime'])) : date('Y-m-d\TH:i'); ?>" 
-                       <?php echo $isViewMode ? 'disabled' : ''; ?>>
+                    value="<?php echo $history ? date('Y-m-d\TH:i', strtotime($history['action_datetime'])) : date('Y-m-d\TH:i'); ?>" 
+                    <?php echo $isViewMode ? 'disabled' : ''; ?>>
             </div>
             
             <div class="form-group">
@@ -95,7 +95,7 @@ $contact_persons = $customer_id ? getContactPersons($customer_id) : [];
                     <option value="">-- Select Contact --</option>
                     <?php foreach ($contact_persons as $contact): ?>
                     <option value="<?php echo $contact['contact_id']; ?>" 
-                        <?php echo ($history && $history['contact_id'] == $contact['contact_id']) ? 'selected' : ''; ?>>
+                            <?php echo ($history && $history['contact_id'] == $contact['contact_id']) ? 'selected' : ''; ?>>
                         <?php echo htmlspecialchars($contact['name']); ?>
                     </option>
                     <?php endforeach; ?>
@@ -126,8 +126,8 @@ $contact_persons = $customer_id ? getContactPersons($customer_id) : [];
             <div class="form-group">
                 <label for="follow_up_datetime">Follow Up Date & Time:</label>
                 <input type="datetime-local" id="follow_up_datetime" name="follow_up_datetime" required 
-                       value="<?php echo $history ? date('Y-m-d\TH:i', strtotime($history['follow_up_datetime'])) : date('Y-m-d\TH:i', strtotime('+1 week')); ?>" 
-                       <?php echo $isViewMode ? 'disabled' : ''; ?>>
+                    value="<?php echo $history ? date('Y-m-d\TH:i', strtotime($history['follow_up_datetime'])) : date('Y-m-d\TH:i', strtotime('+1 week')); ?>" 
+                    <?php echo $isViewMode ? 'disabled' : ''; ?>>
             </div>
             
             <div class="form-group">
@@ -143,7 +143,7 @@ $contact_persons = $customer_id ? getContactPersons($customer_id) : [];
                 <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
                 <?php elseif ($action == 'edit'): ?>
                 <button type="submit" class="btn">Save Action</button>
-                <a href="history_form.php?action=view&id=<?php echo $history_id; ?>" class="btn">Cancel</a>
+                <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
                 <?php else: ?>
                 <a href="history_form.php?action=edit&id=<?php echo $history_id; ?>" class="btn">Edit</a>
                 <?php endif; ?>
