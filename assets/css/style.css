@@ -432,3 +432,111 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     font-weight: bold;
     color: #333;
 }
+
+/* Form Layout Styles */
+.form-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.half-width {
+    flex: 1;
+    min-width: 0;
+}
+
+.form-actions {
+    margin-top: 20px;
+}
+
+/* Status Dropdown */
+select#status {
+    width: 100%;
+    max-width: 300px;
+}
+
+/* Textarea Styles */
+textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    resize: vertical;
+}
+
+/* Website Input */
+input[type="url"] {
+    width: 100%;
+}
+
+/* Form Layout Styles */
+.form-row {
+    display: flex;
+    gap: 30px; /* Increased from 15px to 30px */
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+    flex: 1;
+    min-width: 0;
+}
+
+/* Half-width fields */
+.half-width {
+    flex: 1;
+}
+
+/* Status Dropdown */
+select#status {
+    width: 100%;
+    max-width: 300px;
+    margin-bottom: 20px;
+}
+
+/* Textarea Styles */
+textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    resize: vertical;
+    margin-bottom: 20px;
+}
+
+/* Input Fields */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="url"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+/* Form Actions */
+.form-actions {
+    margin-top: 25px;
+    display: flex;
+    gap: 15px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .form-row {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .half-width {
+        width: 100%;
+    }
+}

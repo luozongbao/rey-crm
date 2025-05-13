@@ -4,8 +4,7 @@ require_once 'config.php';
 function getAllCustomers() {
     global $pdo;
     $stmt = $pdo->query("SELECT c.*, 
-                        (SELECT MAX(action_datetime) FROM action_history WHERE customer_id = c.customer_id) as last_contact,
-                        (SELECT status FROM customers WHERE customer_id = c.customer_id) as status
+                        (SELECT MAX(action_datetime) FROM action_history WHERE customer_id = c.customer_id) as last_contact
                         FROM customers c ORDER BY company_name");
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -261,6 +260,42 @@ function buildQueryString($newParams = []) {
         $params[$key] = $value;
     }
     return http_build_query($params);
+}
+
+function addCustomer($data) {
+    global $pdo;
+    $stmt = $pdo->prepare("INSERT INTO customers 
+                          (company_name, location, company_type, contact_phone, contact_email, website, status, notes) 
+                          VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    return $stmt->execute([
+        $data['company_name'],
+        $data['location'],
+        $data['company_type'],
+        $data['contact_phone'],
+        $data['contact_email'],
+        $data['website'],
+        $data['status'],
+        $data['notes']
+    ]);
+}
+
+function updateCustomer($id, $data) {
+    global $pdo;
+    $stmt = $pdo->prepare("UPDATE customers SET 
+                          company_name = ?, location = ?, company_type = ?, 
+                          contact_phone = ?, contact_email = ?, website = ?, status = ?, notes = ? 
+                          WHERE customer_id = ?");
+    return $stmt->execute([
+        $data['company_name'],
+        $data['location'],
+        $data['company_type'],
+        $data['contact_phone'],
+        $data['contact_email'],
+        $data['website'],
+        $data['status'],
+        $data['notes'],
+        $id
+    ]);
 }
 
 ?>

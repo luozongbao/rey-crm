@@ -19,6 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
         'company_type' => $_POST['company_type'] ?? null,
         'contact_phone' => $_POST['contact_phone'] ?? null,
         'contact_email' => $_POST['contact_email'] ?? null,
+        'website' => $_POST['website'] ?? null,
         'status' => $_POST['status'] ?? 'Prospect',
         'notes' => $_POST['notes'] ?? null
     ];
@@ -32,12 +33,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
             
             // Insert customer
             $stmt = $pdo->prepare("INSERT INTO customers 
-                                  (company_name, location, company_type, contact_phone, contact_email, status, notes) 
-                                  VALUES (?, ?, ?, ?, ?, ?, ?)");
+                                  (company_name, location, company_type, contact_phone, contact_email, website, status, notes) 
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute(array_values($data));
             $customer_id = $pdo->lastInsertId();
             
-            // Create main contact - FIXED: Now properly creates the contact
+            // Create main contact
             $mainContact = [
                 'customer_id' => $customer_id,
                 'name' => 'Company Main Contact',
@@ -56,24 +57,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
             // Commit transaction
             $pdo->commit();
             
-            // FIXED: Redirect to index.php after adding
             header("Location: index.php");
             exit;
         } else {
-            // For edit, just update customer
             $stmt = $pdo->prepare("UPDATE customers SET 
                                   company_name = ?, location = ?, company_type = ?, 
-                                  contact_phone = ?, contact_email = ?, status = ?, notes = ? 
+                                  contact_phone = ?, contact_email = ?, website = ?, status = ?, notes = ? 
                                   WHERE customer_id = ?");
             $data[] = $customer_id;
             $stmt->execute(array_values($data));
             
-            // FIXED: Redirect to index.php after editing
             header("Location: index.php");
             exit;
         }
     } catch (PDOException $e) {
-        // Roll back transaction if there was an error
         if ($action == 'add' && isset($pdo)) {
             $pdo->rollBack();
         }
@@ -97,45 +94,56 @@ $action_history = $customer_id ? getActionHistory($customer_id) : [];
     <div class="container">
         <div class="header">
             <h1><?php echo ucfirst($action); ?> Customer</h1>
-            <?php if ($isViewMode || $isEditMode): ?>
             <a href="index.php" class="btn">Back</a>
-            <?php endif; ?>
         </div>
         
         <form method="post">
-            <div class="form-group">
-                <label for="company_name">Company Name:</label>
-                <input type="text" id="company_name" name="company_name" required 
-                       value="<?php echo $customer ? htmlspecialchars($customer['company_name']) : ''; ?>" 
-                       <?php echo $isViewMode ? 'disabled' : ''; ?>>
+            <div class="form-row">
+                <div class="form-group half-width">
+                    <label for="company_name">Company Name:</label>
+                    <input type="text" id="company_name" name="company_name" required 
+                           value="<?php echo $customer ? htmlspecialchars($customer['company_name']) : ''; ?>" 
+                           <?php echo $isViewMode ? 'disabled' : ''; ?>>
+                </div>
+                
+                <div class="form-group half-width">
+                    <label for="location">Location:</label>
+                    <input type="text" id="location" name="location" required 
+                           value="<?php echo $customer ? htmlspecialchars($customer['location']) : ''; ?>" 
+                           <?php echo $isViewMode ? 'disabled' : ''; ?>>
+                </div>
             </div>
             
-            <div class="form-group">
-                <label for="location">Location:</label>
-                <input type="text" id="location" name="location" required 
-                       value="<?php echo $customer ? htmlspecialchars($customer['location']) : ''; ?>" 
-                       <?php echo $isViewMode ? 'disabled' : ''; ?>>
+            <div class="form-row">
+                <div class="form-group half-width">
+                    <label for="company_type">Company Type:</label>
+                    <input type="text" id="company_type" name="company_type" 
+                           value="<?php echo $customer ? htmlspecialchars($customer['company_type']) : ''; ?>" 
+                           <?php echo $isViewMode ? 'disabled' : ''; ?>>
+                </div>
+                
+                <div class="form-group half-width">
+                    <label for="contact_phone">Contact Phone:</label>
+                    <input type="tel" id="contact_phone" name="contact_phone" 
+                           value="<?php echo $customer ? htmlspecialchars($customer['contact_phone']) : ''; ?>" 
+                           <?php echo $isViewMode ? 'disabled' : ''; ?>>
+                </div>
             </div>
             
-            <div class="form-group">
-                <label for="company_type">Company Type:</label>
-                <input type="text" id="company_type" name="company_type" 
-                       value="<?php echo $customer ? htmlspecialchars($customer['company_type']) : ''; ?>" 
-                       <?php echo $isViewMode ? 'disabled' : ''; ?>>
-            </div>
-            
-            <div class="form-group">
-                <label for="contact_phone">Contact Phone:</label>
-                <input type="tel" id="contact_phone" name="contact_phone" 
-                       value="<?php echo $customer ? htmlspecialchars($customer['contact_phone']) : ''; ?>" 
-                       <?php echo $isViewMode ? 'disabled' : ''; ?>>
-            </div>
-            
-            <div class="form-group">
-                <label for="contact_email">Contact Email:</label>
-                <input type="email" id="contact_email" name="contact_email" 
-                       value="<?php echo $customer ? htmlspecialchars($customer['contact_email']) : ''; ?>" 
-                       <?php echo $isViewMode ? 'disabled' : ''; ?>>
+            <div class="form-row">
+                <div class="form-group half-width">
+                    <label for="contact_email">Contact Email:</label>
+                    <input type="email" id="contact_email" name="contact_email" 
+                           value="<?php echo $customer ? htmlspecialchars($customer['contact_email']) : ''; ?>" 
+                           <?php echo $isViewMode ? 'disabled' : ''; ?>>
+                </div>
+                
+                <div class="form-group half-width">
+                    <label for="website">Website:</label>
+                    <input type="url" id="website" name="website" 
+                           value="<?php echo $customer ? htmlspecialchars($customer['website']) : ''; ?>" 
+                           <?php echo $isViewMode ? 'disabled' : ''; ?>>
+                </div>
             </div>
             
             <div class="form-group">
@@ -160,7 +168,7 @@ $action_history = $customer_id ? getActionHistory($customer_id) : [];
                 <a href="index.php" class="btn">Cancel</a>
                 <?php elseif ($action == 'edit'): ?>
                 <button type="submit" class="btn">Save Customer</button>
-                <a href="index.php" class="btn">Cancel</a>
+                <a href="customer_form.php?action=view&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
                 <?php endif; ?>
             </div>
         </form>

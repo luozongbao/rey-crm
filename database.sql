@@ -2,14 +2,15 @@
 CREATE DATABASE IF NOT EXISTS personal_crm;
 USE personal_crm;
 
--- Create customers table
+-- Create customers table with website field
 CREATE TABLE IF NOT EXISTS customers (
     customer_id INT AUTO_INCREMENT PRIMARY KEY,
     company_name VARCHAR(100) NOT NULL,
-    location VARCHAR(50) NOT NULL,
+    location VARCHAR(100) NOT NULL,
     company_type VARCHAR(50),
-    contact_phone VARCHAR(20),
+    contact_phone VARCHAR(50),
     contact_email VARCHAR(100),
+    website VARCHAR(100),
     status ENUM('Active', 'Inactive', 'Prospect') DEFAULT 'Prospect',
     notes TEXT,
     last_contacted_date TIMESTAMP NULL,
@@ -17,7 +18,7 @@ CREATE TABLE IF NOT EXISTS customers (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Create contact_persons table
+-- Rest of the tables remain the same
 CREATE TABLE IF NOT EXISTS contact_persons (
     contact_id INT AUTO_INCREMENT PRIMARY KEY,
     customer_id INT NOT NULL,
@@ -32,7 +33,6 @@ CREATE TABLE IF NOT EXISTS contact_persons (
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE
 );
 
--- Create action_history table
 CREATE TABLE IF NOT EXISTS action_history (
     history_id INT AUTO_INCREMENT PRIMARY KEY,
     customer_id INT NOT NULL,
