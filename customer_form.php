@@ -207,14 +207,14 @@ $action_history = $customer_id ? getActionHistory($customer_id) : [];
             <?php if (!$isViewMode): ?>
             <a href="history_form.php?action=add&customer_id=<?php echo $customer_id; ?>" class="btn">Add Action</a>
             <?php endif; ?>
-            
             <table class="compact-table">
                 <thead>
                     <tr>
                         <th>Action</th>
                         <th>Response</th>
                         <th>Next Step</th>
-                        <th>Date</th>
+                        <th>Date/Time</th>
+                        <th>Follow Up</th>
                         <?php if (!$isViewMode): ?>
                         <th>Actions</th>
                         <?php endif; ?>
@@ -226,10 +226,11 @@ $action_history = $customer_id ? getActionHistory($customer_id) : [];
                         <td><?php echo htmlspecialchars($history['action']); ?></td>
                         <td><?php echo htmlspecialchars($history['response']); ?></td>
                         <td><?php echo htmlspecialchars($history['next_step']); ?></td>
-                        <td><?php echo date('Y-m-d', strtotime($history['created_at'])); ?></td>
+                        <td><?php echo htmlspecialchars(date('Y-m-d H:i', strtotime($history['action_datetime']))); ?></td>
+                        <td><?php echo htmlspecialchars(date('Y-m-d H:i', strtotime($history['follow_up_datetime']))); ?></td>
                         <?php if (!$isViewMode): ?>
                         <td>
-                            <a href="history_form.php?action=edit&id=<?php echo $history['history_id']; ?>" class="btn">Edit</a>
+                            <a href="history_form.php?action=edit&id=<?php echo $history['history_id']; ?>&customer_id=<?php echo $customer_id; ?>" class="btn">Edit</a>
                             <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>&delete_history=<?php echo $history['history_id']; ?>" 
                             class="btn delete" onclick="return confirm('Are you sure you want to delete this history?')">Delete</a>
                         </td>

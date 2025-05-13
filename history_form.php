@@ -6,6 +6,14 @@ $history_id = $_GET['id'] ?? 0;
 $customer_id = $_GET['customer_id'] ?? 0;
 $isViewMode = $action === 'view';
 
+// Get customer_id from history record if editing/viewing
+if (($action == 'edit' || $action == 'view') && $history_id) {
+    $history = getHistoryById($history_id);
+    if ($history) {
+        $customer_id = $history['customer_id'];
+    }
+}
+
 if ($action == 'delete' && $history_id) {
     deleteHistory($history_id);
     header("Location: customer_form.php?action=edit&id=$customer_id");
@@ -13,7 +21,7 @@ if ($action == 'delete' && $history_id) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$isViewMode) {
-    // Validate required fields first
+    // Validate required fields
     $required = ['action_datetime', 'action', 'response', 'next_step', 'follow_up_datetime'];
     foreach ($required as $field) {
         if (empty($_POST[$field])) {
@@ -21,9 +29,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$isViewMode) {
         }
     }
 
+    // Ensure we have a valid customer_id
+    if (empty($customer_id)) {
+        die("Error: Customer ID is missing");
+    }
+
     $data = [
         'customer_id' => $customer_id,
-        'contact_id' => $_POST['contact_id'] ?? null, // Make contact_id optional
+        'contact_id' => !empty($_POST['contact_id']) ? $_POST['contact_id'] : null,
         'action_datetime' => $_POST['action_datetime'],
         'action' => $_POST['action'],
         'response' => $_POST['response'],
@@ -42,12 +55,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$isViewMode) {
             $stmt->execute($data);
             updateLastContactedDate($customer_id);
         } else {
-            $stmt = $pdo->prepare("UPDATE action_history SET 
-                                 customer_id = :customer_id, contact_id = :contact_id, action_datetime = :action_datetime, 
-                                 action = :action, response = :response, next_step = :next_step, 
-                                 follow_up_datetime = :follow_up_datetime, notes = :notes 
-                                 WHERE history_id = :history_id");
+            // For edit, include history_id and verify the record exists
+            $existing_history = getHistoryById($history_id);
+            if (!$existing_history) {
+                die("Error: History record not found");
+            }
+            
             $data['history_id'] = $history_id;
+            $stmt = $pdo->prepare("UPDATE action_history SET 
+                                 customer_id = :customer_id, 
+                                 contact_id = :contact_id, 
+                                 action_datetime = :action_datetime, 
+                                 action = :action, 
+                                 response = :response, 
+                                 next_step = :next_step, 
+                                 follow_up_datetime = :follow_up_datetime, 
+                                 notes = :notes 
+                                 WHERE history_id = :history_id");
             $stmt->execute($data);
         }
         
@@ -59,7 +83,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$isViewMode) {
 }
 
 $history = ($action == 'edit' || $action == 'view') ? getHistoryById($history_id) : null;
-$customer_id = $history ? $history['customer_id'] : $customer_id;
 $contact_persons = $customer_id ? getContactPersons($customer_id) : [];
 ?>
 
