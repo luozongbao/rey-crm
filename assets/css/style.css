@@ -310,20 +310,20 @@ textarea {
     display: flex;
     gap: 10px;
     align-items: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap; /* Changed from wrap to nowrap */
+    justify-content: flex-start; /* Added to ensure proper alignment */
 }
 
 .search-input {
-    flex: 1;
-    min-width: 200px;
-    max-width: 300px;
+    flex: 0 1 300px; /* Changed flex properties for better control */
+    min-width: 0; /* Remove min-width restriction */
     padding: 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
 }
 
 .location-select {
-    min-width: 150px;
+    flex: 0 0 150px; /* Fixed width for location select */
     padding: 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
@@ -331,6 +331,22 @@ textarea {
 
 .apply-btn, .reset-btn {
     white-space: nowrap;
+    flex: 0 0 auto; /* Prevent buttons from shrinking */
+}
+
+/* Responsive handling for very small screens */
+@media (max-width: 576px) {
+    .search-filter-group {
+        flex-wrap: wrap;
+    }
+    
+    .search-input {
+        flex: 1 1 100%;
+    }
+    
+    .location-select {
+        flex: 1 1 auto;
+    }
 }
 
 /* Pagination */
