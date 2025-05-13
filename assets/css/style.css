@@ -436,12 +436,21 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 /* Form Layout Styles */
 .form-row {
     display: flex;
-    gap: 15px;
-    margin-bottom: 15px;
+    gap: 30px;
+    margin-bottom: 20px;
 }
 
 .form-group {
     margin-bottom: 15px;
+    flex: 1;
+    min-width: 0;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #333;
 }
 
 .half-width {
@@ -450,83 +459,48 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 }
 
 .form-actions {
-    margin-top: 20px;
-}
-
-/* Status Dropdown */
-select#status {
-    width: 100%;
-    max-width: 300px;
-}
-
-/* Textarea Styles */
-textarea {
-    width: 100%;
-    min-height: 100px;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    resize: vertical;
-}
-
-/* Website Input */
-input[type="url"] {
-    width: 100%;
-}
-
-/* Form Layout Styles */
-.form-row {
+    margin-top: 25px;
     display: flex;
-    gap: 30px; /* Increased from 15px to 30px */
-    margin-bottom: 20px;
+    gap: 15px;
 }
 
-.form-group {
-    margin-bottom: 15px;
-    flex: 1;
-    min-width: 0;
-}
-
-/* Half-width fields */
-.half-width {
-    flex: 1;
-}
-
-/* Status Dropdown */
-select#status {
-    width: 100%;
-    max-width: 300px;
-    margin-bottom: 20px;
-}
-
-/* Textarea Styles */
-textarea {
-    width: 100%;
-    min-height: 100px;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    resize: vertical;
-    margin-bottom: 20px;
-}
-
-/* Input Fields */
+/* Form Controls */
 input[type="text"],
 input[type="email"],
 input[type="tel"],
-input[type="url"] {
+input[type="url"],
+textarea,
+select {
     width: 100%;
     padding: 10px;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 14px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Form Actions */
-.form-actions {
-    margin-top: 25px;
-    display: flex;
-    gap: 15px;
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="tel"]:focus,
+input[type="url"]:focus,
+textarea:focus,
+select:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    outline: none;
+}
+
+/* Textarea specific styles */
+textarea {
+    min-height: 100px;
+    resize: vertical;
+    margin-bottom: 20px;
+}
+
+/* Status Dropdown specific styles */
+select#status {
+    max-width: 300px;
+    margin-bottom: 20px;
 }
 
 /* Responsive adjustments */
