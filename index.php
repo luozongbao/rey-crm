@@ -53,7 +53,11 @@ $statusCounts = getCustomerStatusCounts();
     <div class="container">
         <div class="header">
             <h1>Customer List</h1>
-            <a href="dashboard.php" class="btn dashboard-btn">Dashboard</a>
+            <div class="header-buttons">
+                <a href="dashboard.php" class="btn dashboard-btn">Dashboard</a>
+                <a href="all_followups.php" class="btn">View All Follow-ups</a>
+                <a href="all_activities.php" class="btn">View All Activities</a>
+            </div>
         </div>
 
         <script>
