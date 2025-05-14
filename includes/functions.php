@@ -359,6 +359,86 @@ function getSortedCustomers($search = '', $location = '', $sort = 'created_at', 
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '', $sort = 'follow_up_datetime', $order = 'asc') {
+    global $pdo;
+    
+    $query = "SELECT ah.*, c.company_name 
+              FROM action_history ah
+              JOIN customers c ON ah.customer_id = c.customer_id
+              WHERE ah.follow_up_datetime >= NOW()";
+    
+    $params = [];
+    
+    if (!empty($customer_id)) {
+        $query .= " AND ah.customer_id = :customer_id";
+        $params[':customer_id'] = $customer_id;
+    }
+    
+    if (!empty($date_from)) {
+        $query .= " AND DATE(ah.follow_up_datetime) >= :date_from";
+        $params[':date_from'] = $date_from;
+    }
+    
+    if (!empty($date_to)) {
+        $query .= " AND DATE(ah.follow_up_datetime) <= :date_to";
+        $params[':date_to'] = $date_to;
+    }
+    
+    $validSorts = ['company_name', 'follow_up_datetime', 'action_datetime'];
+    $sort = in_array($sort, $validSorts) ? $sort : 'follow_up_datetime';
+    $order = in_array($order, ['asc', 'desc']) ? $order : 'asc';
+    
+    $query .= " ORDER BY $sort $order";
+    
+    $stmt = $pdo->prepare($query);
+    
+    foreach ($params as $key => $val) {
+        $stmt->bindValue($key, $val);
+    }
+    
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 
+function getFilteredActivities($customer_id = '', $date_from = '', $date_to = '', $sort = 'action_datetime', $order = 'desc') {
+    global $pdo;
+    
+    $query = "SELECT ah.*, c.company_name 
+              FROM action_history ah
+              JOIN customers c ON ah.customer_id = c.customer_id
+              WHERE 1=1";
+    
+    $params = [];
+    
+    if (!empty($customer_id)) {
+        $query .= " AND ah.customer_id = :customer_id";
+        $params[':customer_id'] = $customer_id;
+    }
+    
+    if (!empty($date_from)) {
+        $query .= " AND DATE(ah.action_datetime) >= :date_from";
+        $params[':date_from'] = $date_from;
+    }
+    
+    if (!empty($date_to)) {
+        $query .= " AND DATE(ah.action_datetime) <= :date_to";
+        $params[':date_to'] = $date_to;
+    }
+    
+    $validSorts = ['company_name', 'action_datetime'];
+    $sort = in_array($sort, $validSorts) ? $sort : 'action_datetime';
+    $order = in_array($order, ['asc', 'desc']) ? $order : 'desc';
+    
+    $query .= " ORDER BY $sort $order";
+    
+    $stmt = $pdo->prepare($query);
+    
+    foreach ($params as $key => $val) {
+        $stmt->bindValue($key, $val);
+    }
+    
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 
 ?>

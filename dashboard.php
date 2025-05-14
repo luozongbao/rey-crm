@@ -147,7 +147,9 @@ try {
             
             <?php if (!empty($upcomingFollowups)): ?>
             <div class="dashboard-card full-width">
-                <h2>Upcoming Follow-ups</h2>
+                <h2>Follow-ups</h2>
+                <a href="all_followups.php" class="btn">View All Follow-ups</a>
+                <?php $upcoming = getUpcomingFollowups(5); ?>
                 <table class="compact-table">
                     <thead>
                         <tr>
@@ -174,6 +176,8 @@ try {
             <?php if (!empty($recentActivities)): ?>
             <div class="dashboard-card full-width">
                 <h2>Recent Activities</h2>
+                <a href="all_activities.php" class="btn">View All Activities</a>
+                <?php $recent = getRecentActivities(5); ?>
                 <div class="timeline">
                     <?php foreach ($recentActivities as $activity): ?>
                     <div class="timeline-item">
