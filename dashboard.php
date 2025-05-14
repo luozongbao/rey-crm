@@ -52,8 +52,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_followup'])) {
     exit;
 }
 
+// Load the dashboard data
+
 try {
     $totalCustomers = getTotalCustomers();
+    $statusCounts = getCustomerStatusCounts();
     $locationStats = getLocationStats();
     $lastContacted = getLastContactedCustomer();
     $contactStats = getContactStats();
@@ -82,17 +85,32 @@ try {
 
             <div class="dashboard-card">
                 <h2>Total Customers</h2>
-                <div class="stat-value"><?php echo htmlspecialchars($totalCustomers); ?></div>
+                <div class="stat-value"><?php echo $totalCustomers; ?></div>
+                
+                <div class="status-breakdown">
+                    <?php foreach ($statusCounts as $status => $count): ?>
+                    <?php $percentage = $totalCustomers > 0 ? round(($count / $totalCustomers) * 100) : 0; ?>
+                    <div class="status-item" title="<?php echo $count; ?> customers">
+                        <span class="status-label"><?php echo $status; ?>:</span>
+                        <span class="status-percent"><?php echo $percentage; ?>%</span>
+                        <div class="status-bar" style="width: <?php echo $percentage; ?>%"></div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
             </div>
             
             <div class="dashboard-card">
                 <h2>Customer Locations</h2>
                 <div class="location-stats">
                     <?php foreach ($locationStats as $location): ?>
-                    <div class="location-item">
-                        <span class="location-name"><?php echo htmlspecialchars($location['location']); ?>:</span>
-                        <span class="location-percent"><?php echo round(($location['count'] / $totalCustomers) * 100); ?>%</span>
-                        <div class="location-bar" style="width: <?php echo ($location['count'] / $totalCustomers) * 100; ?>%"></div>
+                    <?php 
+                    $percentage = $totalCustomers > 0 ? round(($location['count'] / $totalCustomers) * 100) : 0;
+                    $locationName = htmlspecialchars($location['location']);
+                    ?>
+                    <div class="location-item" title="<?php echo $location['count']; ?> customers in <?php echo $locationName; ?>">
+                        <span class="location-name"><?php echo $locationName; ?>:</span>
+                        <span class="location-percent"><?php echo $percentage; ?>%</span>
+                        <div class="location-bar" style="width: <?php echo $percentage; ?>%"></div>
                     </div>
                     <?php endforeach; ?>
                 </div>

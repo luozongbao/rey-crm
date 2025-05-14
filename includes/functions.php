@@ -225,30 +225,29 @@ function getCustomerCount($conditions = [], $params = []) {
     return $stmt->fetchColumn();
 }
 
-function getPaginatedCustomers($conditions = [], $params = [], $page = 1, $perPage = 20) {
+function getPaginatedCustomers($conditions = [], $params = [], $page = 1, $perPage = 20, $sort = 'created_at', $order = 'desc') {
     global $pdo;
     
     $offset = ($page - 1) * $perPage;
     
     $query = "SELECT c.*, 
-             (SELECT MAX(action_datetime) FROM action_history WHERE customer_id = c.customer_id) as last_contact,
-             (SELECT status FROM customers WHERE customer_id = c.customer_id) as status
+             (SELECT MAX(action_datetime) FROM action_history WHERE customer_id = c.customer_id) as last_contact
              FROM customers c";
     
     if (!empty($conditions)) {
         $query .= " WHERE " . implode(" AND ", $conditions);
     }
     
-    $query .= " ORDER BY company_name LIMIT :limit OFFSET :offset";
+    $query .= " ORDER BY $sort $order LIMIT :limit OFFSET :offset";
     
     $stmt = $pdo->prepare($query);
     
-    foreach ($params as $key => &$val) {
-        $stmt->bindParam($key, $val);
+    foreach ($params as $key => $val) {
+        $stmt->bindValue($key, $val);
     }
     
-    $stmt->bindParam(':limit', $perPage, PDO::PARAM_INT);
-    $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
+    $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->execute();
     
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -297,5 +296,69 @@ function updateCustomer($id, $data) {
         $id
     ]);
 }
+
+function getCustomerStatusCounts() {
+    global $pdo;
+    $stmt = $pdo->query("SELECT status, COUNT(*) as count FROM customers GROUP BY status");
+    $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Ensure all statuses are represented
+    $counts = [
+        'Active' => 0,
+        'Inactive' => 0,
+        'Prospect' => 0
+    ];
+    
+    foreach ($results as $row) {
+        $counts[$row['status']] = $row['count'];
+    }
+    
+    return $counts;
+}
+
+function getSortedCustomers($search = '', $location = '', $sort = 'created_at', $order = 'desc') {
+    global $pdo;
+    
+    // Validate sort/order
+    $validSorts = ['company_name', 'location', 'status', 'created_at'];
+    $validOrders = ['asc', 'desc'];
+    $sort = in_array($sort, $validSorts) ? $sort : 'created_at';
+    $order = in_array($order, $validOrders) ? $order : 'desc';
+    
+    // Build query
+    $query = "SELECT c.*, 
+             (SELECT MAX(action_datetime) FROM action_history WHERE customer_id = c.customer_id) as last_contact
+             FROM customers c";
+    
+    $conditions = [];
+    $params = [];
+    
+    if (!empty($search)) {
+        $conditions[] = "company_name LIKE :search";
+        $params[':search'] = "%$search%";
+    }
+    
+    if (!empty($location)) {
+        $conditions[] = "location = :location";
+        $params[':location'] = $location;
+    }
+    
+    if (!empty($conditions)) {
+        $query .= " WHERE " . implode(" AND ", $conditions);
+    }
+    
+    $query .= " ORDER BY $sort $order";
+    
+    $stmt = $pdo->prepare($query);
+    
+    foreach ($params as $key => $val) {
+        $stmt->bindValue($key, $val);
+    }
+    
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+
 
 ?>

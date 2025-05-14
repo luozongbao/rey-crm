@@ -218,26 +218,26 @@ $action_history = $customer_id ? getActionHistory($customer_id) : [];
             <table class="compact-table">
                 <thead>
                     <tr>
-                        <th>Action</th>
-                        <th>Response</th>
-                        <th>Next Step</th>
-                        <th>Date/Time</th>
-                        <th>Follow Up</th>
+                        <th class="action-col">Action</th>
+                        <th class="response-col">Response</th>
+                        <th class="nextstep-col">Next Step</th>
+                        <th class="datetime-col">Date/Time</th>
+                        <th class="datetime-col">Follow Up</th>
                         <?php if (!$isViewMode): ?>
-                        <th>Actions</th>
+                        <th class="actions-col">Actions</th>
                         <?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($action_history as $history): ?>
                     <tr>
-                        <td><?php echo htmlspecialchars($history['action']); ?></td>
-                        <td><?php echo htmlspecialchars($history['response']); ?></td>
-                        <td><?php echo htmlspecialchars($history['next_step']); ?></td>
-                        <td><?php echo htmlspecialchars(date('Y-m-d H:i', strtotime($history['action_datetime']))); ?></td>
-                        <td><?php echo htmlspecialchars(date('Y-m-d H:i', strtotime($history['follow_up_datetime']))); ?></td>
+                        <td class="action-col"><?php echo htmlspecialchars($history['action']); ?></td>
+                        <td class="response-col"><?php echo htmlspecialchars($history['response']); ?></td>
+                        <td class="nextstep-col"><?php echo htmlspecialchars($history['next_step']); ?></td>
+                        <td class="datetime-col"><?php echo htmlspecialchars(date('Y-m-d H:i', strtotime($history['action_datetime']))); ?></td>
+                        <td class="datetime-col"><?php echo htmlspecialchars(date('Y-m-d H:i', strtotime($history['follow_up_datetime']))); ?></td>
                         <?php if (!$isViewMode): ?>
-                        <td>
+                        <td class="actions-col">
                             <a href="history_form.php?action=edit&id=<?php echo $history['history_id']; ?>&customer_id=<?php echo $customer_id; ?>" class="btn">Edit</a>
                             <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>&delete_history=<?php echo $history['history_id']; ?>" 
                             class="btn delete" onclick="return confirm('Are you sure you want to delete this history?')">Delete</a>
