@@ -6,7 +6,9 @@ USE personal_crm;
 CREATE TABLE IF NOT EXISTS customers (
     customer_id INT AUTO_INCREMENT PRIMARY KEY,
     company_name VARCHAR(100) NOT NULL,
-    location VARCHAR(100) NOT NULL,
+    address VARCHAR(200),
+    country VARCHAR(100),
+    province VARCHAR(100),
     company_type VARCHAR(50),
     contact_phone VARCHAR(50),
     contact_email VARCHAR(100),

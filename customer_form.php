@@ -15,7 +15,9 @@ if ($action == 'delete' && $customer_id) {
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edit')) {
     $data = [
         'company_name' => $_POST['company_name'],
-        'location' => $_POST['location'],
+        'address' => $_POST['address'] ?? null,
+        'country' => $_POST['country'] ?? null,
+        'province' => $_POST['province'] ?? null,
         'company_type' => $_POST['company_type'] ?? null,
         'contact_phone' => $_POST['contact_phone'] ?? null,
         'contact_email' => $_POST['contact_email'] ?? null,
@@ -33,8 +35,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
             
             // Insert customer
             $stmt = $pdo->prepare("INSERT INTO customers 
-                                  (company_name, location, company_type, contact_phone, contact_email, website, status, notes) 
-                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                                  (company_name, address, country, province, company_type, contact_phone, contact_email, website, status, notes) 
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute(array_values($data));
             $customer_id = $pdo->lastInsertId();
             
@@ -61,8 +63,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
             exit;
         } else {
             $stmt = $pdo->prepare("UPDATE customers SET 
-                                  company_name = ?, location = ?, company_type = ?, 
-                                  contact_phone = ?, contact_email = ?, website = ?, status = ?, notes = ? 
+                                  company_name = ?, address = ?, country = ?, province = ?, 
+                                  company_type = ?, contact_phone = ?, contact_email = ?, 
+                                  website = ?, status = ?, notes = ? 
                                   WHERE customer_id = ?");
             $data[] = $customer_id;
             $stmt->execute(array_values($data));
@@ -107,13 +110,29 @@ $action_history = $customer_id ? getActionHistory($customer_id) : [];
                 </div>
                 
                 <div class="form-group half-width">
-                    <label for="location">Location:</label>
-                    <input type="text" id="location" name="location" required 
-                           value="<?php echo $customer ? htmlspecialchars($customer['location']) : ''; ?>" 
+                    <label for="address">Address:</label>
+                    <input type="text" id="address" name="address"
+                           value="<?php echo $customer ? htmlspecialchars($customer['address']) : ''; ?>" 
                            <?php echo $isViewMode ? 'disabled' : ''; ?>>
                 </div>
             </div>
-            
+
+            <div class="form-row">
+                <div class="form-group half-width">
+                    <label for="country">Country:</label>
+                    <input type="text" id="country" name="country"
+                           value="<?php echo $customer ? htmlspecialchars($customer['country']) : ''; ?>" 
+                           <?php echo $isViewMode ? 'disabled' : ''; ?>>
+                </div>
+                
+                <div class="form-group half-width">
+                    <label for="province">Province:</label>
+                    <input type="text" id="province" name="province"
+                           value="<?php echo $customer ? htmlspecialchars($customer['province']) : ''; ?>" 
+                           <?php echo $isViewMode ? 'disabled' : ''; ?>>
+                </div>
+            </div>
+
             <div class="form-row">
                 <div class="form-group half-width">
                     <label for="company_type">Company Type:</label>

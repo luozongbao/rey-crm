@@ -4,6 +4,11 @@ require_once 'config.php';
 function getAllCustomers() {
     global $pdo;
     $stmt = $pdo->query("SELECT c.*, 
+                        CONCAT_WS(', ', 
+                            c.address,
+                            NULLIF(c.province, ''),
+                            NULLIF(c.country, '')
+                        ) as full_address,
                         (SELECT MAX(action_datetime) FROM action_history WHERE customer_id = c.customer_id) as last_contact
                         FROM customers c ORDER BY company_name");
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -11,7 +16,13 @@ function getAllCustomers() {
 
 function getCustomerById($id) {
     global $pdo;
-    $stmt = $pdo->prepare("SELECT * FROM customers WHERE customer_id = ?");
+    $stmt = $pdo->prepare("SELECT *, 
+                          CONCAT_WS(', ', 
+                              address,
+                              NULLIF(province, ''),
+                              NULLIF(country, '')
+                          ) as full_address 
+                          FROM customers WHERE customer_id = ?");
     $stmt->execute([$id]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
@@ -111,7 +122,12 @@ function getTotalCustomers() {
 
 function getLocationStats() {
     global $pdo;
-    $stmt = $pdo->query("SELECT location, COUNT(*) as count FROM customers GROUP BY location");
+    $stmt = $pdo->query("SELECT 
+                        CONCAT_WS(', ', province, country) as location,
+                        COUNT(*) as count 
+                        FROM customers 
+                        WHERE province IS NOT NULL OR country IS NOT NULL 
+                        GROUP BY province, country");
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
@@ -178,7 +194,12 @@ function getFollowupsForExport($start_date, $end_date) {
 
 function getAllLocations() {
     global $pdo;
-    $stmt = $pdo->query("SELECT DISTINCT location FROM customers ORDER BY location");
+    $stmt = $pdo->query("SELECT DISTINCT 
+                        CONCAT_WS(', ', province, country) as location 
+                        FROM customers 
+                        WHERE province IS NOT NULL OR country IS NOT NULL 
+                        HAVING location IS NOT NULL 
+                        ORDER BY location");
     return $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
 }
 
@@ -264,11 +285,14 @@ function buildQueryString($newParams = []) {
 function addCustomer($data) {
     global $pdo;
     $stmt = $pdo->prepare("INSERT INTO customers 
-                          (company_name, location, company_type, contact_phone, contact_email, website, status, notes) 
-                          VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                          (company_name, address, country, province, company_type, contact_phone, 
+                           contact_email, website, status, notes) 
+                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     return $stmt->execute([
         $data['company_name'],
-        $data['location'],
+        $data['address'],
+        $data['country'],
+        $data['province'],
         $data['company_type'],
         $data['contact_phone'],
         $data['contact_email'],
@@ -281,12 +305,15 @@ function addCustomer($data) {
 function updateCustomer($id, $data) {
     global $pdo;
     $stmt = $pdo->prepare("UPDATE customers SET 
-                          company_name = ?, location = ?, company_type = ?, 
-                          contact_phone = ?, contact_email = ?, website = ?, status = ?, notes = ? 
+                          company_name = ?, address = ?, country = ?, province = ?,
+                          company_type = ?, contact_phone = ?, contact_email = ?, 
+                          website = ?, status = ?, notes = ? 
                           WHERE customer_id = ?");
     return $stmt->execute([
         $data['company_name'],
-        $data['location'],
+        $data['address'],
+        $data['country'],
+        $data['province'],
         $data['company_type'],
         $data['contact_phone'],
         $data['contact_email'],
@@ -334,10 +361,10 @@ function getSortedCustomers($search = '', $location = '', $sort = 'created_at', 
     global $pdo;
     
     // Validate sort/order
-    $validSorts = ['company_name', 'location', 'status', 'created_at'];
+    $validSorts = ['company_name', 'address', 'status', 'created_at'];
     $validOrders = ['asc', 'desc'];
     $sort = in_array($sort, $validSorts) ? $sort : 'created_at';
-    $order = in_array($order, $validOrders) ? $order : 'desc';
+    $order = in_array($validOrders, $order) ? $order : 'desc';
     
     // Build query
     $query = "SELECT c.*, 
@@ -353,7 +380,7 @@ function getSortedCustomers($search = '', $location = '', $sort = 'created_at', 
     }
     
     if (!empty($location)) {
-        $conditions[] = "location = :location";
+        $conditions[] = "address = :location";
         $params[':location'] = $location;
     }
     
@@ -453,6 +480,17 @@ function getFilteredActivities($customer_id = '', $date_from = '', $date_to = ''
     
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function formatCustomerAddress($customer) {
+    $addressParts = array_filter([
+        $customer['address'],
+        $customer['province'],
+        $customer['country']
+    ], function($part) {
+        return !empty($part);
+    });
+    return implode(', ', $addressParts);
 }
 
 ?>

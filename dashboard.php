@@ -121,7 +121,13 @@ try {
                 <?php if ($lastContacted): ?>
                 <div class="last-contacted">
                     <p><strong><?php echo htmlspecialchars($lastContacted['company_name']); ?></strong></p>
-                    <p><?php echo htmlspecialchars($lastContacted['location']); ?></p>
+                    <p><?php 
+                        $location = trim(implode(', ', array_filter([
+                            $lastContacted['province'],
+                            $lastContacted['country']
+                        ])));
+                        echo htmlspecialchars($location ? $location : 'N/A');
+                    ?></p>
                     <p><?php echo htmlspecialchars($lastContacted['contact_email'] ?? 'N/A'); ?></p>
                 </div>
                 <?php else: ?>

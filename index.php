@@ -10,7 +10,7 @@ $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $perPage = 20;
 
 // Validate sort parameters
-$validSorts = ['company_name', 'location', 'status', 'created_at'];
+$validSorts = ['company_name', 'address', 'status', 'created_at'];
 $validOrders = ['asc', 'desc'];
 
 $sort = in_array($sort, $validSorts) ? $sort : 'created_at';
@@ -26,7 +26,7 @@ if (!empty($search)) {
 }
 
 if (!empty($location)) {
-    $conditions[] = "location = :location";
+    $conditions[] = "CONCAT_WS(', ', province, country) = :location";
     $params[':location'] = $location;
 }
 
@@ -107,10 +107,10 @@ $statusCounts = getCustomerStatusCounts();
                 
                 <!-- Sort Section -->
                 <div class="sort-section">
-                    <span class="sort-label">Sort:</span>
+                    <label class="sort-label">Sort by:</label>
                     <select name="sort" class="sort-select">
                         <option value="company_name" <?php echo $sort == 'company_name' ? 'selected' : ''; ?>>Name</option>
-                        <option value="location" <?php echo $sort == 'location' ? 'selected' : ''; ?>>Location</option>
+                        <option value="address" <?php echo $sort == 'address' ? 'selected' : ''; ?>>Address</option>
                         <option value="status" <?php echo $sort == 'status' ? 'selected' : ''; ?>>Status</option>
                         <option value="created_at" <?php echo $sort == 'created_at' ? 'selected' : ''; ?>>Created</option>
                     </select>
@@ -125,7 +125,35 @@ $statusCounts = getCustomerStatusCounts();
             </form>
         </div>
         
-        <a href="customer_form.php?action=add" class="btn">Create New Customer</a>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <a href="customer_form.php?action=add" class="btn">Create New Customer</a>
+            
+            <?php if ($totalPages > 1): ?>
+            <div class="pagination" style="margin: 0;">
+                <?php if ($page > 1): ?>
+                    <a href="?<?php echo buildQueryString(['page' => 1]); ?>" class="btn">First</a>
+                    <a href="?<?php echo buildQueryString(['page' => $page - 1]); ?>" class="btn">Previous</a>
+                <?php endif; ?>
+                
+                <?php 
+                $startPage = max(1, $page - 2);
+                $endPage = min($totalPages, $page + 2);
+                
+                for ($i = $startPage; $i <= $endPage; $i++): 
+                ?>
+                    <a href="?<?php echo buildQueryString(['page' => $i]); ?>" 
+                       class="btn <?php echo $i == $page ? 'active' : ''; ?>">
+                        <?php echo $i; ?>
+                    </a>
+                <?php endfor; ?>
+                
+                <?php if ($page < $totalPages): ?>
+                    <a href="?<?php echo buildQueryString(['page' => $page + 1]); ?>" class="btn">Next</a>
+                    <a href="?<?php echo buildQueryString(['page' => $totalPages]); ?>" class="btn">Last</a>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+        </div>
         
         <table class="compact-table">
             <thead>
@@ -141,7 +169,13 @@ $statusCounts = getCustomerStatusCounts();
                 <?php foreach ($customers as $customer): ?>
                 <tr>
                     <td><?php echo htmlspecialchars($customer['company_name']); ?></td>
-                    <td><?php echo htmlspecialchars($customer['location']); ?></td>
+                    <td><?php 
+                        $location = trim(implode(', ', array_filter([
+                            $customer['province'],
+                            $customer['country']
+                        ])));
+                        echo htmlspecialchars($location ? $location : 'N/A');
+                    ?></td>
                     <td><?php echo $customer['last_contact'] ? date('Y-m-d H:i', strtotime($customer['last_contact'])) : 'Never'; ?></td>
                     <td><span class="status-badge status-<?php echo str_replace(' ', '', strtolower($customer['status'])); ?>">
                         <?php echo htmlspecialchars($customer['status']); ?>
