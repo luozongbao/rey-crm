@@ -149,14 +149,15 @@ $action_history = $customer_id ? getActionHistory($customer_id) : [];
             <div class="form-group">
                 <label for="status">Status:</label>
                 <select id="status" name="status" <?php echo $isViewMode ? 'disabled' : ''; ?>>
-                    <option value="Prospect" <?php echo ($customer && $customer['status'] == 'Prospect') ? 'selected' : ''; ?>>Prospect</option>
-                    <option value="Qualified" <?php echo ($customer && $customer['status'] == 'Qualified') ? 'selected' : ''; ?>>Qualified</option>
-                    <option value="Not Qualified" <?php echo ($customer && $customer['status'] == 'Not Qualified') ? 'selected' : ''; ?>>Not Qualified</option>
-                    <option value="New Customer" <?php echo ($customer && $customer['status'] == 'New Customer') ? 'selected' : ''; ?>>New Customer</option>
-                    <option value="Active Customer" <?php echo ($customer && $customer['status'] == 'Active Customer') ? 'selected' : ''; ?>>Active Customer</option>
-                    <option value="Inactive Customer" <?php echo ($customer && $customer['status'] == 'Inactive Customer') ? 'selected' : ''; ?>>Inactive Customer</option>
-                    <option value="Won Customer" <?php echo ($customer && $customer['status'] == 'Won Customer') ? 'selected' : ''; ?>>Won Customer</option>
-                    <option value="Lost Customer" <?php echo ($customer && $customer['status'] == 'Lost Customer') ? 'selected' : ''; ?>>Lost Customer</option>
+                    <?php
+                    $statusOptions = getCustomerStatusOptions();
+                    foreach ($statusOptions as $statusOption):
+                        $selected = ($customer && $customer['status'] == $statusOption) ? 'selected' : '';
+                    ?>
+                        <option value="<?php echo htmlspecialchars($statusOption); ?>" <?php echo $selected; ?>>
+                            <?php echo htmlspecialchars($statusOption); ?>
+                        </option>
+                    <?php endforeach; ?>
                 </select>
             </div>
             

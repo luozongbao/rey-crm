@@ -267,15 +267,21 @@ textarea {
     background-color: #e74c3c; /* Red */
 }
 
-.status-woncustomer,
-.status-won-customer {
-    background-color: #16a085; /* Turquoise */
-    color: white;
-}
-
 .status-lostcustomer,
 .status-lost-customer {
     background-color: #c0392b; /* Dark Red */
+    color: white;
+}
+
+.status-closedlost,
+.status-closed-lost {
+    background-color: #c0392b; /* Dark Red */
+    color: white;
+}
+
+.status-closedwon,
+.status-closed-won {
+    background-color: #2980b9; /* Dark Blue */
     color: white;
 }
 

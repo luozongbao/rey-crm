@@ -316,6 +316,20 @@ function getCustomerStatusCounts() {
     return $counts;
 }
 
+function getCustomerStatusOptions() {
+    global $pdo;
+    $sql = "SHOW COLUMNS FROM customers WHERE Field = 'status'";
+    $stmt = $pdo->query($sql);
+    $row = $stmt->fetch();
+    
+    if ($row && preg_match("/^enum\((.*)\)$/", $row['Type'], $matches)) {
+        $values = str_getcsv(str_replace("'", '', $matches[1]));
+        return $values;
+    }
+    
+    return [];
+}
+
 function getSortedCustomers($search = '', $location = '', $sort = 'created_at', $order = 'desc') {
     global $pdo;
     
