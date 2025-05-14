@@ -21,7 +21,7 @@ $conditions = [];
 $params = [];
 
 if (!empty($search)) {
-    $conditions[] = "company_name LIKE :search";
+    $conditions[] = "(company_name LIKE :search OR contact_phone LIKE :search)";
     $params[':search'] = "%$search%";
 }
 
@@ -93,7 +93,7 @@ $statusCounts = getCustomerStatusCounts();
                 <!-- Search Section -->
                 <div class="search-section">
                     <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" 
-                        placeholder="Search company name" class="search-input">
+                        placeholder="Search by company name or phone" class="search-input">
                     
                     <select name="location" class="location-select">
                         <option value="">All Locations</option>
