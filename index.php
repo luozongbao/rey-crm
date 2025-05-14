@@ -143,7 +143,7 @@ $statusCounts = getCustomerStatusCounts();
                     <td><?php echo htmlspecialchars($customer['company_name']); ?></td>
                     <td><?php echo htmlspecialchars($customer['location']); ?></td>
                     <td><?php echo $customer['last_contact'] ? date('Y-m-d H:i', strtotime($customer['last_contact'])) : 'Never'; ?></td>
-                    <td><span class="status-badge status-<?php echo strtolower($customer['status']); ?>">
+                    <td><span class="status-badge status-<?php echo str_replace(' ', '', strtolower($customer['status'])); ?>">
                         <?php echo htmlspecialchars($customer['status']); ?>
                     </span></td>
                     <td>

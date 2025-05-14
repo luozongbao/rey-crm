@@ -93,7 +93,7 @@ $followups = getFilteredFollowups($customer_id, $date_from, $date_to, $sort, $or
                 <tr>
                     <th>Customer</th>
                     <th>Action</th>
-                    <th>Follow-up Date</th>
+                    <th class="datetime">Follow-up Date</th>
                     <th>Next Step</th>
                 </tr>
             </thead>

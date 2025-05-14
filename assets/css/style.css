@@ -55,6 +55,13 @@ tr:nth-child(even) {
     background-color: #f9f9f9;
 }
 
+table.data-table th[class*="datetime"], 
+table.data-table td[class*="datetime"] {
+    min-width: 140px;
+    width: 140px;
+    white-space: nowrap;
+}
+
 .form-group {
     margin-bottom: 15px;
 }
@@ -134,6 +141,45 @@ textarea {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
+.dashboard-card h2 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.dashboard-card h2 .btn {
+    margin: 0;
+    font-size: 12px;
+    padding: 6px 12px;
+}
+
+.dashboard-card .export-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    background: none;
+    padding: 0;
+}
+
+.dashboard-card .export-form .form-group {
+    width: 100%;
+    max-width: 200px;
+    text-align: center;
+}
+
+.dashboard-card .export-form input[type="date"] {
+    width: 100%;
+    text-align: center;
+}
+
+.dashboard-card .export-form button.btn {
+    margin: 0;
+    font-size: 12px;
+    padding: 6px 12px;
+}
+
 .stat-value {
     font-size: 32px;
     font-weight: bold;
@@ -178,6 +224,7 @@ textarea {
     border-radius: 12px;
     font-size: 12px;
     font-weight: bold;
+    color: white;
 }
 
 .status-active {
@@ -192,6 +239,43 @@ textarea {
 
 .status-prospect {
     background-color: #f39c12;
+    color: white;
+}
+
+.status-qualified {
+    background-color: #3498db; /* Blue */
+}
+
+.status-notqualified,
+.status-not-qualified {
+    background-color: #95a5a6; /* Black */
+    color: white;
+}
+
+.status-newcustomer,
+.status-new-customer {
+    background-color: #2ecc71; /* Green */
+}
+
+.status-activecustomer,
+.status-active-customer {
+    background-color: #27ae60; /* Dark Green */
+}
+
+.status-inactivecustomer,
+.status-inactive-customer {
+    background-color: #e74c3c; /* Red */
+}
+
+.status-woncustomer,
+.status-won-customer {
+    background-color: #16a085; /* Turquoise */
+    color: white;
+}
+
+.status-lostcustomer,
+.status-lost-customer {
+    background-color: #c0392b; /* Dark Red */
     color: white;
 }
 
@@ -454,6 +538,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     display: flex;
     gap: 30px;
     margin-bottom: 20px;
+    justify-content: space-between;
 }
 
 .form-group {
@@ -470,7 +555,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 }
 
 .half-width {
-    flex: 1;
+    flex: 0 0 calc(50% - 15px);
     min-width: 0;
 }
 
@@ -544,7 +629,7 @@ select#status {
 
 .status-label {
     display: inline-block;
-    width: 80px;
+    width: 140px;
     font-weight: bold;
 }
 
@@ -940,6 +1025,21 @@ select#status {
     padding: 15px;
     border-radius: 5px;
     margin-bottom: 20px;
+}
+
+.filter-form .form-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.filter-form .btn {
+    height: 34px;
+    padding: 0 15px;
+    margin-top: 21px;
+    line-height: 34px;
+    vertical-align: middle;
 }
 
 .form-row {

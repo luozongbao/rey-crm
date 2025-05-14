@@ -147,8 +147,7 @@ try {
             
             <?php if (!empty($upcomingFollowups)): ?>
             <div class="dashboard-card full-width">
-                <h2>Follow-ups</h2>
-                <a href="all_followups.php" class="btn">View All Follow-ups</a>
+                <h2>Follow-ups <a href="all_followups.php" class="btn">View All Follow-ups</a></h2>
                 <?php $upcoming = getUpcomingFollowups(5); ?>
                 <table class="compact-table">
                     <thead>
@@ -175,8 +174,7 @@ try {
             
             <?php if (!empty($recentActivities)): ?>
             <div class="dashboard-card full-width">
-                <h2>Recent Activities</h2>
-                <a href="all_activities.php" class="btn">View All Activities</a>
+                <h2>Recent Activities <a href="all_activities.php" class="btn">View All Activities</a></h2>
                 <?php $recent = getRecentActivities(5); ?>
                 <div class="timeline">
                     <?php foreach ($recentActivities as $activity): ?>
@@ -196,8 +194,8 @@ try {
             <?php endif; ?>
 
             <div class="dashboard-card">
-                <h2>Export History</h2>
-                <form method="post">
+                <h2>Export History <button type="submit" form="export-history-form" name="export_history" class="btn">Export as CSV</button></h2>
+                <form method="post" id="export-history-form" class="export-form">
                     <div class="form-group">
                         <label for="history_start">Start Date:</label>
                         <input type="date" id="history_start" name="history_start" value="<?php echo date('Y-m-d', strtotime('-1 week')); ?>">
@@ -206,13 +204,12 @@ try {
                         <label for="history_end">End Date:</label>
                         <input type="date" id="history_end" name="history_end" value="<?php echo date('Y-m-d'); ?>">
                     </div>
-                    <button type="submit" name="export_history" class="btn">Export as CSV</button>
                 </form>
             </div>
 
             <div class="dashboard-card">
-                <h2>Export Followups</h2>
-                <form method="post">
+                <h2>Export Followups <button type="submit" form="export-followups-form" name="export_followup" class="btn">Export as CSV</button></h2>
+                <form method="post" id="export-followups-form" class="export-form">
                     <div class="form-group">
                         <label for="followup_start">Start Date:</label>
                         <input type="date" id="followup_start" name="followup_start" value="<?php echo date('Y-m-d'); ?>">
@@ -221,7 +218,6 @@ try {
                         <label for="followup_end">End Date:</label>
                         <input type="date" id="followup_end" name="followup_end" value="<?php echo date('Y-m-d', strtotime('+1 week')); ?>">
                     </div>
-                    <button type="submit" name="export_followup" class="btn">Export as CSV</button>
                 </form>
             </div>
 

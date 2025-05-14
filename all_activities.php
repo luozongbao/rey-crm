@@ -93,7 +93,7 @@ $activities = getFilteredActivities($customer_id, $date_from, $date_to, $sort, $
                 <tr>
                     <th>Customer</th>
                     <th>Action</th>
-                    <th>Date/Time</th>
+                    <th class="datetime">Date/Time</th>
                     <th>Response</th>
                 </tr>
             </thead>
