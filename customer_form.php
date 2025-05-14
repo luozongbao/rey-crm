@@ -1,5 +1,6 @@
 <?php 
 require_once 'includes/functions.php';
+session_start();
 
 $action = $_GET['action'] ?? 'add';
 $customer_id = $_GET['id'] ?? 0;
@@ -8,7 +9,7 @@ $isEditMode = $action === 'edit';
 
 if ($action == 'delete' && $customer_id) {
     deleteCustomer($customer_id);
-    header("Location: index.php");
+    header("Location: index.php?restore=1");
     exit;
 }
 
@@ -59,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
             // Commit transaction
             $pdo->commit();
             
-            header("Location: index.php");
+            header("Location: index.php?restore=1");
             exit;
         } else {
             $stmt = $pdo->prepare("UPDATE customers SET 
@@ -70,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
             $data[] = $customer_id;
             $stmt->execute(array_values($data));
             
-            header("Location: index.php");
+            header("Location: index.php?restore=1");
             exit;
         }
     } catch (PDOException $e) {
@@ -97,7 +98,7 @@ $action_history = $customer_id ? getActionHistory($customer_id) : [];
     <div class="container">
         <div class="header">
             <h1><?php echo ucfirst($action); ?> Customer</h1>
-            <a href="index.php" class="btn">Back</a>
+            <a href="index.php?restore=1" class="btn">Back</a>
         </div>
         
         <form method="post">
@@ -190,10 +191,10 @@ $action_history = $customer_id ? getActionHistory($customer_id) : [];
             <div class="form-actions">
                 <?php if ($action == 'add'): ?>
                 <button type="submit" class="btn">Add Customer</button>
-                <a href="index.php" class="btn">Cancel</a>
+                <a href="index.php?restore=1" class="btn">Cancel</a>
                 <?php elseif ($action == 'edit'): ?>
                 <button type="submit" class="btn">Save Customer</button>
-                <a href="customer_form.php?action=view&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
+                <a href="index.php?restore=1" class="btn">Cancel</a>
                 <?php endif; ?>
             </div>
         </form>

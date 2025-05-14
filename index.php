@@ -1,13 +1,34 @@
 <?php 
 require_once 'includes/functions.php';
+session_start();
 
-// Get all parameters with proper sanitization
-$search = isset($_GET['search']) ? trim($_GET['search']) : '';
-$location = isset($_GET['location']) ? trim($_GET['location']) : '';
-$sort = isset($_GET['sort']) ? trim($_GET['sort']) : 'created_at';
-$order = isset($_GET['order']) ? trim($_GET['order']) : 'desc';
-$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+// Get page state either from session (if restoring) or from GET parameters
+if (isset($_GET['restore']) && isset($_SESSION['last_page_state'])) {
+    $state = $_SESSION['last_page_state'];
+    $search = $state['search'];
+    $location = $state['location'];
+    $sort = $state['sort'];
+    $order = $state['order'];
+    $page = $state['page'];
+} else {
+    $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+    $location = isset($_GET['location']) ? trim($_GET['location']) : '';
+    $sort = isset($_GET['sort']) ? trim($_GET['sort']) : 'created_at';
+    $order = isset($_GET['order']) ? trim($_GET['order']) : 'desc';
+    $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+}
 $perPage = 20;
+
+// Store state in session when navigating away
+if (!isset($_GET['restore'])) {
+    $_SESSION['last_page_state'] = [
+        'search' => $search,
+        'location' => $location,
+        'sort' => $sort,
+        'order' => $order,
+        'page' => $page
+    ];
+}
 
 // Validate sort parameters
 $validSorts = ['company_name', 'address', 'status', 'created_at'];
@@ -26,7 +47,12 @@ if (!empty($search)) {
 }
 
 if (!empty($location)) {
-    $conditions[] = "CONCAT_WS(', ', province, country) = :location";
+    $conditions[] = "CASE
+        WHEN NULLIF(TRIM(province), '') IS NULL AND NULLIF(TRIM(country), '') IS NULL THEN 'N/A'
+        WHEN NULLIF(TRIM(province), '') IS NULL THEN NULLIF(TRIM(country), '')
+        WHEN NULLIF(TRIM(country), '') IS NULL THEN NULLIF(TRIM(province), '')
+        ELSE CONCAT(TRIM(province), ', ', TRIM(country))
+    END = :location";
     $params[':location'] = $location;
 }
 
@@ -54,9 +80,9 @@ $statusCounts = getCustomerStatusCounts();
         <div class="header">
             <h1>Customer List</h1>
             <div class="header-buttons">
-                <a href="dashboard.php" class="btn dashboard-btn">Dashboard</a>
                 <a href="all_followups.php" class="btn">View All Follow-ups</a>
                 <a href="all_activities.php" class="btn">View All Activities</a>
+                <a href="dashboard.php" class="btn dashboard-btn">Dashboard</a>
             </div>
         </div>
 
@@ -174,11 +200,15 @@ $statusCounts = getCustomerStatusCounts();
                 <tr>
                     <td><?php echo htmlspecialchars($customer['company_name']); ?></td>
                     <td><?php 
-                        $location = trim(implode(', ', array_filter([
-                            $customer['province'],
-                            $customer['country']
-                        ])));
-                        echo htmlspecialchars($location ? $location : 'N/A');
+                        if (empty($customer['province']) && empty($customer['country'])) {
+                            echo 'N/A';
+                        } elseif (empty($customer['province'])) {
+                            echo htmlspecialchars($customer['country']);
+                        } elseif (empty($customer['country'])) {
+                            echo htmlspecialchars($customer['province']);
+                        } else {
+                            echo htmlspecialchars($customer['province'] . ', ' . $customer['country']);
+                        }
                     ?></td>
                     <td><?php echo $customer['last_contact'] ? date('Y-m-d H:i', strtotime($customer['last_contact'])) : 'Never'; ?></td>
                     <td><span class="status-badge status-<?php echo str_replace(' ', '', strtolower($customer['status'])); ?>">

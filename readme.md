@@ -7,15 +7,24 @@ A modern PHP-based Customer Relationship Management (CRM) system designed for ma
 ### Customer Management
 - Complete CRUD operations for customer records
 - Comprehensive company tracking:
-  - Company name and location
+  - Company name and detailed location (Province, Country)
   - Company type and classification
   - Primary contact information
   - Website and online presence
   - Detailed notes and remarks
+- Smart location handling:
+  - Separate province and country fields
+  - Intelligent location display (Province, Country, or single field)
+  - Location-based filtering with N/A handling
+  - Organized location dropdown in filters
 - Dynamic status management:
   - Status options from database ENUM
   - Status types: Prospect, Qualified, Not Qualified, New Customer, Active Customer, Inactive Customer, Won Customer, Lost Customer
   - Visual status indicators with color-coded badges
+- State preservation:
+  - Remembers search, filter, and sort settings
+  - Maintains page position when returning from forms
+  - Smart navigation with state restoration
 
 ### Contact Person Management
 - Multiple contacts per customer
@@ -50,6 +59,20 @@ A modern PHP-based Customer Relationship Management (CRM) system designed for ma
   - Status labels with dynamic width support
   - Color-coded status indicators
 
+### UI/UX Features
+- Advanced Search and Filtering:
+  - Combined search for company name and phone
+  - Smart location filtering with proper handling of empty values
+  - Persistent search state across navigation
+- Improved Table Layout:
+  - Responsive table design
+  - Smart handling of location display (Province, Country)
+  - Efficient pagination with state preservation
+- Enhanced Navigation:
+  - State preservation across form submissions
+  - Intelligent back navigation
+  - User-friendly filter reset options
+
 ## Technical Requirements
 
 - PHP 7.4+ recommended (7.0+ minimum)
@@ -60,6 +83,12 @@ A modern PHP-based Customer Relationship Management (CRM) system designed for ma
   - mbstring
   - json
   - session
+
+### Browser Requirements
+- Modern browsers (Chrome, Firefox, Safari, Edge)
+- JavaScript enabled for enhanced features
+- Minimum screen resolution: 768px width
+- Cookies enabled for session management
 
 ## Installation
 

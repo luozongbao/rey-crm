@@ -207,7 +207,10 @@ textarea {
 
 .location-name, .contact-item span:first-child {
     display: inline-block;
-    width: 120px;
+    width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .location-percent, .contact-item span:last-child {
@@ -677,7 +680,7 @@ select#status {
 
 .location-name {
     display: inline-block;
-    width: 120px;
+    width: 250px;
 }
 
 .location-percent {

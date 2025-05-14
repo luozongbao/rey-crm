@@ -195,12 +195,19 @@ function getFollowupsForExport($start_date, $end_date) {
 function getAllLocations() {
     global $pdo;
     $stmt = $pdo->query("SELECT DISTINCT 
-                        CONCAT_WS(', ', province, country) as location 
+                        NULLIF(TRIM(province), '') as province,
+                        NULLIF(TRIM(country), '') as country,
+                        CASE
+                            WHEN NULLIF(TRIM(province), '') IS NULL AND NULLIF(TRIM(country), '') IS NULL THEN 'N/A'
+                            WHEN NULLIF(TRIM(province), '') IS NULL THEN NULLIF(TRIM(country), '')
+                            WHEN NULLIF(TRIM(country), '') IS NULL THEN NULLIF(TRIM(province), '')
+                            ELSE CONCAT(TRIM(province), ', ', TRIM(country))
+                        END as location
                         FROM customers 
-                        WHERE province IS NOT NULL OR country IS NOT NULL 
-                        HAVING location IS NOT NULL 
-                        ORDER BY location");
-    return $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+                        ORDER BY 
+                            CASE WHEN NULLIF(TRIM(province), '') IS NULL AND NULLIF(TRIM(country), '') IS NULL THEN 1 ELSE 0 END,
+                            location");
+    return $stmt->fetchAll(PDO::FETCH_COLUMN, 2);
 }
 
 function getFilteredCustomers($conditions = [], $params = []) {
@@ -280,6 +287,18 @@ function buildQueryString($newParams = []) {
         $params[$key] = $value;
     }
     return http_build_query($params);
+}
+
+/**
+ * Returns the current page state as a URL query string
+ * @param array $additionalParams Additional parameters to include in the URL
+ * @return string The URL with preserved state
+ */
+function buildUrlWithState($additionalParams = []) {
+    if (isset($_SESSION['last_page_state'])) {
+        return '?' . http_build_query(array_merge($_SESSION['last_page_state'], $additionalParams));
+    }
+    return '?' . http_build_query($additionalParams);
 }
 
 function addCustomer($data) {
