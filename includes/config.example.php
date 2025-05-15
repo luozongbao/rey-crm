@@ -1,9 +1,9 @@
 <?php
 // Database configuration
 define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
-define('DB_NAME', getenv('DB_NAME') ?: 'reycrmdb');
-define('DB_USER', getenv('DB_USER') ?: 'reycrmdbuser');
-define('DB_PASS', getenv('DB_PASS') ?: 'P@ssw0rd4reycrmdbuser');
+define('DB_NAME', getenv('DB_NAME') ?: 'database_name_here');
+define('DB_USER', getenv('DB_USER') ?: 'datebase_user_here');
+define('DB_PASS', getenv('DB_PASS') ?: 'your_password_here');
 
 // Error logging configuration
 define('LOG_DIR', dirname(__DIR__) . '/logs');

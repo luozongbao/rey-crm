@@ -1,7 +1,3 @@
--- Create the database
-CREATE DATABASE IF NOT EXISTS personal_crm;
-USE personal_crm;
-
 -- Create customers table with website field
 CREATE TABLE IF NOT EXISTS customers (
     customer_id INT AUTO_INCREMENT PRIMARY KEY,
