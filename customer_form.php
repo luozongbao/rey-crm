@@ -193,8 +193,14 @@ $action_history = $customer_id ? getActionHistory($customer_id) : [];
                 <button type="submit" class="btn">Add Customer</button>
                 <a href="customers.php?restore=1" class="btn">Cancel</a>
                 <?php elseif ($action == 'edit'): ?>
-                <button type="submit" class="btn">Save Customer</button>
-                <a href="customers.php?restore=1" class="btn">Cancel</a>
+                <div class="form-actions-row">
+                    <div class="form-actions-main">
+                        <button type="submit" class="btn">Save Customer</button>
+                        <a href="customers.php?restore=1" class="btn">Cancel</a>
+                    </div>
+                    <a href="customer_form.php?action=delete&id=<?php echo $customer_id; ?>" 
+                       class="btn delete" onclick="return confirm('Are you sure you want to delete this customer and all related data?')">Delete Customer</a>
+                </div>
                 <?php endif; ?>
             </div>
         </form>
@@ -228,8 +234,6 @@ $action_history = $customer_id ? getActionHistory($customer_id) : [];
                         <?php if (!$isViewMode): ?>
                         <td>
                             <a href="contact_form.php?action=edit&id=<?php echo $contact['contact_id']; ?>" class="btn">Edit</a>
-                            <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>&delete_contact=<?php echo $contact['contact_id']; ?>" 
-                            class="btn delete" onclick="return confirm('Are you sure you want to delete this contact?')">Delete</a>
                         </td>
                         <?php endif; ?>
                     </tr>
@@ -269,8 +273,6 @@ $action_history = $customer_id ? getActionHistory($customer_id) : [];
                         <?php if (!$isViewMode): ?>
                         <td class="actions-col">
                             <a href="history_form.php?action=edit&id=<?php echo $history['history_id']; ?>&customer_id=<?php echo $customer_id; ?>" class="btn">Edit</a>
-                            <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>&delete_history=<?php echo $history['history_id']; ?>" 
-                            class="btn delete" onclick="return confirm('Are you sure you want to delete this history?')">Delete</a>
                         </td>
                         <?php endif; ?>
                     </tr>

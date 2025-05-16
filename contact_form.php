@@ -103,8 +103,19 @@ $customer_id = $contact ? $contact['customer_id'] : $customer_id;
                     <?php echo $isViewMode ? 'disabled' : ''; ?>>
             </div>
             
-            <button type="submit" class="btn">Save</button>
-            <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
+            <?php if ($action == 'add'): ?>
+                <button type="submit" class="btn">Save</button>
+                <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
+            <?php elseif ($action == 'edit'): ?>
+                <div class="form-actions-row">
+                    <div class="form-actions-main">
+                        <button type="submit" class="btn">Save</button>
+                        <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
+                    </div>
+                    <a href="contact_form.php?action=delete&id=<?php echo $contact_id; ?>&customer_id=<?php echo $customer_id; ?>" 
+                       class="btn delete" onclick="return confirm('Are you sure you want to delete this contact?')">Delete Contact</a>
+                </div>
+            <?php endif; ?>
         </form>
     </div>
 </body>

@@ -400,9 +400,43 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 }
 
 .form-actions {
-    margin-top: 25px;
+    margin-top: var(--spacing);
+}
+
+.form-actions-row {
     display: flex;
-    gap: 15px;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.form-actions-main {
+    display: flex;
+    gap: var(--spacing);
+}
+
+.form-actions .btn.delete {
+    margin-left: auto;
+}
+
+.form-actions {
+    margin-top: var(--spacing);
+}
+
+.form-actions-row {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.form-actions-main {
+    display: flex;
+    gap: var(--spacing);
+}
+
+.form-actions .btn.delete {
+    margin-left: auto;
 }
 
 /* Form Controls */

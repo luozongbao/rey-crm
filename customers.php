@@ -220,8 +220,6 @@ $statusCounts = getCustomerStatusCounts();
                     <td>
                         <a href="customer_form.php?action=view&id=<?php echo $customer['customer_id']; ?>" class="btn">View</a>
                         <a href="customer_form.php?action=edit&id=<?php echo $customer['customer_id']; ?>" class="btn">Edit</a>
-                        <a href="customer_form.php?action=delete&id=<?php echo $customer['customer_id']; ?>" 
-                           class="btn delete" onclick="return confirm('Are you sure you want to delete this customer and all related data?')">Delete</a>
                     </td>
                 </tr>
                 <?php endforeach; ?>
