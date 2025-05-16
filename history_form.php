@@ -93,15 +93,10 @@ $customer = getCustomerById($customer_id);
 ?>
     <div class="container">
         <div class="customer-info-panel">
-            <h2>Customer Information</h2>
-            <div class="info-grid">
-                <div class="info-item">
-                    <label>Company Name:</label>
+            <div class="info-row">
+                <div class="info-item company-name">
+                    <label>Company:</label>
                     <span><?php echo htmlspecialchars($customer['company_name']); ?></span>
-                </div>
-                <div class="info-item">
-                    <label>Location:</label>
-                    <span><?php echo htmlspecialchars($customer['full_address']); ?></span>
                 </div>
                 <div class="info-item">
                     <label>Phone:</label>
@@ -111,7 +106,13 @@ $customer = getCustomerById($customer_id);
                     <label>Email:</label>
                     <span><?php echo htmlspecialchars($customer['email']); ?></span>
                 </div>
-                <div class="info-item">
+            </div>
+            <div class="info-row address-row">
+                <div class="info-item address">
+                    <label>Location:</label>
+                    <span><?php echo htmlspecialchars($customer['full_address']); ?></span>
+                </div>
+                <div class="info-item website">
                     <label>Website:</label>
                     <span><?php echo htmlspecialchars($customer['website']); ?></span>
                 </div>

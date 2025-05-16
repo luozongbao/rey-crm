@@ -95,38 +95,47 @@ require_once 'includes/header.php';
         </div>
         
         <form method="post">
+            <!-- Row 1: Company Name and Status -->
             <div class="form-row">
-                <div class="form-group half-width">
+                <div class="form-group company-name">
                     <label for="company_name">Company Name:</label>
                     <input type="text" id="company_name" name="company_name" required 
                            value="<?php echo $customer ? htmlspecialchars($customer['company_name']) : ''; ?>" 
                            <?php echo $isViewMode ? 'disabled' : ''; ?>>
                 </div>
-                
-                <div class="form-group half-width">
-                    <label for="address">Address:</label>
-                    <input type="text" id="address" name="address"
-                           value="<?php echo $customer ? htmlspecialchars($customer['address']) : ''; ?>" 
-                           <?php echo $isViewMode ? 'disabled' : ''; ?>>
+                <div class="form-group status">
+                    <label for="status">Status:</label>
+                    <select id="status" name="status" <?php echo $isViewMode ? 'disabled' : ''; ?>>
+                        <?php
+                        $statusOptions = getCustomerStatusOptions();
+                        foreach ($statusOptions as $statusOption):
+                            $selected = ($customer && $customer['status'] == $statusOption) ? 'selected' : '';
+                        ?>
+                            <option value="<?php echo htmlspecialchars($statusOption); ?>" <?php echo $selected; ?>>
+                                <?php echo htmlspecialchars($statusOption); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
             </div>
 
+            <!-- Row 2: Province and Country -->
             <div class="form-row">
-                <div class="form-group half-width">
-                    <label for="country">Country:</label>
-                    <input type="text" id="country" name="country"
-                           value="<?php echo $customer ? htmlspecialchars($customer['country']) : ''; ?>" 
-                           <?php echo $isViewMode ? 'disabled' : ''; ?>>
-                </div>
-                
                 <div class="form-group half-width">
                     <label for="province">Province:</label>
                     <input type="text" id="province" name="province"
                            value="<?php echo $customer ? htmlspecialchars($customer['province']) : ''; ?>" 
                            <?php echo $isViewMode ? 'disabled' : ''; ?>>
                 </div>
+                <div class="form-group half-width">
+                    <label for="country">Country:</label>
+                    <input type="text" id="country" name="country"
+                           value="<?php echo $customer ? htmlspecialchars($customer['country']) : ''; ?>" 
+                           <?php echo $isViewMode ? 'disabled' : ''; ?>>
+                </div>
             </div>
 
+            <!-- Row 3: Company Type and Contact Phone -->
             <div class="form-row">
                 <div class="form-group half-width">
                     <label for="company_type">Company Type:</label>
@@ -134,7 +143,6 @@ require_once 'includes/header.php';
                            value="<?php echo $customer ? htmlspecialchars($customer['company_type']) : ''; ?>" 
                            <?php echo $isViewMode ? 'disabled' : ''; ?>>
                 </div>
-                
                 <div class="form-group half-width">
                     <label for="contact_phone">Contact Phone:</label>
                     <input type="tel" id="contact_phone" name="contact_phone" 
@@ -142,43 +150,39 @@ require_once 'includes/header.php';
                            <?php echo $isViewMode ? 'disabled' : ''; ?>>
                 </div>
             </div>
-            
+
+            <!-- Row 4: Contact Email and Website -->
             <div class="form-row">
                 <div class="form-group half-width">
                     <label for="contact_email">Contact Email:</label>
                     <input type="email" id="contact_email" name="contact_email" 
-                           value="<?php echo $customer ? htmlspecialchars($customer['contact_email']) : ''; ?>" 
+                           value="<?php echo $customer ? htmlspecialchars($customer['contact_email']) : ''; ?>"
                            <?php echo $isViewMode ? 'disabled' : ''; ?>>
                 </div>
-                
                 <div class="form-group half-width">
                     <label for="website">Website:</label>
                     <input type="url" id="website" name="website" 
-                           value="<?php echo $customer ? htmlspecialchars($customer['website']) : ''; ?>" 
+                           value="<?php echo $customer ? htmlspecialchars($customer['website']) : ''; ?>"
                            <?php echo $isViewMode ? 'disabled' : ''; ?>>
                 </div>
             </div>
-            
-            <div class="form-group">
-                <label for="status">Status:</label>
-                <select id="status" name="status" <?php echo $isViewMode ? 'disabled' : ''; ?>>
-                    <?php
-                    $statusOptions = getCustomerStatusOptions();
-                    foreach ($statusOptions as $statusOption):
-                        $selected = ($customer && $customer['status'] == $statusOption) ? 'selected' : '';
-                    ?>
-                        <option value="<?php echo htmlspecialchars($statusOption); ?>" <?php echo $selected; ?>>
-                            <?php echo htmlspecialchars($statusOption); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
+
+            <!-- Row 5: Address (Full width) -->
+            <div class="form-row">
+                <div class="form-group full-width">
+                    <label for="address">Address:</label>
+                    <textarea id="address" name="address" rows="3" 
+                              <?php echo $isViewMode ? 'disabled' : ''; ?>><?php echo $customer ? htmlspecialchars($customer['address']) : ''; ?></textarea>
+                </div>
             </div>
-            
-            <div class="form-group">
-                <label for="notes">Notes:</label>
-                <textarea id="notes" name="notes" <?php echo $isViewMode ? 'disabled' : ''; ?>><?php 
-                    echo $customer ? htmlspecialchars($customer['notes']) : ''; 
-                ?></textarea>
+
+            <!-- Row 6: Notes (Full width) -->
+            <div class="form-row">
+                <div class="form-group full-width">
+                    <label for="notes">Notes:</label>
+                    <textarea id="notes" name="notes" rows="4" 
+                              <?php echo $isViewMode ? 'disabled' : ''; ?>><?php echo $customer ? htmlspecialchars($customer['notes']) : ''; ?></textarea>
+                </div>
             </div>
             
             <div class="form-actions">
