@@ -9,7 +9,7 @@
 <body>
     <header class="main-header">
         <div class="container">
-            <h1 class="logo">Rey CRM</h1>
+            <h1 class="logo"><a href="/index.php">Rey CRM</a></h1>
             <nav class="main-nav">
                 <ul>
                     <li><a href="/dashboard.php">Dashboard</a></li>
