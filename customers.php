@@ -20,7 +20,8 @@ if (isset($_GET['restore']) && isset($_SESSION['last_page_state'])) {
     $order = isset($_GET['order']) ? trim($_GET['order']) : 'desc';
     $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 }
-$perPage = 20;
+
+$perPage = getItemsPerPage();
 
 // Store state in session when navigating away
 if (!isset($_GET['restore'])) {

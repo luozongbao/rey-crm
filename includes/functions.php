@@ -562,4 +562,18 @@ function requireAdmin() {
         exit;
     }
 }
+
+/**
+ * Get items per page from settings
+ */
+function getItemsPerPage() {
+    global $pdo;
+    try {
+        $stmt = $pdo->query("SELECT value FROM settings WHERE setting_name = 'items_per_page'");
+        return ($stmt && $stmt->rowCount() > 0) ? (int)$stmt->fetch(PDO::FETCH_ASSOC)['value'] : 10;
+    } catch (PDOException $e) {
+        logError("Failed to get items per page setting: " . $e->getMessage());
+        return 10; // Default value if setting can't be fetched
+    }
+}
 ?>

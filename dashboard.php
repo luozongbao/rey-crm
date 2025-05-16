@@ -75,7 +75,6 @@ require_once 'includes/header.php';
     <div class="container">
         <div class="header">
             <h1>CRM Dashboard</h1>
-            <a href="customers.php" class="btn">View All Customers</a>
         </div>
         
         <div class="dashboard-grid">

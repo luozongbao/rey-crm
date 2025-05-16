@@ -30,7 +30,6 @@ require_once 'includes/header.php';
     <div class="container">
         <div class="header">
             <h1>All Activities</h1>
-            <a href="dashboard.php" class="btn">Back to Dashboard</a>
         </div>
 
         <!-- Filter Form -->
