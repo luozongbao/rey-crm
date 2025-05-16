@@ -113,60 +113,66 @@ $customer = getCustomerById($customer_id);
             </div>
         </div>
 
-        <h1><?php echo ucfirst($action); ?> Contact Person</h1>
-        
-        <form method="post">
-            <input type="hidden" name="customer_id" value="<?php echo $customer_id; ?>">
-            
-            <div class="form-group">
-                <label for="name">Name:</label>
-                <input type="text" id="name" name="name" required 
-                       value="<?php echo $contact ? htmlspecialchars($contact['name']) : ''; ?>">
-            </div>
-            
-            <div class="form-group">
-                <label for="title">Title:</label>
-                <input type="text" id="title" name="title" 
-                       value="<?php echo $contact ? htmlspecialchars($contact['title']) : ''; ?>">
-            </div>
-            
-            <div class="form-group">
-                <label for="role">Role:</label>
-                <input type="text" id="role" name="role" 
-                       value="<?php echo $contact ? htmlspecialchars($contact['role']) : ''; ?>">
-            </div>
-            
-            <div class="form-group">
-                <label for="contact_number">Contact Number:</label>
-                <input type="tel" id="contact_number" name="contact_number" 
-                    value="<?php echo $contact ? htmlspecialchars($contact['contact_number']) : ''; ?>" 
-                    <?php echo $isViewMode ? 'disabled' : ''; ?>>
-            </div>
 
-            <div class="form-group">
-                <label for="contact_email">Contact Email:</label>
-                <input type="email" id="contact_email" name="contact_email" 
-                    value="<?php echo $contact ? htmlspecialchars($contact['contact_email']) : ''; ?>" 
-                    <?php echo $isViewMode ? 'disabled' : ''; ?>>
-            </div>
-            
-            <?php if ($action == 'add'): ?>
-                <div class="form-actions-row">
-                    <div class="form-actions-main">
-                        <button type="submit" class="btn">Save</button>
-                        <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
-                    </div>
+        <div class="header">
+            <h1><?php echo ucfirst($action); ?> Contact Person</h1>
+            <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Back</a>
+        </div>
+
+        <div class="form-container">
+            <form method="post">
+                <input type="hidden" name="customer_id" value="<?php echo $customer_id; ?>">
+                
+                <div class="form-group">
+                    <label for="name">Name:</label>
+                    <input type="text" id="name" name="name" required 
+                        value="<?php echo $contact ? htmlspecialchars($contact['name']) : ''; ?>">
                 </div>
-            <?php elseif ($action == 'edit'): ?>
-                <div class="form-actions-row">
-                    <div class="form-actions-main">
-                        <button type="submit" class="btn">Save</button>
-                        <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
-                    </div>
-                    <a href="contact_form.php?action=delete&id=<?php echo $contact_id; ?>&customer_id=<?php echo $customer_id; ?>" 
-                       class="btn delete" onclick="return confirm('Are you sure you want to delete this contact?')">Delete Contact</a>
+                
+                <div class="form-group">
+                    <label for="title">Title:</label>
+                    <input type="text" id="title" name="title" 
+                        value="<?php echo $contact ? htmlspecialchars($contact['title']) : ''; ?>">
                 </div>
-            <?php endif; ?>
-        </form>
+                
+                <div class="form-group">
+                    <label for="role">Role:</label>
+                    <input type="text" id="role" name="role" 
+                        value="<?php echo $contact ? htmlspecialchars($contact['role']) : ''; ?>">
+                </div>
+                
+                <div class="form-group">
+                    <label for="contact_number">Contact Number:</label>
+                    <input type="tel" id="contact_number" name="contact_number" 
+                        value="<?php echo $contact ? htmlspecialchars($contact['contact_number']) : ''; ?>" 
+                        <?php echo $isViewMode ? 'disabled' : ''; ?>>
+                </div>
+
+                <div class="form-group">
+                    <label for="contact_email">Contact Email:</label>
+                    <input type="email" id="contact_email" name="contact_email" 
+                        value="<?php echo $contact ? htmlspecialchars($contact['contact_email']) : ''; ?>" 
+                        <?php echo $isViewMode ? 'disabled' : ''; ?>>
+                </div>
+                
+                <?php if ($action == 'add'): ?>
+                    <div class="form-actions-row">
+                        <div class="form-actions-main">
+                            <button type="submit" class="btn">Save</button>
+                            <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
+                        </div>
+                    </div>
+                <?php elseif ($action == 'edit'): ?>
+                    <div class="form-actions-row">
+                        <div class="form-actions-main">
+                            <button type="submit" class="btn">Save</button>
+                            <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
+                        </div>
+                        <a href="contact_form.php?action=delete&id=<?php echo $contact_id; ?>&customer_id=<?php echo $customer_id; ?>" 
+                        class="btn delete" onclick="return confirm('Are you sure you want to delete this contact?')">Delete Contact</a>
+                    </div>
+                <?php endif; ?>
+            </form>
+        </div>  
     </div>
 <?php require_once 'includes/footer.php'; ?>

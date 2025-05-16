@@ -140,114 +140,97 @@ $customer = getCustomerById($customer_id);
                 </div>
             </div>
         </div>
-                    <label>Phone:</label>
-                    <span><?php echo htmlspecialchars($customer['phone']); ?></span>
-                </div>
-                <div class="info-item">
-                    <label>Email:</label>
-                    <span><?php echo htmlspecialchars($customer['email']); ?></span>
-                </div>
-            </div>
-            <div class="info-row address-row">
-                <div class="info-item address">
-                    <label>Location:</label>
-                    <span><?php echo htmlspecialchars($customer['full_address']); ?></span>
-                </div>
-                <div class="info-item website">
-                    <label>Website:</label>
-                    <span><?php echo htmlspecialchars($customer['website']); ?></span>
-                </div>
-            </div>
-        </div>
 
         <div class="header">
             <h1><?php echo ucfirst($action); ?> Action History</h1>
             <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Back</a>
         </div>
         
-        <form method="post">
-            <input type="hidden" name="customer_id" value="<?php echo $customer_id; ?>">
-            
-            <div class="form-group">
-                <label for="action_datetime">Date & Time:</label>
-                <input type="datetime-local" id="action_datetime" name="action_datetime" required 
-                    value="<?php echo $history ? date('Y-m-d\TH:i', strtotime($history['action_datetime'])) : date('Y-m-d\TH:i'); ?>" 
-                    <?php echo $isViewMode ? 'disabled' : ''; ?>>
-            </div>
-            
-            <div class="form-group">
-                <label for="contact_id">Contact Person:</label>
-                <select id="contact_id" name="contact_id" required <?php echo $isViewMode ? 'disabled' : ''; ?>>
-                    <option value="">-- Select Contact --</option>
-                    <?php foreach ($contact_persons as $contact): ?>
-                    <option value="<?php echo $contact['contact_id']; ?>" 
-                            <?php echo ($history && $history['contact_id'] == $contact['contact_id']) ? 'selected' : ''; ?>>
-                        <?php echo htmlspecialchars($contact['name']); ?>
-                    </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="action">Action:</label>
-                <textarea id="action" name="action" required <?php echo $isViewMode ? 'disabled' : ''; ?>><?php 
-                    echo $history ? htmlspecialchars($history['action']) : ''; 
-                ?></textarea>
-            </div>
-            
-            <div class="form-group">
-                <label for="response">Response:</label>
-                <textarea id="response" name="response" required <?php echo $isViewMode ? 'disabled' : ''; ?>><?php 
-                    echo $history ? htmlspecialchars($history['response']) : ''; 
-                ?></textarea>
-            </div>
-            
-            <div class="form-group">
-                <label for="next_step">Next Step:</label>
-                <textarea id="next_step" name="next_step" required <?php echo $isViewMode ? 'disabled' : ''; ?>><?php 
-                    echo $history ? htmlspecialchars($history['next_step']) : ''; 
-                ?></textarea>
-            </div>
-            
-            <div class="form-group">
-                <label for="follow_up_datetime">Follow Up Date & Time:</label>
-                <input type="datetime-local" id="follow_up_datetime" name="follow_up_datetime" required 
-                    value="<?php echo $history ? date('Y-m-d\TH:i', strtotime($history['follow_up_datetime'])) : date('Y-m-d\TH:i', strtotime('+1 week')); ?>" 
-                    <?php echo $isViewMode ? 'disabled' : ''; ?>>
-            </div>
-            
-            <div class="form-group">
-                <label for="notes">Notes:</label>
-                <textarea id="notes" name="notes" <?php echo $isViewMode ? 'disabled' : ''; ?>><?php 
-                    echo $history ? htmlspecialchars($history['notes']) : ''; 
-                ?></textarea>
-            </div>
-            
-            <div class="form-actions">
-                <?php if ($action == 'add'): ?>
-                <div class="form-actions-row">
-                    <div class="form-actions-main">
-                        <button type="submit" class="btn">Add Action</button>
-                        <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
-                    </div>
+        <div class="form-container">
+            <form method="post">
+                <input type="hidden" name="customer_id" value="<?php echo $customer_id; ?>">
+                
+                <div class="form-group">
+                    <label for="action_datetime">Date & Time:</label>
+                    <input type="datetime-local" id="action_datetime" name="action_datetime" required 
+                        value="<?php echo $history ? date('Y-m-d\TH:i', strtotime($history['action_datetime'])) : date('Y-m-d\TH:i'); ?>" 
+                        <?php echo $isViewMode ? 'disabled' : ''; ?>>
                 </div>
-                <?php elseif ($action == 'edit'): ?>
-                <div class="form-actions-row">
-                    <div class="form-actions-main">
-                        <button type="submit" class="btn">Save Action</button>
-                        <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
-                    </div>
-                    <a href="history_form.php?action=delete&id=<?php echo $history_id; ?>&customer_id=<?php echo $customer_id; ?>" 
-                       class="btn delete" onclick="return confirm('Are you sure you want to delete this action history?')">Delete Action</a>
+                
+                <div class="form-group">
+                    <label for="contact_id">Contact Person:</label>
+                    <select id="contact_id" name="contact_id" required <?php echo $isViewMode ? 'disabled' : ''; ?>>
+                        <option value="">-- Select Contact --</option>
+                        <?php foreach ($contact_persons as $contact): ?>
+                        <option value="<?php echo $contact['contact_id']; ?>" 
+                                <?php echo ($history && $history['contact_id'] == $contact['contact_id']) ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($contact['name']); ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
-                <?php else: ?>
-                <div class="form-actions-row">
-                    <div class="form-actions-main">
-                        <a href="history_form.php?action=edit&id=<?php echo $history_id; ?>" class="btn">Edit</a>
-                    </div>
+                
+                <div class="form-group">
+                    <label for="action">Action:</label>
+                    <textarea id="action" name="action" required <?php echo $isViewMode ? 'disabled' : ''; ?>><?php 
+                        echo $history ? htmlspecialchars($history['action']) : ''; 
+                    ?></textarea>
                 </div>
-                <?php endif; ?>
-            </div>
-        </form>
+                
+                <div class="form-group">
+                    <label for="response">Response:</label>
+                    <textarea id="response" name="response" required <?php echo $isViewMode ? 'disabled' : ''; ?>><?php 
+                        echo $history ? htmlspecialchars($history['response']) : ''; 
+                    ?></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="next_step">Next Step:</label>
+                    <textarea id="next_step" name="next_step" required <?php echo $isViewMode ? 'disabled' : ''; ?>><?php 
+                        echo $history ? htmlspecialchars($history['next_step']) : ''; 
+                    ?></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="follow_up_datetime">Follow Up Date & Time:</label>
+                    <input type="datetime-local" id="follow_up_datetime" name="follow_up_datetime" required 
+                        value="<?php echo $history ? date('Y-m-d\TH:i', strtotime($history['follow_up_datetime'])) : date('Y-m-d\TH:i', strtotime('+1 week')); ?>" 
+                        <?php echo $isViewMode ? 'disabled' : ''; ?>>
+                </div>
+                
+                <div class="form-group">
+                    <label for="notes">Notes:</label>
+                    <textarea id="notes" name="notes" <?php echo $isViewMode ? 'disabled' : ''; ?>><?php 
+                        echo $history ? htmlspecialchars($history['notes']) : ''; 
+                    ?></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <?php if ($action == 'add'): ?>
+                    <div class="form-actions-row">
+                        <div class="form-actions-main">
+                            <button type="submit" class="btn">Add Action</button>
+                            <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
+                        </div>
+                    </div>
+                    <?php elseif ($action == 'edit'): ?>
+                    <div class="form-actions-row">
+                        <div class="form-actions-main">
+                            <button type="submit" class="btn">Save Action</button>
+                            <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
+                        </div>
+                        <a href="history_form.php?action=delete&id=<?php echo $history_id; ?>&customer_id=<?php echo $customer_id; ?>" 
+                        class="btn delete" onclick="return confirm('Are you sure you want to delete this action history?')">Delete Action</a>
+                    </div>
+                    <?php else: ?>
+                    <div class="form-actions-row">
+                        <div class="form-actions-main">
+                            <a href="history_form.php?action=edit&id=<?php echo $history_id; ?>" class="btn">Edit</a>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </form>
+        </div>
     </div>
 <?php require_once 'includes/footer.php'; ?>

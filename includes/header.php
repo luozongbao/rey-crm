@@ -48,7 +48,7 @@
         gap: 1rem;
     }
     .user-menu span {
-        color: #666;
+        color: #A2C23A;
     }
     .logout-btn {
         background: #dc3545;
