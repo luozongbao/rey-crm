@@ -1,4 +1,10 @@
 <?php
+// Check if config file exists, if not redirect to install
+if (!file_exists(__DIR__ . '/config.php')) {
+    header('Location: /includes/install.php');
+    exit;
+}
+
 require_once 'config.php';
 
 function getAllCustomers() {
@@ -123,11 +129,24 @@ function getTotalCustomers() {
 function getLocationStats() {
     global $pdo;
     $stmt = $pdo->query("SELECT 
-                        CONCAT_WS(', ', province, country) as location,
+                        CASE
+                            WHEN NULLIF(TRIM(province), '') IS NULL AND NULLIF(TRIM(country), '') IS NULL THEN 'N/A'
+                            WHEN NULLIF(TRIM(province), '') IS NULL THEN NULLIF(TRIM(country), '')
+                            WHEN NULLIF(TRIM(country), '') IS NULL THEN NULLIF(TRIM(province), '')
+                            ELSE CONCAT(TRIM(province), ', ', TRIM(country))
+                        END as location,
                         COUNT(*) as count 
                         FROM customers 
-                        WHERE province IS NOT NULL OR country IS NOT NULL 
-                        GROUP BY province, country");
+                        GROUP BY 
+                            CASE
+                                WHEN NULLIF(TRIM(province), '') IS NULL AND NULLIF(TRIM(country), '') IS NULL THEN 'N/A'
+                                WHEN NULLIF(TRIM(province), '') IS NULL THEN NULLIF(TRIM(country), '')
+                                WHEN NULLIF(TRIM(country), '') IS NULL THEN NULLIF(TRIM(province), '')
+                                ELSE CONCAT(TRIM(province), ', ', TRIM(country))
+                            END
+                        ORDER BY 
+                            CASE WHEN location = 'N/A' THEN 1 ELSE 0 END,
+                            location");
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 

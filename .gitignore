@@ -1,3 +1,5 @@
 *.bak
 includes/config.php
 *.log
+logs/
+*.bak*

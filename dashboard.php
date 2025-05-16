@@ -78,7 +78,7 @@ try {
     <div class="container">
         <div class="header">
             <h1>CRM Dashboard</h1>
-            <a href="index.php" class="btn">Back to Customers</a>
+            <a href="customers.php" class="btn">View All Customers</a>
         </div>
         
         <div class="dashboard-grid">
