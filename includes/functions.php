@@ -531,4 +531,35 @@ function formatCustomerAddress($customer) {
     return implode(', ', $addressParts);
 }
 
+/**
+ * Check if user is logged in, if not redirect to login page
+ */
+function requireLogin() {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    if (!isset($_SESSION['user_id'])) {
+        header('Location: /login.php');
+        exit;
+    }
+}
+
+/**
+ * Check if user is admin
+ */
+function isAdmin() {
+    return isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
+}
+
+/**
+ * Require admin role, redirect to dashboard if not admin
+ */
+function requireAdmin() {
+    requireLogin();
+    if (!isAdmin()) {
+        header('Location: /dashboard.php');
+        exit;
+    }
+}
 ?>

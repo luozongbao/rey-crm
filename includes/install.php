@@ -1,9 +1,10 @@
 <?php
+session_start();
 $message = '';
 $error = '';
 
-// If config file already exists, redirect to home page
-if (file_exists(__DIR__ . '/config.php')) {
+// If config file already exists and setup is complete, redirect to home page
+if (file_exists(__DIR__ . '/config.php') && !isset($_SESSION['db_configured'])) {
     header('Location: /');
     exit;
 }
@@ -90,7 +91,16 @@ EOT;
 
                 // Write the config file
                 if (file_put_contents(__DIR__ . '/config.php', $configContent)) {
-                    $message = "Installation completed successfully! Database initialized and configuration file created. <a href='/' class='btn'>Go to Homepage</a>";
+                    // Check if there are any admin users
+                    $checkAdmin = $testPdo->query("SELECT COUNT(*) as count FROM users WHERE role = 'admin'");
+                    $adminCount = $checkAdmin->fetch()['count'];
+
+                    if ($adminCount === 0) {
+                        $_SESSION['db_configured'] = true;
+                        $message = "Database configuration successful! Please create an admin user.";
+                    } else {
+                        $message = "Installation completed successfully! Database initialized and configuration file created. <a href='/' class='btn'>Go to Homepage</a>";
+                    }
                 } else {
                     $error = "Failed to write configuration file. Please check file permissions.";
                 }
@@ -104,6 +114,42 @@ EOT;
         }
     }
 }
+
+// Handle admin user creation
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_admin'])) {
+    $username = trim($_POST['username'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $password = trim($_POST['password'] ?? '');
+    $confirm_password = trim($_POST['confirm_password'] ?? '');
+
+    if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
+        $error = "All fields are required for admin user creation.";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = "Please enter a valid email address.";
+    } elseif ($password !== $confirm_password) {
+        $error = "Passwords do not match.";
+    } elseif (strlen($password) < 8) {
+        $error = "Password must be at least 8 characters long.";
+    } else {
+        try {
+            require_once __DIR__ . '/config.php';
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            
+            $stmt = $pdo->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, 'admin')");
+            if ($stmt->execute([$username, $email, $hashedPassword])) {
+                unset($_SESSION['db_configured']);
+                $message = "Admin user created successfully! <a href='/' class='btn'>Go to Homepage</a>";
+            } else {
+                $error = "Failed to create admin user.";
+            }
+        } catch (PDOException $e) {
+            $error = "Error creating admin user: " . ($e->getCode() === '23000' ? "Username or email already exists." : "An error occurred.");
+        }
+    }
+}
+
+// Rest of the installation form
+if (!isset($_SESSION['db_configured'])) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -201,3 +247,113 @@ EOT;
     </div>
 </body>
 </html>
+<?php
+} else {
+    // Admin user creation form
+    ?>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Create Admin User - Rey CRM Installation</title>
+        <link rel="stylesheet" href="/assets/css/style.css">
+        <style>
+            .install-container {
+                max-width: 600px;
+                margin: 2rem auto;
+                padding: 2rem;
+                background: #fff;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .form-group {
+                margin-bottom: 1.5rem;
+            }
+            .form-group label {
+                display: block;
+                margin-bottom: 0.5rem;
+                font-weight: bold;
+            }
+            .form-group input {
+                width: 100%;
+                padding: 0.5rem;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+            }
+            .error-message {
+                background: #fee;
+                color: #c00;
+                padding: 1rem;
+                border-radius: 4px;
+                margin-bottom: 1rem;
+            }
+            .success-message {
+                background: #efe;
+                color: #0c0;
+                padding: 1rem;
+                border-radius: 4px;
+                margin-bottom: 1rem;
+            }
+            .btn {
+                background: #007bff;
+                color: white;
+                padding: 0.5rem 1rem;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                width: 100%;
+            }
+            .btn:hover {
+                background: #0056b3;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="install-container">
+            <h1>Create Admin User</h1>
+            
+            <?php if ($error): ?>
+                <div class="error-message"><?php echo htmlspecialchars($error); ?></div>
+            <?php endif; ?>
+            
+            <?php if ($message): ?>
+                <div class="success-message"><?php echo $message; ?></div>
+            <?php else: ?>
+                <form method="POST" action="">
+                    <div class="form-group">
+                        <label for="username">Username:</label>
+                        <input type="text" id="username" name="username" required 
+                               value="<?php echo htmlspecialchars($_POST['username'] ?? ''); ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Email:</label>
+                        <input type="email" id="email" name="email" required 
+                               value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Password:</label>
+                        <input type="password" id="password" name="password" required 
+                               minlength="8" placeholder="Minimum 8 characters">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="confirm_password">Confirm Password:</label>
+                        <input type="password" id="confirm_password" name="confirm_password" 
+                               required minlength="8" placeholder="Repeat password">
+                    </div>
+                    
+                    <button type="submit" name="create_admin" class="btn">
+                        Create Admin User
+                    </button>
+                </form>
+            <?php endif; ?>
+        </div>
+    </body>
+    </html>
+    <?php
+    exit;
+}
+?>

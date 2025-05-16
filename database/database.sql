@@ -55,3 +55,28 @@ CREATE TABLE IF NOT EXISTS action_history (
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE,
     FOREIGN KEY (contact_id) REFERENCES contact_persons(contact_id) ON DELETE SET NULL
 );
+
+-- Create settings table for system configuration
+CREATE TABLE IF NOT EXISTS settings (
+    setting_id INT AUTO_INCREMENT PRIMARY KEY,
+    setting_name VARCHAR(50) NOT NULL UNIQUE,
+    value TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Insert default settings
+INSERT INTO settings (setting_name, value) VALUES
+('items_per_page', '10');
+
+-- Create users table for user management
+CREATE TABLE IF NOT EXISTS users (
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role ENUM('user', 'admin') DEFAULT 'user',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    last_login TIMESTAMP NULL
+);

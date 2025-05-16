@@ -1,5 +1,8 @@
-<?php 
+<?php
+require_once 'includes/config.php';
 require_once 'includes/functions.php';
+
+requireLogin();
 session_start();
 
 // Get page state either from session (if restoring) or from GET parameters

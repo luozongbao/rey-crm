@@ -1,5 +1,8 @@
-<?php 
+<?php
+require_once 'includes/config.php';
 require_once 'includes/functions.php';
+
+requireLogin();
 session_start();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_history'])) {
