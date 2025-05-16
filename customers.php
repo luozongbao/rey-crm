@@ -155,11 +155,14 @@ $statusCounts = getCustomerStatusCounts();
             </form>
         </div>
         
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <a href="customer_form.php?action=add" class="btn">Create New Customer</a>
+        <div class="section-header">
+            <h2>Customer List</h2>
+            <a href="customer_form.php?action=add" class="btn">Add New Customer</a>
+        </div>
             
-            <?php if ($totalPages > 1): ?>
-            <div class="pagination" style="margin: 0;">
+        <?php if ($totalPages > 1): ?>
+        <div class="pagination-container">
+            <div class="pagination">
                 <?php if ($page > 1): ?>
                     <a href="?<?php echo buildQueryString(['page' => 1]); ?>" class="btn">First</a>
                     <a href="?<?php echo buildQueryString(['page' => $page - 1]); ?>" class="btn">Previous</a>

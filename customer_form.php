@@ -201,10 +201,12 @@ $action_history = $customer_id ? getActionHistory($customer_id) : [];
         
         <?php if ($customer_id): ?>
         <div class="section">
-            <h2>Contact Persons</h2>
-            <?php if (!$isViewMode): ?>
-            <a href="contact_form.php?action=add&customer_id=<?php echo $customer_id; ?>" class="btn">Add Contact Person</a>
-            <?php endif; ?>
+            <div class="section-header">
+                <h2>Contact Persons</h2>
+                <?php if (!$isViewMode): ?>
+                <a href="contact_form.php?action=add&customer_id=<?php echo $customer_id; ?>" class="btn">Add Contact Person</a>
+                <?php endif; ?>
+            </div>
             
             <table class="compact-table">
                 <thead>
@@ -237,10 +239,12 @@ $action_history = $customer_id ? getActionHistory($customer_id) : [];
         </div>
         
         <div class="section">
-            <h2>Action History</h2>
-            <?php if (!$isViewMode): ?>
-            <a href="history_form.php?action=add&customer_id=<?php echo $customer_id; ?>" class="btn">Add Action</a>
-            <?php endif; ?>
+            <div class="section-header">
+                <h2>Action History</h2>
+                <?php if (!$isViewMode): ?>
+                <a href="history_form.php?action=add&customer_id=<?php echo $customer_id; ?>" class="btn">Add Action</a>
+                <?php endif; ?>
+            </div>
             <table class="compact-table">
                 <thead>
                     <tr>
