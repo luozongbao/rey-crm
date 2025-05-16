@@ -8,7 +8,7 @@ $statusCounts = getCustomerStatusCounts();
 require_once 'includes/header.php';
 ?>
 
-<div class="welcome-section">
+<div class="index-container">
     <div class="quick-stats">
         <h2>Customer Overview</h2>
         <div class="stats-grid">
@@ -24,19 +24,14 @@ require_once 'includes/header.php';
     <div class="quick-actions">
         <h2>Quick Actions</h2>
         <div class="action-buttons">
-            <a href="customer_form.php?action=add" class="btn large">Add New Customer</a>
-            <a href="customers.php" class="btn large">View Customer List</a>
-            <a href="dashboard.php" class="btn large">View Statistics</a>
+            <a href="customer_form.php?action=add" class="btn btn-large">Add New Customer</a>
+            <a href="customers.php" class="btn btn-large">View Customer List</a>
+            <a href="dashboard.php" class="btn btn-large">View Statistics</a>
         </div>
     </div>
 </div>
 
 <style>
-    .welcome-section {
-        padding: 2rem;
-        max-width: 1200px;
-        margin: 0 auto;
-    }
     
     .quick-stats {
         background: #fff;
