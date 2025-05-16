@@ -58,8 +58,37 @@ $contact = $action == 'edit' ? getContactPersonById($contact_id) : null;
 $customer_id = $contact ? $contact['customer_id'] : $customer_id;
 
 require_once 'includes/header.php';
+
+// Get customer information
+$customer = getCustomerById($customer_id);
 ?>
     <div class="container">
+        <div class="customer-info-panel">
+            <h2>Customer Information</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Company Name:</label>
+                    <span><?php echo htmlspecialchars($customer['company_name']); ?></span>
+                </div>
+                <div class="info-item">
+                    <label>Location:</label>
+                    <span><?php echo htmlspecialchars($customer['full_address']); ?></span>
+                </div>
+                <div class="info-item">
+                    <label>Phone:</label>
+                    <span><?php echo htmlspecialchars($customer['phone']); ?></span>
+                </div>
+                <div class="info-item">
+                    <label>Email:</label>
+                    <span><?php echo htmlspecialchars($customer['email']); ?></span>
+                </div>
+                <div class="info-item">
+                    <label>Website:</label>
+                    <span><?php echo htmlspecialchars($customer['website']); ?></span>
+                </div>
+            </div>
+        </div>
+
         <h1><?php echo ucfirst($action); ?> Contact Person</h1>
         
         <form method="post">
