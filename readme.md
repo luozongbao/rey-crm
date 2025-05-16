@@ -1,6 +1,6 @@
 # Rey CRM System
 
-A modern PHP-based Customer Relationship Management (CRM) system designed for managing customer interactions, contacts, and activity history. This comprehensive system helps businesses track customer relationships, follow-ups, and business activities efficiently with a clean, responsive interface.
+A modern PHP-based Customer Relationship Management (CRM) system designed for managing customer interactions, contacts, and activity history. This comprehensive system helps businesses track customer relationships, follow-ups, and business activities efficiently with a clean, responsive interface. Features secure user authentication, role-based access control, and customizable settings.
 
 ## Core Features
 
@@ -73,6 +73,46 @@ A modern PHP-based Customer Relationship Management (CRM) system designed for ma
   - Intelligent back navigation
   - User-friendly filter reset options
 
+### User Management
+- Secure user authentication system
+- Role-based access control:
+  - Admin users with full system access
+  - Regular users with restricted permissions
+- User features:
+  - Secure password hashing
+  - Email verification
+  - Last login tracking
+  - Session management
+  - Automatic logout protection
+
+### System Settings
+- Configurable pagination:
+  - Customizable items per page
+  - Applied across all listing pages
+- User management interface:
+  - Add/Edit/Delete users
+  - Assign user roles
+  - Manage user permissions
+- System configuration:
+  - Centralized settings management
+  - Database-driven configuration
+  - Easy-to-use admin interface
+
+### Security Features
+- Secure authentication:
+  - Password hashing using PHP's password_hash
+  - Protection against SQL injection
+  - XSS prevention
+  - CSRF protection
+- Session security:
+  - HTTP-only cookies
+  - Secure session handling
+  - Session timeout management
+- Access Control:
+  - Role-based permissions
+  - Protected admin routes
+  - Secure form processing
+
 ## Technical Requirements
 
 - PHP 7.4+ recommended (7.0+ minimum)
@@ -98,18 +138,45 @@ A modern PHP-based Customer Relationship Management (CRM) system designed for ma
    cd personal-crm
    ```
 
-2. Import the database schema:
-   ```bash
-   mysql -u your_username -p your_database_name < database.sql
+2. Set up your web server (Apache/Nginx) to point to the project directory
+
+3. Access the installation page:
+   - Navigate to `http://your-domain/includes/install.php`
+   - Follow the database configuration steps
+   - Create your admin user when prompted
+
+4. Initial Configuration:
+   - Log in with your admin credentials
+   - Configure system settings in the Settings page
+   - Set up additional users as needed
+
+5. System Requirements:
+   ```
+   - PHP 7.4+ (recommended)
+   - MySQL 5.7+ or MariaDB 10.2+
+   - Web Server (Apache 2.4+/Nginx 1.14+)
+   - Modern web browser
    ```
 
-3. Configure database connection:
-   - Edit `includes/config.php`
-   ```php
-   $host = 'localhost';
-   $dbname = 'your_database_name';
-   $username = 'your_username';
-   $password = 'your_password';
+6. Required PHP Extensions:
+   ```
+   - PDO with MySQL driver
+   - mbstring
+   - json
+   - session
+   ```
+
+7. File Permissions:
+   ```bash
+   # Set proper ownership
+   chown -R www-data:www-data /path/to/rey-crm
+   
+   # Set proper permissions for files and directories
+   find /path/to/rey-crm -type f -exec chmod 644 {} \;
+   find /path/to/rey-crm -type d -exec chmod 755 {} \;
+   
+   # Special permissions for writable directories
+   chmod -R 775 logs/
    ```
 
 4. Set file permissions:
