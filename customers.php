@@ -79,11 +79,7 @@ $statusCounts = getCustomerStatusCounts();
     <div class="container">
         <div class="header">
             <h1>Customer List</h1>
-            <div class="header-buttons">
-                <a href="all_followups.php" class="btn">View All Follow-ups</a>
-                <a href="all_activities.php" class="btn">View All Activities</a>
-                <a href="dashboard.php" class="btn dashboard-btn">Dashboard</a>
-            </div>
+            <a href="customer_form.php?action=add" class="btn">Add New Customer</a>
         </div>
 
         <script>
@@ -155,11 +151,7 @@ $statusCounts = getCustomerStatusCounts();
             </form>
         </div>
         
-        <div class="section-header">
-            <h2>Customer List</h2>
-            <a href="customer_form.php?action=add" class="btn">Add New Customer</a>
-        </div>
-            
+           
         <?php if ($totalPages > 1): ?>
         <div class="pagination-container">
             <div class="pagination">
