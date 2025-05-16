@@ -1,5 +1,6 @@
 <?php 
 require_once 'includes/functions.php';
+session_start();
 
 $action = $_GET['action'] ?? 'add';
 $history_id = $_GET['id'] ?? 0;
@@ -84,18 +85,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$isViewMode) {
 
 $history = ($action == 'edit' || $action == 'view') ? getHistoryById($history_id) : null;
 $contact_persons = $customer_id ? getContactPersons($customer_id) : [];
-?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo ucfirst($action); ?> Action History</title>
-    <link rel="stylesheet" href="assets/css/style.css">
-    <script src="assets/js/script.js" defer></script>
-</head>
-<body>
+require_once 'includes/header.php';
+?>
     <div class="container">
         <div class="header">
             <h1><?php echo ucfirst($action); ?> Action History</h1>
@@ -179,5 +171,4 @@ $contact_persons = $customer_id ? getContactPersons($customer_id) : [];
             </div>
         </form>
     </div>
-</body>
-</html>
+<?php require_once 'includes/footer.php'; ?>

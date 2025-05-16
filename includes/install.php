@@ -27,8 +27,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
             );
             
-            // Connection successful, create config file
-            $configContent = <<<EOT
+            // Import database schema
+            try {
+                $sqlContent = file_get_contents(__DIR__ . '/../database/database.sql');
+                if ($sqlContent === false) {
+                    throw new Exception("Could not read database.sql file");
+                }
+                
+                // Execute each SQL statement
+                $queries = array_filter(array_map('trim', explode(';', $sqlContent)));
+                foreach ($queries as $query) {
+                    if (!empty($query)) {
+                        $testPdo->exec($query);
+                    }
+                }
+                
+                // Connection successful, create config file
+                $configContent = <<<EOT
 <?php
 // Database configuration
 define('DB_HOST', '{$dbHost}');
@@ -73,11 +88,15 @@ function logError(\$message) {
 }
 EOT;
 
-            // Write the config file
-            if (file_put_contents(__DIR__ . '/config.php', $configContent)) {
-                $message = "Configuration file created successfully! <a href='/' class='btn'>Go to Homepage</a>";
-            } else {
-                $error = "Failed to write configuration file. Please check file permissions.";
+                // Write the config file
+                if (file_put_contents(__DIR__ . '/config.php', $configContent)) {
+                    $message = "Installation completed successfully! Database initialized and configuration file created. <a href='/' class='btn'>Go to Homepage</a>";
+                } else {
+                    $error = "Failed to write configuration file. Please check file permissions.";
+                }
+                
+            } catch (Exception $e) {
+                $error = "Database import failed: " . htmlspecialchars($e->getMessage());
             }
             
         } catch (PDOException $e) {

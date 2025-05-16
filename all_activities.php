@@ -1,5 +1,6 @@
 <?php
 require_once 'includes/functions.php';
+session_start();
 
 // Get filter parameters
 $customer_id = $_GET['customer_id'] ?? '';
@@ -20,16 +21,9 @@ $customers = getAllCustomers();
 
 // Get filtered activities
 $activities = getFilteredActivities($customer_id, $date_from, $date_to, $sort, $order);
-?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>All Activities</title>
-    <link rel="stylesheet" href="assets/css/style.css">
-</head>
-<body>
+require_once 'includes/header.php';
+?>
     <div class="container">
         <div class="header">
             <h1>All Activities</h1>
@@ -109,5 +103,4 @@ $activities = getFilteredActivities($customer_id, $date_from, $date_to, $sort, $
             </tbody>
         </table>
     </div>
-</body>
-</html>
+<?php require_once 'includes/footer.php'; ?>

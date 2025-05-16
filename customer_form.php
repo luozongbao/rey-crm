@@ -85,16 +85,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
 $customer = ($action == 'edit' || $action == 'view') ? getCustomerById($customer_id) : null;
 $contact_persons = $customer_id ? getContactPersons($customer_id) : [];
 $action_history = $customer_id ? getActionHistory($customer_id) : [];
+
+require_once 'includes/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo ucfirst($action); ?> Customer</title>
-    <link rel="stylesheet" href="assets/css/style.css">
-</head>
-<body>
     <div class="container">
         <div class="header">
             <h1><?php echo ucfirst($action); ?> Customer</h1>
@@ -282,5 +275,4 @@ $action_history = $customer_id ? getActionHistory($customer_id) : [];
         </div>
         <?php endif; ?>
     </div>
-</body>
-</html>
+<?php require_once 'includes/footer.php'; ?>

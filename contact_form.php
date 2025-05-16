@@ -1,5 +1,6 @@
 <?php 
 require_once 'includes/functions.php';
+session_start();
 
 $action = $_GET['action'] ?? 'add';
 $contact_id = $_GET['id'] ?? 0;
@@ -55,16 +56,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$isViewMode) {
 
 $contact = $action == 'edit' ? getContactPersonById($contact_id) : null;
 $customer_id = $contact ? $contact['customer_id'] : $customer_id;
+
+require_once 'includes/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo ucfirst($action); ?> Contact Person</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
-</head>
-<body>
     <div class="container">
         <h1><?php echo ucfirst($action); ?> Contact Person</h1>
         
@@ -118,5 +112,4 @@ $customer_id = $contact ? $contact['customer_id'] : $customer_id;
             <?php endif; ?>
         </form>
     </div>
-</body>
-</html>
+<?php require_once 'includes/footer.php'; ?>

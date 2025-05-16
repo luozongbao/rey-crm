@@ -66,16 +66,9 @@ $totalPages = ceil($totalCustomers / $perPage);
 
 // Get status counts for dashboard
 $statusCounts = getCustomerStatusCounts();
+
+require_once 'includes/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer List - CRM</title>
-    <link rel="stylesheet" href="assets/css/style.css">
-</head>
-<body>
     <div class="container">
         <div class="header">
             <h1>Customer List</h1>
@@ -246,5 +239,4 @@ $statusCounts = getCustomerStatusCounts();
         </div>
         <?php endif; ?>
     </div>
-</body>
-</html>
+<?php require_once 'includes/footer.php'; ?>

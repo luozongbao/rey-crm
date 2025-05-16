@@ -1,5 +1,6 @@
 <?php 
 require_once 'includes/functions.php';
+session_start();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_history'])) {
     $start_date = $_POST['history_start'] ?? date('Y-m-d', strtotime('-1 week'));
@@ -65,16 +66,9 @@ try {
 } catch (Exception $e) {
     die("Error loading dashboard data: " . $e->getMessage());
 }
+
+require_once 'includes/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRM Dashboard</title>
-    <link rel="stylesheet" href="assets/css/style.css">
-</head>
-<body>
     <div class="container">
         <div class="header">
             <h1>CRM Dashboard</h1>
@@ -230,5 +224,4 @@ try {
 
         </div>
     </div>
-</body>
-</html>
+<?php require_once 'includes/footer.php'; ?>
