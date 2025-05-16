@@ -70,27 +70,49 @@ $customer = getCustomerById($customer_id);
                     <label>Company:</label>
                     <span><?php echo htmlspecialchars($customer['company_name']); ?></span>
                 </div>
-                <div class="info-item">
-                    <label>Phone:</label>
-                    <span><?php echo htmlspecialchars($customer['phone']); ?></span>
-                </div>
-                <div class="info-item">
-                    <label>Email:</label>
-                    <span><?php echo htmlspecialchars($customer['email']); ?></span>
+                <div class="info-item status">
+                    <label>Status:</label>
+                    <span><?php echo htmlspecialchars($customer['status']); ?></span>
                 </div>
             </div>
-            <div class="info-row address-row">
-                <div class="info-item address">
-                    <label>Location:</label>
-                    <span><?php echo htmlspecialchars($customer['full_address']); ?></span>
+            <div class="info-row">
+                <div class="info-item half-width">
+                    <label>Province:</label>
+                    <span><?php echo htmlspecialchars($customer['province'] ?: 'N/A'); ?></span>
                 </div>
-                <div class="info-item website">
+                <div class="info-item half-width">
+                    <label>Country:</label>
+                    <span><?php echo htmlspecialchars($customer['country'] ?: 'N/A'); ?></span>
+                </div>
+            </div>
+            <div class="info-row">
+                <div class="info-item half-width">
+                    <label>Company Type:</label>
+                    <span><?php echo htmlspecialchars($customer['company_type'] ?: 'N/A'); ?></span>
+                </div>
+                <div class="info-item half-width">
+                    <label>Phone:</label>
+                    <span><?php echo htmlspecialchars($customer['contact_phone'] ?: 'N/A'); ?></span>
+                </div>
+            </div>
+            <div class="info-row">
+                <div class="info-item half-width">
+                    <label>Email:</label>
+                    <span><?php echo htmlspecialchars($customer['contact_email'] ?: 'N/A'); ?></span>
+                </div>
+                <div class="info-item half-width">
                     <label>Website:</label>
-                    <span><?php echo htmlspecialchars($customer['website']); ?></span>
+                    <span><?php echo htmlspecialchars($customer['website'] ?: 'N/A'); ?></span>
+                </div>
+            </div>
+            <div class="info-row">
+                <div class="info-item full-width">
+                    <label>Address:</label>
+                    <span><?php echo htmlspecialchars($customer['address'] ?: 'N/A'); ?></span>
                 </div>
             </div>
         </div>
-        
+
         <h1><?php echo ucfirst($action); ?> Contact Person</h1>
         
         <form method="post">
@@ -129,8 +151,12 @@ $customer = getCustomerById($customer_id);
             </div>
             
             <?php if ($action == 'add'): ?>
-                <button type="submit" class="btn">Save</button>
-                <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
+                <div class="form-actions-row">
+                    <div class="form-actions-main">
+                        <button type="submit" class="btn">Save</button>
+                        <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
+                    </div>
+                </div>
             <?php elseif ($action == 'edit'): ?>
                 <div class="form-actions-row">
                     <div class="form-actions-main">

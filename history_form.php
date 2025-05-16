@@ -98,7 +98,48 @@ $customer = getCustomerById($customer_id);
                     <label>Company:</label>
                     <span><?php echo htmlspecialchars($customer['company_name']); ?></span>
                 </div>
-                <div class="info-item">
+                <div class="info-item status">
+                    <label>Status:</label>
+                    <span><?php echo htmlspecialchars($customer['status']); ?></span>
+                </div>
+            </div>
+            <div class="info-row">
+                <div class="info-item half-width">
+                    <label>Province:</label>
+                    <span><?php echo htmlspecialchars($customer['province'] ?: 'N/A'); ?></span>
+                </div>
+                <div class="info-item half-width">
+                    <label>Country:</label>
+                    <span><?php echo htmlspecialchars($customer['country'] ?: 'N/A'); ?></span>
+                </div>
+            </div>
+            <div class="info-row">
+                <div class="info-item half-width">
+                    <label>Company Type:</label>
+                    <span><?php echo htmlspecialchars($customer['company_type'] ?: 'N/A'); ?></span>
+                </div>
+                <div class="info-item half-width">
+                    <label>Phone:</label>
+                    <span><?php echo htmlspecialchars($customer['contact_phone'] ?: 'N/A'); ?></span>
+                </div>
+            </div>
+            <div class="info-row">
+                <div class="info-item half-width">
+                    <label>Email:</label>
+                    <span><?php echo htmlspecialchars($customer['contact_email'] ?: 'N/A'); ?></span>
+                </div>
+                <div class="info-item half-width">
+                    <label>Website:</label>
+                    <span><?php echo htmlspecialchars($customer['website'] ?: 'N/A'); ?></span>
+                </div>
+            </div>
+            <div class="info-row">
+                <div class="info-item full-width">
+                    <label>Address:</label>
+                    <span><?php echo htmlspecialchars($customer['address'] ?: 'N/A'); ?></span>
+                </div>
+            </div>
+        </div>
                     <label>Phone:</label>
                     <span><?php echo htmlspecialchars($customer['phone']); ?></span>
                 </div>
@@ -184,19 +225,27 @@ $customer = getCustomerById($customer_id);
             
             <div class="form-actions">
                 <?php if ($action == 'add'): ?>
-                    <button type="submit" class="btn">Add Action</button>
-                    <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
-                <?php elseif ($action == 'edit'): ?>
-                    <div class="form-actions-row">
-                        <div class="form-actions-main">
-                            <button type="submit" class="btn">Save Action</button>
-                            <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
-                        </div>
-                        <a href="history_form.php?action=delete&id=<?php echo $history_id; ?>&customer_id=<?php echo $customer_id; ?>" 
-                           class="btn delete" onclick="return confirm('Are you sure you want to delete this action history?')">Delete Action</a>
+                <div class="form-actions-row">
+                    <div class="form-actions-main">
+                        <button type="submit" class="btn">Add Action</button>
+                        <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
                     </div>
+                </div>
+                <?php elseif ($action == 'edit'): ?>
+                <div class="form-actions-row">
+                    <div class="form-actions-main">
+                        <button type="submit" class="btn">Save Action</button>
+                        <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
+                    </div>
+                    <a href="history_form.php?action=delete&id=<?php echo $history_id; ?>&customer_id=<?php echo $customer_id; ?>" 
+                       class="btn delete" onclick="return confirm('Are you sure you want to delete this action history?')">Delete Action</a>
+                </div>
                 <?php else: ?>
-                    <a href="history_form.php?action=edit&id=<?php echo $history_id; ?>" class="btn">Edit</a>
+                <div class="form-actions-row">
+                    <div class="form-actions-main">
+                        <a href="history_form.php?action=edit&id=<?php echo $history_id; ?>" class="btn">Edit</a>
+                    </div>
+                </div>
                 <?php endif; ?>
             </div>
         </form>

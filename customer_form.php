@@ -187,8 +187,12 @@ require_once 'includes/header.php';
             
             <div class="form-actions">
                 <?php if ($action == 'add'): ?>
-                <button type="submit" class="btn">Add Customer</button>
-                <a href="customers.php?restore=1" class="btn">Cancel</a>
+                <div class="form-actions-row">
+                    <div class="form-actions-main">
+                        <button type="submit" class="btn">Add Customer</button>
+                        <a href="customers.php?restore=1" class="btn">Cancel</a>
+                    </div>
+                </div>
                 <?php elseif ($action == 'edit'): ?>
                 <div class="form-actions-row">
                     <div class="form-actions-main">

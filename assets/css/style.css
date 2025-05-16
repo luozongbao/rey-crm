@@ -986,72 +986,59 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 
 /* Customer Info Panel */
 .customer-info-panel {
-    background-color: var(--bg-light);
-    border: 1px solid var(--border-color);
+    background: var(--bg-light);
+    padding: 1.5rem;
     border-radius: var(--radius);
-    padding: 0.75rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
     box-shadow: var(--shadow);
 }
 
-.info-row {
+.customer-info-panel .info-row {
     display: flex;
-    flex-wrap: wrap;
-    gap: 1.5rem;
-    align-items: center;
-    padding: 0.25rem 0;
+    gap: 2rem;
+    margin-bottom: 1rem;
 }
 
-.info-row:not(:last-child) {
-    border-bottom: 1px solid var(--border-color);
-    margin-bottom: 0.5rem;
-    padding-bottom: 0.5rem;
+.customer-info-panel .info-row:last-child {
+    margin-bottom: 0;
 }
 
-.info-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    min-width: 200px;
+.customer-info-panel .info-item {
     flex: 1;
 }
 
-.info-item.company-name {
-    min-width: 300px;
-    flex: 2;
+.customer-info-panel .info-item.half-width {
+    flex: 0 0 calc(50% - 1rem);
 }
 
-.info-item.address {
-    flex: 3;
-    min-width: 300px;
+.customer-info-panel .info-item.full-width {
+    flex: 0 0 100%;
 }
 
-.info-item.website {
-    flex: 1;
-    min-width: 200px;
-}
-
-.info-item label {
+.customer-info-panel .company-name {
     font-weight: bold;
-    color: var(--text-color);
-    white-space: nowrap;
 }
 
-.info-item span {
-    color: var(--text-color);
+.customer-info-panel label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+    color: #666;
+    font-size: 0.9em;
 }
 
-.form-group input,
-.form-group select,
-.form-group textarea {
-    width: 100%;
-    box-sizing: border-box;
-    max-width: 100%;
+.customer-info-panel span {
+    font-size: 1.1em;
 }
 
-.form-row input,
-.form-row select {
-    width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.customer-info-panel .status {
+    text-align: right;
+}
+
+.customer-info-panel .status span {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius);
+    background: var(--success-color);
+    color: white;
 }
