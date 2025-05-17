@@ -1,8 +1,26 @@
-# Rey CRM System v1.4.1
+# Rey CRM System v1.5.0
 
 This is the first public GitHub release of Rey CRM System, a modern PHP-based Customer Relationship Management solution.
 
-## What's New
+## What's New in v1.5.0
+
+### Email System Integration
+- Complete SMTP email configuration
+- Email testing functionality
+- Customizable sender name and email
+- Support for TLS/SSL encryption
+
+### Enhanced Security
+- Self-service password reset functionality
+- Time-limited, single-use reset tokens
+- Secure email-based verification
+- Rate limiting to prevent brute force attacks
+
+### User Experience Improvements
+- New user profile management page
+- Improved form styling and validation
+- Real-time password match validation
+- Responsive card-based layouts
 
 ### Core Features
 - Complete customer lifecycle management with status tracking
@@ -24,6 +42,7 @@ This is the first public GitHub release of Rey CRM System, a modern PHP-based Cu
 - MySQL 5.7+ or MariaDB 10.2+
 - Web server (Apache 2.4+/Nginx 1.14+)
 - Modern web browser with JavaScript enabled
+- Composer (for PHPMailer installation)
 
 ## Installation
 
@@ -34,6 +53,8 @@ See the [README.md](README.md) for complete installation instructions.
 - [User Guide](https://github.com/VIBE-Coding/rey-crm/wiki)
 - [API Documentation](https://github.com/VIBE-Coding/rey-crm/wiki/api)
 - [FAQ](https://github.com/VIBE-Coding/rey-crm/wiki/faq)
+- [Email System](docs/email_functionality.md)
+- [Password Reset](docs/password_reset.md)
 
 ---
 

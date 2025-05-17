@@ -56,6 +56,9 @@ define('DB_PASS', '{$dbPass}');
 define('LOG_DIR', dirname(__DIR__) . '/logs');
 define('DEBUG_MODE', false);
 
+// Password reset configuration
+define('PASSWORD_RESET_EXPIRY_HOURS', 24); // Token validity in hours
+
 // Session configuration
 ini_set('session.cookie_httponly', 1);
 ini_set('session.cookie_secure', 1);

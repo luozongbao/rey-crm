@@ -66,10 +66,83 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_user' && isset($_GET['
     }
 }
 
+// Handle SMTP settings form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_smtp'])) {
+    $smtp_host = trim($_POST['smtp_host']);
+    $smtp_port = intval($_POST['smtp_port']);
+    $smtp_username = trim($_POST['smtp_username']);
+    $smtp_from_email = trim($_POST['smtp_from_email']);
+    $smtp_from_name = trim($_POST['smtp_from_name']);
+    $smtp_encryption = $_POST['smtp_encryption'];
+    
+    // Only update password if provided
+    $smtp_password = !empty($_POST['smtp_password']) ? trim($_POST['smtp_password']) : '';
+    
+    try {
+        // Begin transaction
+        $pdo->beginTransaction();
+        
+        // Update or insert each SMTP setting
+        $fields = [
+            'smtp_host' => $smtp_host,
+            'smtp_port' => $smtp_port,
+            'smtp_username' => $smtp_username,
+            'smtp_from_email' => $smtp_from_email,
+            'smtp_from_name' => $smtp_from_name,
+            'smtp_encryption' => $smtp_encryption
+        ];
+        
+        // Only update password if a new one was provided
+        if (!empty($smtp_password)) {
+            $fields['smtp_password'] = $smtp_password;
+        }
+        
+        foreach ($fields as $setting_name => $value) {
+            // Check if setting exists
+            $stmt = $pdo->prepare("SELECT setting_id FROM settings WHERE setting_name = ?");
+            $stmt->execute([$setting_name]);
+            
+            if ($stmt->rowCount() > 0) {
+                // Update existing setting
+                $stmt = $pdo->prepare("UPDATE settings SET value = ?, updated_at = NOW() WHERE setting_name = ?");
+                $stmt->execute([$value, $setting_name]);
+            } else {
+                // Insert new setting
+                $stmt = $pdo->prepare("INSERT INTO settings (setting_name, value) VALUES (?, ?)");
+                $stmt->execute([$setting_name, $value]);
+            }
+        }
+        
+        // Commit transaction
+        $pdo->commit();
+        $message = "SMTP settings updated successfully!";
+    } catch (PDOException $e) {
+        // Rollback on error
+        $pdo->rollBack();
+        $error = "Failed to update SMTP settings: " . htmlspecialchars($e->getMessage());
+    }
+}
+
 // Get current settings
 try {
+    // Get pagination settings
     $stmt = $pdo->query("SELECT value FROM settings WHERE setting_name = 'items_per_page'");
     $items_per_page = ($stmt && $stmt->rowCount() > 0) ? $stmt->fetch(PDO::FETCH_ASSOC)['value'] : 10;
+    
+    // Get SMTP settings
+    $smtp_settings = [];
+    $smtp_fields = ['smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'smtp_from_email', 'smtp_from_name', 'smtp_encryption'];
+    
+    foreach ($smtp_fields as $field) {
+        $stmt = $pdo->prepare("SELECT value FROM settings WHERE setting_name = ?");
+        $stmt->execute([$field]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $smtp_settings[$field] = ($result) ? $result['value'] : '';
+    }
+    
+    // Set defaults if empty
+    if (empty($smtp_settings['smtp_port'])) $smtp_settings['smtp_port'] = 587;
+    if (empty($smtp_settings['smtp_encryption'])) $smtp_settings['smtp_encryption'] = 'tls';
     
     // Get users list
     $stmt = $pdo->query("SELECT user_id, username, email, role FROM users ORDER BY username");
@@ -107,6 +180,91 @@ require_once 'includes/header.php';
         </div>
         <button type="submit" name="update_pagination" class="btn">Update Pagination</button>
     </form>
+</div>
+
+<div class="settings-section">
+    <h3>Email Settings</h3>
+    <form method="POST" action="">
+        <div class="form-row">
+            <div class="form-group half-width">
+                <label for="smtp_host">SMTP Host:</label>
+                <input type="text" id="smtp_host" name="smtp_host" 
+                       value="<?php echo htmlspecialchars($smtp_settings['smtp_host']); ?>" 
+                       placeholder="e.g., smtp.gmail.com" required>
+            </div>
+            
+            <div class="form-group half-width">
+                <label for="smtp_port">SMTP Port:</label>
+                <input type="number" id="smtp_port" name="smtp_port" 
+                       value="<?php echo htmlspecialchars($smtp_settings['smtp_port']); ?>" 
+                       placeholder="e.g., 587" required>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group half-width">
+                <label for="smtp_username">SMTP Username:</label>
+                <input type="text" id="smtp_username" name="smtp_username" 
+                       value="<?php echo htmlspecialchars($smtp_settings['smtp_username']); ?>" 
+                       placeholder="Email address or username" required>
+            </div>
+            
+            <div class="form-group half-width">
+                <label for="smtp_password">SMTP Password:</label>
+                <input type="password" id="smtp_password" name="smtp_password" 
+                       placeholder="<?php echo !empty($smtp_settings['smtp_password']) ? 'Leave blank to keep current password' : 'Enter SMTP password'; ?>">
+                <small>Leave blank to keep existing password</small>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group half-width">
+                <label for="smtp_from_email">From Email:</label>
+                <input type="email" id="smtp_from_email" name="smtp_from_email" 
+                       value="<?php echo htmlspecialchars($smtp_settings['smtp_from_email']); ?>" 
+                       placeholder="noreply@yourcompany.com" required>
+            </div>
+            
+            <div class="form-group half-width">
+                <label for="smtp_from_name">From Name:</label>
+                <input type="text" id="smtp_from_name" name="smtp_from_name" 
+                       value="<?php echo htmlspecialchars($smtp_settings['smtp_from_name']); ?>" 
+                       placeholder="Rey CRM" required>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="smtp_encryption">Encryption:</label>
+            <select id="smtp_encryption" name="smtp_encryption" required>
+                <option value="tls" <?php echo $smtp_settings['smtp_encryption'] === 'tls' ? 'selected' : ''; ?>>TLS</option>
+                <option value="ssl" <?php echo $smtp_settings['smtp_encryption'] === 'ssl' ? 'selected' : ''; ?>>SSL</option>
+                <option value="none" <?php echo $smtp_settings['smtp_encryption'] === 'none' ? 'selected' : ''; ?>>None</option>
+            </select>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" name="update_smtp" class="btn">Update SMTP Settings</button>
+            <button type="button" id="test-email-btn" class="btn ghost">Test Email Settings</button>
+        </div>
+    </form>
+    
+    <!-- Test Email Modal -->
+    <div id="test-email-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h4>Send Test Email</h4>
+            <form id="test-email-form">
+                <div class="form-group">
+                    <label for="test-email">Recipient Email:</label>
+                    <input type="email" id="test-email" name="test_email" required>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn">Send Test Email</button>
+                    <div id="test-email-result"></div>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <div class="settings-section">
@@ -271,6 +429,65 @@ require_once 'includes/header.php';
 .users-list {
     margin-top: 30px;
 }
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.modal-content {
+    position: relative;
+    background-color: white;
+    margin: 10% auto;
+    padding: 20px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    width: 500px;
+    max-width: 90%;
+    animation: modalFadeIn 0.3s;
+}
+
+@keyframes modalFadeIn {
+    from {opacity: 0; transform: translateY(-20px);}
+    to {opacity: 1; transform: translateY(0);}
+}
+
+.close-modal {
+    position: absolute;
+    right: 20px;
+    top: 15px;
+    color: var(--gray-500);
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.close-modal:hover {
+    color: var(--gray-700);
+}
+
+#test-email-result {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    display: none;
+}
+
+#test-email-result.success {
+    background-color: var(--success-light);
+    color: var(--success);
+}
+
+#test-email-result.error {
+    background-color: var(--danger-light);
+    color: var(--danger);
+}
 </style>
 
 <script>
@@ -291,6 +508,79 @@ function editUser(userId) {
     // Redirect to a user edit page or show modal
     window.location.href = "settings.php?action=edit_user&user_id=" + userId;
 }
+
+// Email testing functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const testEmailBtn = document.getElementById('test-email-btn');
+    const testEmailModal = document.getElementById('test-email-modal');
+    const closeModalBtn = document.querySelector('.close-modal');
+    const testEmailForm = document.getElementById('test-email-form');
+    const testEmailResult = document.getElementById('test-email-result');
+    
+    // Open modal
+    testEmailBtn.addEventListener('click', function() {
+        testEmailModal.style.display = 'block';
+    });
+    
+    // Close modal
+    closeModalBtn.addEventListener('click', function() {
+        testEmailModal.style.display = 'none';
+        testEmailResult.style.display = 'none';
+        testEmailForm.reset();
+    });
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', function(event) {
+        if (event.target === testEmailModal) {
+            testEmailModal.style.display = 'none';
+            testEmailResult.style.display = 'none';
+            testEmailForm.reset();
+        }
+    });
+    
+    // Handle test email form submission
+    testEmailForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const testEmail = document.getElementById('test-email').value;
+        testEmailResult.className = '';
+        testEmailResult.textContent = 'Sending test email...';
+        testEmailResult.style.display = 'block';
+        
+        // Send AJAX request to test email
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', 'includes/email_test.php', true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        testEmailResult.className = 'success';
+                        testEmailResult.textContent = 'Test email sent successfully!';
+                    } else {
+                        testEmailResult.className = 'error';
+                        testEmailResult.textContent = 'Error: ' + response.message;
+                    }
+                } catch (e) {
+                    testEmailResult.className = 'error';
+                    testEmailResult.textContent = 'Error: Invalid response from server';
+                }
+            } else {
+                testEmailResult.className = 'error';
+                testEmailResult.textContent = 'Error: Server returned status ' + xhr.status;
+            }
+        };
+        
+        xhr.onerror = function() {
+            testEmailResult.className = 'error';
+            testEmailResult.textContent = 'Error: Network error occurred';
+        };
+        
+        xhr.send('test_email=' + encodeURIComponent(testEmail));
+    });
+});
 </script>
 
 <?php require_once 'includes/footer.php'; ?>
