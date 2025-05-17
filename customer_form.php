@@ -200,7 +200,7 @@ require_once 'includes/header.php';
                         <a href="customers.php?restore=1" class="btn">Cancel</a>
                     </div>
                     <a href="customer_form.php?action=delete&id=<?php echo $customer_id; ?>" 
-                       class="btn delete" onclick="return confirm('Are you sure you want to delete this customer and all related data?')">Delete Customer</a>
+                       class="btn delete">Delete Customer</a>
                 </div>
                 <?php endif; ?>
             </div>

@@ -221,7 +221,7 @@ $customer = getCustomerById($customer_id);
                             <a href="customer_form.php?action=<?php echo $source_action; ?>&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
                         </div>
                         <a href="history_form.php?action=delete&id=<?php echo $history_id; ?>&customer_id=<?php echo $customer_id; ?>&source_action=<?php echo $source_action; ?>" 
-                        class="btn delete" onclick="return confirm('Are you sure you want to delete this action history?')">Delete Action</a>
+                        class="btn delete">Delete Action</a>
                     </div>
                     <?php else: ?>
                     <div class="form-actions-row">

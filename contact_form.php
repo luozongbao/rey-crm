@@ -173,7 +173,7 @@ $customer = getCustomerById($customer_id);
                             <a href="contact_form.php?action=delete&id=<?php echo $contact_id; ?>&customer_id=<?php echo $customer_id; ?>&source_action=<?php echo $source_action; ?>" 
                                <?php echo $isViewMode ? 'disabled' : ''; ?> 
                                <?php echo $isViewMode ? 'style="display:none;"' : ''; ?>
-                            class="btn delete" onclick="return confirm('Are you sure you want to delete this contact?')">Delete Contact</a>
+                            class="btn delete">Delete Contact</a>
                         </div>
                     <?php endif; ?>
                 </div>
