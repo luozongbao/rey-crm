@@ -1,6 +1,24 @@
+# Composer dependencies
+/vendor/
+
+# Composer-generated files
+composer.phar
+
+# Config files that may contain sensitive information
+includes/config.php
+
+# Debug and temporary files
 phpinfo.php
 *.bak
-includes/config.php
 *.log
-logs/
 *.bak*
+
+# Keep log directory structure but not log files
+logs/*
+!logs/.gitkeep
+
+# IDE and OS generated files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

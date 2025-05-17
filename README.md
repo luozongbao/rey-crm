@@ -1,6 +1,29 @@
 # Rey CRM System
 
-A modern PHP-based Customer Relationship Management (CRM) system designed for managing customer interactions, contacts, and activity history. This comprehensive system helps businesses track customer relationships, follow-ups, and business activities efficiently with a clean, responsive interface. Features secure user authentication, role-based access control, and customizable settings.
+A modern PHP-based Customer Relationship Management (CRM) system designed for managing customer interactions, contacts, and activity history. This comprehensive system helps businesses track customer rela### Key Features & Improvements
+
+### Email Functionality
+- Complete SMTP email integration
+- Configurable email settings:
+  - SMTP server configuration
+  - Authentication options
+  - TLS/SSL encryption
+  - Custom sender name and email
+- Email testing capability
+- Reusable email sending API for developers
+- HTML and plain text email support
+- File attachment capabilities
+- CC/BCC recipient support
+
+### UI Enhancements
+- Responsive table layouts with optimized column widths
+- Fixed-width datetime columns (140px) for consistent display
+- Dynamic status badges with color coding
+- Adjustable status label width (140px) for better readability
+- Modern, clean interface design with CSS variables
+- Consistent color scheme with primary, success, danger, and warning variants
+- Accessible typography with responsive font sizing
+- Custom form styling with focus statesfollow-ups, and business activities efficiently with a clean, responsive interface. Features secure user authentication, role-based access control, and customizable settings.
 
 ## Core Features
 
@@ -93,6 +116,12 @@ A modern PHP-based Customer Relationship Management (CRM) system designed for ma
   - Add/Edit/Delete users
   - Assign user roles
   - Manage user permissions
+- Email system configuration:
+  - SMTP server settings
+  - Email templates management
+  - Test email functionality
+  - From email and name customization
+  - TLS/SSL encryption options
 - System configuration:
   - Centralized settings management
   - Database-driven configuration
@@ -124,6 +153,7 @@ A modern PHP-based Customer Relationship Management (CRM) system designed for ma
   - mbstring
   - json
   - session
+- Composer (for PHPMailer installation)
 
 ### Browser Requirements
 - Modern browsers (Chrome, Firefox, Safari, Edge)
@@ -141,14 +171,20 @@ A modern PHP-based Customer Relationship Management (CRM) system designed for ma
 
 2. Set up your web server (Apache/Nginx) to point to the project directory
 
-3. Access the installation page:
+3. Install required dependencies:
+   ```bash
+   composer install
+   ```
+
+4. Access the installation page:
    - Navigate to `http://your-domain/includes/install.php`
    - Follow the database configuration steps
    - Create your admin user when prompted
 
-4. Initial Configuration:
+5. Initial Configuration:
    - Log in with your admin credentials via `login.php`
    - Configure system settings in the Settings page
+   - Set up SMTP email settings for notifications
    - Set up additional users as needed
 
 5. Set file permissions:
@@ -180,11 +216,18 @@ A modern PHP-based Customer Relationship Management (CRM) system designed for ma
 │       └── script.js       # Enhanced client-side functionality
 ├── database/
 │   └── database.sql        # Database schema and initial data
+├── docs/
+│   └── email_functionality.md # Email system documentation
 ├── includes/
 │   ├── functions.php       # Core PHP functions and utilities
 │   ├── header.php          # Shared header template
 │   ├── footer.php          # Shared footer template
+│   ├── email_test.php      # Email testing functionality
 │   └── install.php         # Installation wizard
+├── vendor/                 # Composer dependencies
+│   ├── autoload.php        # Composer autoloader
+│   ├── composer/           # Composer files
+│   └── phpmailer/          # PHPMailer library
 ├── all_activities.php      # Complete activity history view
 ├── all_followups.php       # Comprehensive follow-up tracking
 ├── contact_form.php        # Contact person management
@@ -196,6 +239,7 @@ A modern PHP-based Customer Relationship Management (CRM) system designed for ma
 ├── login.php               # User authentication
 ├── logout.php              # User logout handler
 ├── settings.php            # System configuration interface
+├── composer.json           # Composer configuration
 └── README.md               # Project documentation
 ```
 
@@ -278,7 +322,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-© 2025 VIBE Coding | Rey CRM System | Last Updated: May 17, 2025
+© 2025 VIBE Coding | Rey CRM System | Last Updated: May 18, 2025
 
 ## Support
 

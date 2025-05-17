@@ -1,0 +1,13 @@
+{
+    "name": "rey/crm",
+    "description": "Rey CRM system",
+    "type": "project",
+    "require": {
+        "phpmailer/phpmailer": "^6.8"
+    },
+    "authors": [
+        {
+            "name": "Rey CRM Team"
+        }
+    ]
+}

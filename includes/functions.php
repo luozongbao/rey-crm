@@ -576,4 +576,141 @@ function getItemsPerPage() {
         return 10; // Default value if setting can't be fetched
     }
 }
+
+/**
+ * Send an email using PHPMailer
+ * 
+ * @param string|array $to Recipient email address(es)
+ * @param string $subject Email subject
+ * @param string $body Email body (HTML format)
+ * @param string $altBody Plain text version of the email body
+ * @param array $attachments Array of files to attach (optional)
+ * @param array|null $cc CC recipients (optional)
+ * @param array|null $bcc BCC recipients (optional)
+ * @param array|null $replyTo Reply-To addresses (optional)
+ * @return array Success status and message
+ */
+function sendEmail($to, $subject, $body, $altBody = '', $attachments = [], $cc = null, $bcc = null, $replyTo = null) {
+    try {
+        // Check if PHPMailer is installed
+        if (!class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
+            throw new Exception('PHPMailer is not installed. Please run: composer require phpmailer/phpmailer');
+        }
+        
+        // Get SMTP settings from database
+        global $pdo;
+        $smtp_settings = [];
+        $smtp_fields = ['smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'smtp_from_email', 'smtp_from_name', 'smtp_encryption'];
+        
+        foreach ($smtp_fields as $field) {
+            $stmt = $pdo->prepare("SELECT value FROM settings WHERE setting_name = ?");
+            $stmt->execute([$field]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $smtp_settings[$field] = ($result) ? $result['value'] : '';
+        }
+        
+        // Check if required SMTP settings are configured
+        if (empty($smtp_settings['smtp_host']) || empty($smtp_settings['smtp_port'])) {
+            throw new Exception('SMTP settings are not fully configured.');
+        }
+        
+        // Initialize PHPMailer
+        $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+        
+        // Server settings
+        $mail->isSMTP();
+        $mail->Host = $smtp_settings['smtp_host'];
+        $mail->Port = $smtp_settings['smtp_port'];
+        
+        // Set encryption type
+        if ($smtp_settings['smtp_encryption'] === 'tls') {
+            $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+        } elseif ($smtp_settings['smtp_encryption'] === 'ssl') {
+            $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
+        }
+        
+        // Set authentication if username and password are provided
+        if (!empty($smtp_settings['smtp_username']) && !empty($smtp_settings['smtp_password'])) {
+            $mail->SMTPAuth = true;
+            $mail->Username = $smtp_settings['smtp_username'];
+            $mail->Password = $smtp_settings['smtp_password'];
+        }
+        
+        // Set sender
+        $mail->setFrom(
+            !empty($smtp_settings['smtp_from_email']) ? $smtp_settings['smtp_from_email'] : 'noreply@reycrm.com',
+            !empty($smtp_settings['smtp_from_name']) ? $smtp_settings['smtp_from_name'] : 'Rey CRM'
+        );
+        
+        // Add recipients
+        if (is_array($to)) {
+            foreach ($to as $email => $name) {
+                if (is_numeric($email)) {
+                    // If key is numeric, it's just an email address without a name
+                    $mail->addAddress($name);
+                } else {
+                    $mail->addAddress($email, $name);
+                }
+            }
+        } else {
+            $mail->addAddress($to);
+        }
+        
+        // Add CC recipients if provided
+        if (is_array($cc)) {
+            foreach ($cc as $email => $name) {
+                if (is_numeric($email)) {
+                    $mail->addCC($name);
+                } else {
+                    $mail->addCC($email, $name);
+                }
+            }
+        }
+        
+        // Add BCC recipients if provided
+        if (is_array($bcc)) {
+            foreach ($bcc as $email => $name) {
+                if (is_numeric($email)) {
+                    $mail->addBCC($name);
+                } else {
+                    $mail->addBCC($email, $name);
+                }
+            }
+        }
+        
+        // Add Reply-To addresses if provided
+        if (is_array($replyTo)) {
+            foreach ($replyTo as $email => $name) {
+                if (is_numeric($email)) {
+                    $mail->addReplyTo($name);
+                } else {
+                    $mail->addReplyTo($email, $name);
+                }
+            }
+        }
+        
+        // Add attachments if provided
+        if (!empty($attachments)) {
+            foreach ($attachments as $attachment) {
+                if (file_exists($attachment)) {
+                    $mail->addAttachment($attachment);
+                }
+            }
+        }
+        
+        // Content
+        $mail->isHTML(true);
+        $mail->Subject = $subject;
+        $mail->Body = $body;
+        $mail->AltBody = !empty($altBody) ? $altBody : strip_tags(str_replace('<br>', "\n", $body));
+        
+        // Send email
+        $mail->send();
+        
+        return ['success' => true, 'message' => 'Email sent successfully.'];
+    } catch (Exception $e) {
+        logError("Email sending failed: " . $e->getMessage());
+        return ['success' => false, 'message' => 'Email error: ' . $e->getMessage()];
+    }
+}
 ?>
