@@ -60,25 +60,29 @@ require_once 'includes/header.php';
                            value="<?= htmlspecialchars($date_to) ?>">
                 </div>
 
-                <button type="submit" class="btn">Apply Filters</button>
-                <a href="all_followups.php" class="btn">Reset</a>
+                <div class="btn-group">
+                    <button type="submit" class="btn">Apply Filters</button>
+                    <a href="all_followups.php" class="btn ghost">Reset</a>
+                </div>
             </div>
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Sort By:</label>
-                    <select name="sort" onchange="this.form.submit()">
-                        <option value="follow_up_datetime" <?= $sort == 'follow_up_datetime' ? 'selected' : '' ?>>Follow-up Date</option>
-                        <option value="company_name" <?= $sort == 'company_name' ? 'selected' : '' ?>>Customer Name</option>
-                    </select>
-                </div>
+            <div class="sort-section">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Sort By:</label>
+                        <select name="sort" onchange="this.form.submit()">
+                            <option value="follow_up_datetime" <?= $sort == 'follow_up_datetime' ? 'selected' : '' ?>>Follow-up Date</option>
+                            <option value="company_name" <?= $sort == 'company_name' ? 'selected' : '' ?>>Customer Name</option>
+                        </select>
+                    </div>
 
-                <div class="form-group">
-                    <label>Order:</label>
-                    <select name="order" onchange="this.form.submit()">
-                        <option value="asc" <?= $order == 'asc' ? 'selected' : '' ?>>Ascending</option>
-                        <option value="desc" <?= $order == 'desc' ? 'selected' : '' ?>>Descending</option>
-                    </select>
+                    <div class="form-group">
+                        <label>Order:</label>
+                        <select name="order" onchange="this.form.submit()">
+                            <option value="asc" <?= $order == 'asc' ? 'selected' : '' ?>>Ascending</option>
+                            <option value="desc" <?= $order == 'desc' ? 'selected' : '' ?>>Descending</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </form>

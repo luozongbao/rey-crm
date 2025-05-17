@@ -59,25 +59,29 @@ require_once 'includes/header.php';
                            value="<?= htmlspecialchars($date_to) ?>">
                 </div>
 
-                <button type="submit" class="btn">Apply Filters</button>
-                <a href="all_activities.php" class="btn">Reset</a>
+                <div class="btn-group">
+                    <button type="submit" class="btn">Apply Filters</button>
+                    <a href="all_activities.php" class="btn ghost">Reset</a>
+                </div>
             </div>
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Sort By:</label>
-                    <select name="sort" onchange="this.form.submit()">
-                        <option value="action_datetime" <?= $sort == 'action_datetime' ? 'selected' : '' ?>>Activity Date</option>
-                        <option value="company_name" <?= $sort == 'company_name' ? 'selected' : '' ?>>Customer Name</option>
-                    </select>
-                </div>
+            <div class="sort-section">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Sort By:</label>
+                        <select name="sort" onchange="this.form.submit()">
+                            <option value="action_datetime" <?= $sort == 'action_datetime' ? 'selected' : '' ?>>Activity Date</option>
+                            <option value="company_name" <?= $sort == 'company_name' ? 'selected' : '' ?>>Customer Name</option>
+                        </select>
+                    </div>
 
-                <div class="form-group">
-                    <label>Order:</label>
-                    <select name="order" onchange="this.form.submit()">
-                        <option value="desc" <?= $order == 'desc' ? 'selected' : '' ?>>Newest First</option>
-                        <option value="asc" <?= $order == 'asc' ? 'selected' : '' ?>>Oldest First</option>
-                    </select>
+                    <div class="form-group">
+                        <label>Order:</label>
+                        <select name="order" onchange="this.form.submit()">
+                            <option value="desc" <?= $order == 'desc' ? 'selected' : '' ?>>Newest First</option>
+                            <option value="asc" <?= $order == 'asc' ? 'selected' : '' ?>>Oldest First</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </form>
