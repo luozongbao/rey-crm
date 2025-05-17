@@ -1,8 +1,8 @@
-# Rey CRM System v1.4.1 - Release Notes
+# Rey CRM System v1.5.0 - Release Notes
 
-**Release Date:** May 17, 2025  
+**Release Date:** May 18, 2025  
 **Initial GitHub Release:** Yes  
-**Version:** 1.4.1  
+**Version:** 1.5.0  
 
 ## Overview
 
@@ -17,6 +17,8 @@ Rey CRM System is a modern PHP-based Customer Relationship Management (CRM) solu
 - Status-based customer tracking with visual indicators
 - Smart location handling with province/country support
 - Detailed dashboard with analytics and statistics
+- Email system integration with SMTP configuration
+- Secure password reset functionality
 
 ### User Experience
 - Modern, responsive interface with clean design
@@ -27,10 +29,12 @@ Rey CRM System is a modern PHP-based Customer Relationship Management (CRM) solu
 
 ### Security
 - Secure authentication system with password hashing
+- Self-service password reset with secure token system
 - Protection against SQL injection and XSS attacks
 - CSRF protection on all forms
 - Role-based access control
 - Secure session management
+- Rate limiting for sensitive operations
 
 ## Technical Details
 
@@ -43,9 +47,18 @@ Rey CRM System is a modern PHP-based Customer Relationship Management (CRM) solu
 
 Please refer to the [README.md](README.md) file for detailed installation instructions.
 
-## Changes in v1.4.1
+## Changes in v1.5.0
 
 ### New Features
+- Implemented comprehensive email system with SMTP configuration
+- Added secure password reset functionality with time-limited tokens
+- Created user profile page for account management
+- Built email testing capabilities for system verification
+- Added configurable token expiration settings
+
+### Changes in v1.4.1
+
+#### New Features
 - Added export capability for activity history to CSV
 - Implemented follow-up schedule export to CSV
 - Added custom date range filtering for exports
@@ -58,6 +71,9 @@ Please refer to the [README.md](README.md) file for detailed installation instru
 - Improved form validation with better error messaging
 - Updated UI components for better accessibility
 - Streamlined navigation between related records
+- Added real-time password validation
+- Enhanced profile page with styled input forms
+- Implemented automatic cleanup of expired tokens
 
 ### Bug Fixes
 - Fixed pagination issue when returning from detail views
