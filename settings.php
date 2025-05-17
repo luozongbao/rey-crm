@@ -61,7 +61,11 @@ require_once 'includes/header.php';
 ?>
 
 <div class="container">
-    <h2>System Settings</h2>
+    <div class="header">
+        <h1>System Settings</h1>
+        <p>Manage system settings and user accounts.</p>
+    </div>
+
 
     <?php if ($error): ?>
         <div class="error-message"><?php echo htmlspecialchars($error); ?></div>

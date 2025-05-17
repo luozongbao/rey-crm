@@ -19,46 +19,75 @@
     ?>
     <header class="main-header">
         <div class="container">
-            <h1 class="logo"><a href="/index.php">Rey CRM</a></h1>
-            <?php if (isset($_SESSION['user_id'])): ?>
-            <nav class="main-nav">
-                <ul>
-                    <li><a href="/dashboard.php">Dashboard</a></li>
-                    <li><a href="/customers.php">Customer List</a></li>
-                    <li><a href="/all_activities.php">All Activities</a></li>
-                    <li><a href="/all_followups.php">All Followups</a></li>
-                    <?php if (isAdmin()): ?>
-                    <li><a href="/settings.php">Settings</a></li>
-                    <?php endif; ?>
-                    <li class="user-menu">
-                        <span>Welcome, <?php echo htmlspecialchars($_SESSION['username']); ?></span>
-                        <a href="/logout.php" class="logout-btn">Logout</a>
-                    </li>
-                </ul>
-            </nav>
-            <?php endif; ?>
+            <div class="header-content">
+                <h1 class="logo"><a href="/index.php">Rey CRM</a></h1>
+                
+                <?php if (isset($_SESSION['user_id'])): ?>
+                <!-- Mobile menu button -->
+                <button class="mobile-menu-button" aria-label="Open menu">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="24" height="24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/>
+                    </svg>
+                </button>
+
+                <nav class="main-nav">
+                    <ul class="nav-list">
+                        <li class="nav-item">
+                            <a href="/dashboard.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'dashboard.php' ? 'active' : ''; ?>">
+                                Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/customers.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'customers.php' ? 'active' : ''; ?>">
+                                Customers
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/all_activities.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'all_activities.php' ? 'active' : ''; ?>">
+                                Activities
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/all_followups.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'all_followups.php' ? 'active' : ''; ?>">
+                                Follow-ups
+                            </a>
+                        </li>
+                        <?php if (isAdmin()): ?>
+                        <li class="nav-item">
+                            <a href="/settings.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'settings.php' ? 'active' : ''; ?>">
+                                Settings
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                    </ul>
+
+                    <div class="user-menu">
+                        <div class="user-info">
+                            <span class="username">Welcome, <?php echo htmlspecialchars($_SESSION['username']); ?></span>
+                            <a href="/logout.php" class="btn logout-btn">
+                                Logout
+                            </a>
+                        </div>
+                    </div>
+                </nav>
+                <?php endif; ?>
+            </div>
         </div>
     </header>
 
-    <style>
-    .user-menu {
-        margin-left: auto;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-    .user-menu span {
-        color: #A2C23A;
-    }
-    .logout-btn {
-        background: #dc3545;
-        color: white !important;
-        padding: 0.25rem 0.75rem;
-        border-radius: 4px;
-        text-decoration: none;
-    }
-    .logout-btn:hover {
-        background: #c82333;
-    }
-    </style>
-    <main class="container">
+    <script>
+        // Mobile menu functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuButton = document.querySelector('.mobile-menu-button');
+            const mainNav = document.querySelector('.main-nav');
+            
+            if (mobileMenuButton && mainNav) {
+                mobileMenuButton.addEventListener('click', function() {
+                    mainNav.classList.toggle('show');
+                    this.setAttribute('aria-expanded', 
+                        this.getAttribute('aria-expanded') === 'true' ? 'false' : 'true'
+                    );
+                });
+            }
+        });
+    </script>

@@ -52,63 +52,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Rey CRM</title>
     <link rel="stylesheet" href="/assets/css/style.css">
-    <style>
-        .login-container {
-            max-width: 400px;
-            margin: 2rem auto;
-            padding: 2rem;
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: bold;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 0.5rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .error-message {
-            background: #fee;
-            color: #c00;
-            padding: 1rem;
-            border-radius: 4px;
-            margin-bottom: 1rem;
-        }
-        .btn {
-            width: 100%;
-        }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body>
-    <div class="login-container">
-        <h1>Login to Rey CRM</h1>
-        
-        <?php if ($error): ?>
-            <div class="error-message"><?php echo htmlspecialchars($error); ?></div>
-        <?php endif; ?>
-        
-        <form method="POST" action="">
-            <div class="form-group">
-                <label for="username">Username:</label>
-                <input type="text" id="username" name="username" required 
-                       value="<?php echo htmlspecialchars($_POST['username'] ?? ''); ?>">
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1 class="auth-title">Welcome to Rey CRM</h1>
+                <p class="auth-subtitle">Sign in to your account</p>
             </div>
-            
-            <div class="form-group">
-                <label for="password">Password:</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-            
-            <button type="submit" class="btn">Login</button>
-        </form>
+
+            <?php if ($error): ?>
+                <div class="alert alert-danger">
+                    <?php echo htmlspecialchars($error); ?>
+                </div>
+            <?php endif; ?>
+
+            <form method="POST" class="auth-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" 
+                           id="username" 
+                           name="username" 
+                           class="form-input" 
+                           required 
+                           autofocus>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" 
+                           id="password" 
+                           name="password" 
+                           class="form-input" 
+                           required>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">
+                    Sign In
+                </button>
+            </form>
+        </div>
     </div>
 </body>
 </html>

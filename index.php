@@ -10,7 +10,10 @@ require_once 'includes/header.php';
 
 <div class="index-container">
     <div class="quick-stats">
-        <h2>Customer Overview</h2>
+        <div class="header">
+            <h1>Welcome to Rey CRM</h1>
+            <p>Your customer management dashboard</p>
+        </div>
         <div class="stats-grid">
             <?php foreach ($statusCounts as $status => $count): ?>
             <div class="stat-box">
