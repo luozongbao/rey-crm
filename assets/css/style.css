@@ -89,15 +89,39 @@ main.container {
 }
 
 .logo {
+  margin: 0;
+  line-height: 1;
+}
+
+.logo a {
+  display: flex;
+  align-items: center;
   font-size: 1.5rem;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--gray-900);
   text-decoration: none;
   transition: var(--transition);
+  letter-spacing: -0.025em;
 }
 
-.logo:hover {
+.logo a::before {
+  content: "";
+  display: inline-block;
+  width: 2rem;
+  height: 2rem;
+  margin-right: 0.75rem;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+
+.logo a:hover {
   color: var(--primary);
+}
+
+.logo a:hover::before {
+  transform: rotate(-5deg);
+  box-shadow: var(--shadow);
 }
 
 .main-nav {

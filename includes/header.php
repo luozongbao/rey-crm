@@ -20,7 +20,11 @@
     <header class="main-header">
         <div class="container">
             <div class="header-content">
-                <h1 class="logo"><a href="/index.php">Rey CRM</a></h1>
+                <h1 class="logo">
+                    <a href="/index.php" title="Rey CRM Dashboard">
+                        <span>Rey CRM</span>
+                    </a>
+                </h1>
                 
                 <?php if (isset($_SESSION['user_id'])): ?>
                 <!-- Mobile menu button -->
