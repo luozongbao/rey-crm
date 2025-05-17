@@ -210,7 +210,7 @@ require_once 'includes/header.php';
         <div class="section">
             <div class="section-header">
                 <h2>Contact Persons</h2>
-                <a href="contact_form.php?action=add&customer_id=<?php echo $customer_id; ?>" class="btn">Add Contact Person</a>
+                <a href="contact_form.php?action=add&customer_id=<?php echo $customer_id; ?>&source_action=<?php echo $action; ?>" class="btn">Add Contact Person</a>
             </div>
             
             <table class="compact-table">
@@ -229,7 +229,7 @@ require_once 'includes/header.php';
                         <td><?php echo htmlspecialchars($contact['contact_number'] ?? 'N/A'); ?></td>
                         <td><?php echo htmlspecialchars($contact['contact_email'] ?? 'N/A'); ?></td>
                         <td>
-                            <a href="contact_form.php?action=edit&id=<?php echo $contact['contact_id']; ?>" class="btn">Edit</a>
+                            <a href="contact_form.php?action=edit&id=<?php echo $contact['contact_id']; ?>&source_action=<?php echo $action; ?>" class="btn">Edit</a>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -240,7 +240,7 @@ require_once 'includes/header.php';
         <div class="section">
             <div class="section-header">
                 <h2>Action History</h2>
-                <a href="history_form.php?action=add&customer_id=<?php echo $customer_id; ?>" class="btn">Add Action</a>
+                <a href="history_form.php?action=add&customer_id=<?php echo $customer_id; ?>&source_action=<?php echo $action; ?>" class="btn">Add Action</a>
             </div>
             <table class="compact-table">
                 <thead>
@@ -262,7 +262,7 @@ require_once 'includes/header.php';
                         <td class="datetime-col"><?php echo htmlspecialchars(date('Y-m-d H:i', strtotime($history['action_datetime']))); ?></td>
                         <td class="datetime-col"><?php echo htmlspecialchars(date('Y-m-d H:i', strtotime($history['follow_up_datetime']))); ?></td>
                         <td class="actions-col">
-                            <a href="history_form.php?action=edit&id=<?php echo $history['history_id']; ?>&customer_id=<?php echo $customer_id; ?>" class="btn">Edit</a>
+                            <a href="history_form.php?action=edit&id=<?php echo $history['history_id']; ?>&customer_id=<?php echo $customer_id; ?>&source_action=<?php echo $action; ?>" class="btn">Edit</a>
                         </td>
                     </tr>
                     <?php endforeach; ?>

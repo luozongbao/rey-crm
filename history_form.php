@@ -5,6 +5,7 @@ session_start();
 $action = $_GET['action'] ?? 'add';
 $history_id = $_GET['id'] ?? 0;
 $customer_id = $_GET['customer_id'] ?? 0;
+$source_action = $_GET['source_action'] ?? 'edit';
 $isViewMode = $action === 'view';
 
 // Get customer_id from history record if editing/viewing
@@ -17,7 +18,7 @@ if (($action == 'edit' || $action == 'view') && $history_id) {
 
 if ($action == 'delete' && $history_id) {
     deleteHistory($history_id);
-    header("Location: customer_form.php?action=edit&id=$customer_id");
+    header("Location: customer_form.php?action=$source_action&id=$customer_id");
     exit;
 }
 
@@ -76,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$isViewMode) {
             $stmt->execute($data);
         }
         
-        header("Location: customer_form.php?action=edit&id=$customer_id");
+        header("Location: customer_form.php?action=" . $source_action . "&id=$customer_id");
         exit;
     } catch (PDOException $e) {
         die("Database error: " . $e->getMessage());
@@ -143,7 +144,7 @@ $customer = getCustomerById($customer_id);
 
         <div class="header">
             <h1><?php echo ucfirst($action); ?> Action History</h1>
-            <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Back</a>
+            <a href="customer_form.php?action=<?php echo $source_action; ?>&id=<?php echo $customer_id; ?>" class="btn">Back</a>
         </div>
         
         <div class="form-container">
@@ -210,16 +211,16 @@ $customer = getCustomerById($customer_id);
                     <div class="form-actions-row">
                         <div class="form-actions-main">
                             <button type="submit" class="btn">Add Action</button>
-                            <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
+                            <a href="customer_form.php?action=<?php echo $source_action; ?>&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
                         </div>
                     </div>
                     <?php elseif ($action == 'edit'): ?>
                     <div class="form-actions-row">
                         <div class="form-actions-main">
                             <button type="submit" class="btn">Save Action</button>
-                            <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
+                            <a href="customer_form.php?action=<?php echo $source_action; ?>&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
                         </div>
-                        <a href="history_form.php?action=delete&id=<?php echo $history_id; ?>&customer_id=<?php echo $customer_id; ?>" 
+                        <a href="history_form.php?action=delete&id=<?php echo $history_id; ?>&customer_id=<?php echo $customer_id; ?>&source_action=<?php echo $source_action; ?>" 
                         class="btn delete" onclick="return confirm('Are you sure you want to delete this action history?')">Delete Action</a>
                     </div>
                     <?php else: ?>

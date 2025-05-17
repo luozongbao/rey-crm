@@ -5,12 +5,14 @@ session_start();
 $action = $_GET['action'] ?? 'add';
 $contact_id = $_GET['id'] ?? 0;
 $customer_id = $_GET['customer_id'] ?? 0;
+$source_action = $_GET['source_action'] ?? 'edit';
 
 if ($action == 'delete' && $contact_id) {
     deleteContactPerson($contact_id);
-    header("Location: customer_form.php?action=edit&id=$customer_id");
+    header("Location: customer_form.php?action=$source_action&id=$customer_id");
     exit;
 }
+
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$isViewMode) {
     // Validate required fields
@@ -45,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$isViewMode) {
             $stmt->execute(array_values($data));
         }
         
-        header("Location: customer_form.php?action=edit&id=" . $data['customer_id']);
+        header("Location: customer_form.php?action=" . $source_action . "&id=" . $data['customer_id']);
         exit;
     } catch (PDOException $e) {
         die("Database error: " . $e->getMessage());
@@ -116,7 +118,7 @@ $customer = getCustomerById($customer_id);
 
         <div class="header">
             <h1><?php echo ucfirst($action); ?> Contact Person</h1>
-            <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Back</a>
+            <a href="customer_form.php?action=<?php echo $source_action; ?>&id=<?php echo $customer_id; ?>" class="btn">Back</a>
         </div>
 
         <div class="form-container">
@@ -154,24 +156,27 @@ $customer = getCustomerById($customer_id);
                         value="<?php echo $contact ? htmlspecialchars($contact['contact_email']) : ''; ?>" 
                         <?php echo $isViewMode ? 'disabled' : ''; ?>>
                 </div>
-                
-                <?php if ($action == 'add'): ?>
-                    <div class="form-actions-row">
-                        <div class="form-actions-main">
-                            <button type="submit" class="btn">Save</button>
-                            <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
+                <div class="form-actions">                    
+                    <?php if ($action == 'add'): ?>
+                        <div class="form-actions-row">
+                            <div class="form-actions-main">
+                                <button type="submit" class="btn">Save</button>
+                                <a href="customer_form.php?action=<?php echo $source_action; ?>&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
+                            </div>
                         </div>
-                    </div>
-                <?php elseif ($action == 'edit'): ?>
-                    <div class="form-actions-row">
-                        <div class="form-actions-main">
-                            <button type="submit" class="btn">Save</button>
-                            <a href="customer_form.php?action=edit&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
+                    <?php elseif ($action == 'edit'): ?>
+                        <div class="form-actions-row">
+                            <div class="form-actions-main">
+                                <button type="submit" class="btn">Save</button>
+                                <a href="customer_form.php?action=<?php echo $source_action; ?>&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
+                            </div>
+                            <a href="contact_form.php?action=delete&id=<?php echo $contact_id; ?>&customer_id=<?php echo $customer_id; ?>&source_action=<?php echo $source_action; ?>" 
+                               <?php echo $isViewMode ? 'disabled' : ''; ?> 
+                               <?php echo $isViewMode ? 'style="display:none;"' : ''; ?>
+                            class="btn delete" onclick="return confirm('Are you sure you want to delete this contact?')">Delete Contact</a>
                         </div>
-                        <a href="contact_form.php?action=delete&id=<?php echo $contact_id; ?>&customer_id=<?php echo $customer_id; ?>" 
-                        class="btn delete" onclick="return confirm('Are you sure you want to delete this contact?')">Delete Contact</a>
-                    </div>
-                <?php endif; ?>
+                    <?php endif; ?>
+                </div>
             </form>
         </div>  
     </div>
