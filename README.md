@@ -104,6 +104,8 @@ A modern PHP-based Customer Relationship Management (CRM) system designed for ma
 - User features:
   - Secure password hashing
   - Email verification
+  - Self-service password reset
+  - User profile management
   - Last login tracking
   - Session management
   - Automatic logout protection
@@ -133,6 +135,11 @@ A modern PHP-based Customer Relationship Management (CRM) system designed for ma
   - Protection against SQL injection
   - XSS prevention
   - CSRF protection
+- Password management:
+  - Secure password reset via email
+  - Time-limited, single-use reset tokens
+  - Rate limiting to prevent brute force attacks
+  - Automatic expiration of unused tokens
 - Session security:
   - HTTP-only cookies
   - Secure session handling

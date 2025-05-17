@@ -15,6 +15,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = trim($_POST['password'] ?? '');
     
+    // Cleanup expired tokens occasionally (1% chance)
+    if (mt_rand(1, 100) === 1) {
+        cleanupExpiredTokens();
+    }
+    
     if (empty($username) || empty($password)) {
         $error = "Please enter both username and password.";
     } else {
@@ -93,6 +98,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <button type="submit" class="btn btn-primary btn-block">
                     Sign In
                 </button>
+                
+                <div class="auth-links">
+                    <a href="forgot_password.php" class="text-link">Forgot Password?</a>
+                </div>
             </form>
         </div>
     </div>

@@ -68,9 +68,14 @@
                     <div class="user-menu">
                         <div class="user-info">
                             <span class="username">Welcome, <?php echo htmlspecialchars($_SESSION['username']); ?></span>
-                            <a href="/logout.php" class="btn logout-btn">
-                                Logout
-                            </a>
+                            <div class="user-actions">
+                                <a href="/profile.php" class="btn profile-btn" title="My Profile">
+                                    My Profile
+                                </a>
+                                <a href="/logout.php" class="btn logout-btn">
+                                    Logout
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </nav>
