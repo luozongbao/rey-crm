@@ -45,6 +45,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manage_user'])) {
     }
 }
 
+// Handle delete user action
+if (isset($_GET['action']) && $_GET['action'] === 'delete_user' && isset($_GET['user_id'])) {
+    $user_id = intval($_GET['user_id']);
+    
+    // Prevent deleting your own account
+    if ($user_id === $_SESSION['user_id']) {
+        $error = "You cannot delete your own account.";
+    } else {
+        try {
+            $stmt = $pdo->prepare("DELETE FROM users WHERE user_id = ?");
+            if ($stmt->execute([$user_id])) {
+                $message = "User deleted successfully!";
+            } else {
+                $error = "Failed to delete user.";
+            }
+        } catch (PDOException $e) {
+            $error = "Error deleting user: " . htmlspecialchars($e->getMessage());
+        }
+    }
+}
+
 // Get current settings
 try {
     $stmt = $pdo->query("SELECT value FROM settings WHERE setting_name = 'items_per_page'");
@@ -139,8 +160,10 @@ require_once 'includes/header.php';
                     <td>
                         <button class="btn btn-small" 
                                 onclick="editUser(<?php echo $user['user_id']; ?>)">Edit</button>
+                        <?php if ($user['user_id'] != $_SESSION['user_id']): ?>
                         <button class="btn btn-small btn-danger" 
                                 onclick="deleteUser(<?php echo $user['user_id']; ?>)">Delete</button>
+                        <?php endif; ?>
                     </td>
                 </tr>
                 <?php endforeach; ?>
@@ -237,5 +260,25 @@ require_once 'includes/header.php';
     margin-bottom: 20px;
 }
 </style>
+
+<script>
+function deleteUser(userId) {
+    // Don't allow deleting the current user
+    if (userId == <?php echo $_SESSION['user_id']; ?>) {
+        alert("You cannot delete your own account.");
+        return;
+    }
+    
+    if (confirm("Are you sure you want to delete this user?")) {
+        // Redirect to a user delete handler
+        window.location.href = "settings.php?action=delete_user&user_id=" + userId;
+    }
+}
+
+function editUser(userId) {
+    // Redirect to a user edit page or show modal
+    window.location.href = "settings.php?action=edit_user&user_id=" + userId;
+}
+</script>
 
 <?php require_once 'includes/footer.php'; ?>

@@ -240,7 +240,6 @@ main.container {
 .logout-btn:hover {
   background-color: var(--danger-light);
   color: var(--danger);
-  border-color: var(--danger);
 }
 
 /* Footer */
