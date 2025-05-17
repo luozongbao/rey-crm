@@ -155,9 +155,9 @@ require_once 'includes/header.php';
             </form>
         </div>
         
-           
-        <?php if ($totalPages > 1): ?>
+        <!-- Pagination (top) -->
         <div class="pagination-container">
+            <?php if ($totalPages > 1): ?>
             <div class="pagination">
                 <?php if ($page > 1): ?>
                     <a href="?<?php echo buildQueryString(['page' => 1]); ?>" class="btn">First</a>
@@ -165,6 +165,7 @@ require_once 'includes/header.php';
                 <?php endif; ?>
                 
                 <?php 
+                // Show page numbers
                 $startPage = max(1, $page - 2);
                 $endPage = min($totalPages, $page + 2);
                 
@@ -182,6 +183,15 @@ require_once 'includes/header.php';
                 <?php endif; ?>
             </div>
             <?php endif; ?>
+            
+            <div class="records-count">
+                <?php
+                // Calculate the current record range
+                $startRecord = ($page - 1) * $perPage + 1;
+                $endRecord = min($page * $perPage, $totalCustomers);
+                echo "Showing $startRecord - $endRecord of $totalCustomers records";
+                ?>
+            </div>
         </div>
         
         <table class="compact-table">
@@ -222,32 +232,43 @@ require_once 'includes/header.php';
             </tbody>
         </table>
         
-        <!-- Pagination -->
-        <?php if ($totalPages > 1): ?>
-        <div class="pagination">
-            <?php if ($page > 1): ?>
-                <a href="?<?php echo buildQueryString(['page' => 1]); ?>" class="btn">First</a>
-                <a href="?<?php echo buildQueryString(['page' => $page - 1]); ?>" class="btn">Previous</a>
+        <!-- Pagination (bottom) -->
+        <div class="pagination-container">
+            <?php if ($totalPages > 1): ?>
+            <div class="pagination">
+                <?php if ($page > 1): ?>
+                    <a href="?<?php echo buildQueryString(['page' => 1]); ?>" class="btn">First</a>
+                    <a href="?<?php echo buildQueryString(['page' => $page - 1]); ?>" class="btn">Previous</a>
+                <?php endif; ?>
+                
+                <?php 
+                // Show page numbers
+                $startPage = max(1, $page - 2);
+                $endPage = min($totalPages, $page + 2);
+                
+                for ($i = $startPage; $i <= $endPage; $i++): 
+                ?>
+                    <a href="?<?php echo buildQueryString(['page' => $i]); ?>" 
+                       class="btn <?php echo $i == $page ? 'active' : ''; ?>">
+                        <?php echo $i; ?>
+                    </a>
+                <?php endfor; ?>
+                
+                <?php if ($page < $totalPages): ?>
+                    <a href="?<?php echo buildQueryString(['page' => $page + 1]); ?>" class="btn">Next</a>
+                    <a href="?<?php echo buildQueryString(['page' => $totalPages]); ?>" class="btn">Last</a>
+                <?php endif; ?>
+            </div>
             <?php endif; ?>
             
-            <?php 
-            // Show page numbers
-            $startPage = max(1, $page - 2);
-            $endPage = min($totalPages, $page + 2);
-            
-            for ($i = $startPage; $i <= $endPage; $i++): 
-            ?>
-                <a href="?<?php echo buildQueryString(['page' => $i]); ?>" 
-                   class="btn <?php echo $i == $page ? 'active' : ''; ?>">
-                    <?php echo $i; ?>
-                </a>
-            <?php endfor; ?>
-            
-            <?php if ($page < $totalPages): ?>
-                <a href="?<?php echo buildQueryString(['page' => $page + 1]); ?>" class="btn">Next</a>
-                <a href="?<?php echo buildQueryString(['page' => $totalPages]); ?>" class="btn">Last</a>
-            <?php endif; ?>
+            <div class="records-count">
+                <?php
+                // Calculate the current record range
+                $startRecord = ($page - 1) * $perPage + 1;
+                $endRecord = min($page * $perPage, $totalCustomers);
+                echo "Showing $startRecord - $endRecord of $totalCustomers records";
+                ?>
+            </div>
         </div>
-        <?php endif; ?>
     </div>
 <?php require_once 'includes/footer.php'; ?>

@@ -705,11 +705,21 @@ tr:hover {
 }
 
 /* Pagination */
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 1.5rem 0;
+  background-color: white;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
 .pagination {
   display: flex;
   justify-content: center;
   gap: 0.25rem;
-  margin: 1.5rem 0;
 }
 
 .pagination .btn {
@@ -729,6 +739,11 @@ tr:hover {
   background-color: var(--primary);
   color: white;
   border-color: var(--primary);
+}
+
+.records-count {
+  color: var(--gray-600);
+  font-size: 0.875rem;
 }
 
 /* Timeline */
