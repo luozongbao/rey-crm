@@ -181,13 +181,10 @@ A modern PHP-based Customer Relationship Management (CRM) system designed for ma
 ├── database/
 │   └── database.sql        # Database schema and initial data
 ├── includes/
-│   ├── config.php          # Database and application configuration
 │   ├── functions.php       # Core PHP functions and utilities
 │   ├── header.php          # Shared header template
 │   ├── footer.php          # Shared footer template
 │   └── install.php         # Installation wizard
-├── logs/
-│   └── error.log           # System error logs
 ├── all_activities.php      # Complete activity history view
 ├── all_followups.php       # Comprehensive follow-up tracking
 ├── contact_form.php        # Contact person management
