@@ -98,6 +98,9 @@ EOT;
                     if ($adminCount === 0) {
                         $_SESSION['db_configured'] = true;
                         $message = "Database configuration successful! Please create an admin user.";
+                        // Force redirect to admin creation form
+                        header('Location: ' . $_SERVER['PHP_SELF']);
+                        exit;
                     } else {
                         $message = "Installation completed successfully! Database initialized and configuration file created. <a href='/' class='btn'>Go to Homepage</a>";
                     }
@@ -218,8 +221,9 @@ if (!isset($_SESSION['db_configured'])) {
         
         <?php if ($message): ?>
         <div class="success-message"><?php echo $message; ?></div>
-        <?php else: ?>
+        <?php endif; ?>
         
+        <?php if (!$message || (strpos($message, "Please create an admin user") !== false)): ?>
         <form method="post" action="">
             <div class="form-group">
                 <label for="db_host">Database Host:</label>
@@ -319,7 +323,9 @@ if (!isset($_SESSION['db_configured'])) {
             
             <?php if ($message): ?>
                 <div class="success-message"><?php echo $message; ?></div>
-            <?php else: ?>
+            <?php endif; ?>
+            
+            <?php if (!$message || strpos($message, "Admin user created successfully") === false): ?>
                 <form method="POST" action="">
                     <div class="form-group">
                         <label for="username">Username:</label>
