@@ -1,3 +1,5 @@
+# Vibe Coding
+This is the first requirements made for deepseek to create in Chat first then copy over.  After that I use Github Copilot, Claude AI Sonnet to polish it.
 ## My Personal CRM
 ### Consisted of 4 forms
 1. From1: List of All customers: user can click create new Customer
