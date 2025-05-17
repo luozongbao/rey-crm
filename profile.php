@@ -123,51 +123,96 @@ require_once 'includes/header.php';
         <div class="alert alert-success"><?php echo htmlspecialchars($message); ?></div>
     <?php endif; ?>
 
-    <div class="settings-section">
-        <h3>Account Information</h3>
-        <form method="POST" action="" class="form">
-            <div class="form-group">
-                <label for="username">Username:</label>
-                <input type="text" id="username" value="<?php echo htmlspecialchars($user['username']); ?>" readonly class="form-input readonly">
-                <small class="form-text text-muted">Username cannot be changed</small>
+    <div class="settings-container">
+        <div class="settings-section profile-box">
+            <div class="settings-header">
+                <h3>Account Information</h3>
             </div>
+            <div class="settings-content">
+                <form method="POST" action="" class="form">
+                    <div class="form-group">
+                        <label for="username">Username:</label>
+                        <input type="text" id="username" value="<?php echo htmlspecialchars($user['username']); ?>" readonly class="form-input readonly">
+                        <small class="form-text text-muted">Username cannot be changed</small>
+                    </div>
 
-            <div class="form-group">
-                <label for="email">Email Address:</label>
-                <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" required class="form-input">
+                    <div class="form-group">
+                        <label for="email">Email Address:</label>
+                        <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" required class="form-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="role">Role:</label>
+                        <input type="text" id="role" value="<?php echo htmlspecialchars(ucfirst($user['role'])); ?>" readonly class="form-input readonly">
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" name="update_profile" class="btn btn-primary">Update Profile</button>
+                    </div>
+                </form>
             </div>
+        </div>
 
-            <div class="form-group">
-                <label for="role">Role:</label>
-                <input type="text" id="role" value="<?php echo htmlspecialchars(ucfirst($user['role'])); ?>" readonly class="form-input readonly">
+        <div class="settings-section password-box">
+            <div class="settings-header">
+                <h3>Change Password</h3>
             </div>
+            <div class="settings-content">
+                <form method="POST" action="" class="form">
+                    <div class="form-group">
+                        <label for="current_password">Current Password:</label>
+                        <input type="password" id="current_password" name="current_password" required class="form-input">
+                    </div>
 
-            <button type="submit" name="update_profile" class="btn">Update Profile</button>
-        </form>
-    </div>
+                    <div class="form-group">
+                        <label for="new_password">New Password:</label>
+                        <input type="password" id="new_password" name="new_password" required minlength="8" class="form-input">
+                        <small class="form-text text-muted">Password must be at least 8 characters</small>
+                    </div>
 
-    <div class="settings-section">
-        <h3>Change Password</h3>
-        <form method="POST" action="" class="form">
-            <div class="form-group">
-                <label for="current_password">Current Password:</label>
-                <input type="password" id="current_password" name="current_password" required class="form-input">
+                    <div class="form-group">
+                        <label for="confirm_password">Confirm New Password:</label>
+                        <input type="password" id="confirm_password" name="confirm_password" required class="form-input">
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" name="change_password" class="btn btn-primary">Change Password</button>
+                    </div>
+                </form>
             </div>
-
-            <div class="form-group">
-                <label for="new_password">New Password:</label>
-                <input type="password" id="new_password" name="new_password" required minlength="8" class="form-input">
-                <small class="form-text text-muted">Password must be at least 8 characters</small>
-            </div>
-
-            <div class="form-group">
-                <label for="confirm_password">Confirm New Password:</label>
-                <input type="password" id="confirm_password" name="confirm_password" required class="form-input">
-            </div>
-
-            <button type="submit" name="change_password" class="btn">Change Password</button>
-        </form>
+        </div>
     </div>
 </div>
 
 <?php require_once 'includes/footer.php'; ?>
+
+<script>
+    // Password confirmation validation
+    document.addEventListener('DOMContentLoaded', function() {
+        const newPassword = document.getElementById('new_password');
+        const confirmPassword = document.getElementById('confirm_password');
+        const passwordForm = document.querySelector('.password-box form');
+        
+        function validatePassword() {
+            if(confirmPassword.value !== newPassword.value) {
+                confirmPassword.setCustomValidity("Passwords don't match");
+            } else {
+                confirmPassword.setCustomValidity('');
+            }
+        }
+        
+        newPassword.addEventListener('change', validatePassword);
+        confirmPassword.addEventListener('keyup', validatePassword);
+        
+        passwordForm.addEventListener('submit', function(event) {
+            validatePassword();
+            if (!passwordForm.checkValidity()) {
+                event.preventDefault();
+                return false;
+            }
+            return true;
+        });
+    });
+</script>
+</body>
+</html>
