@@ -199,11 +199,11 @@ require_once 'includes/header.php';
                 <form method="post" id="export-history-form" class="export-form">
                     <div class="form-group">
                         <label for="history_start">Start Date:</label>
-                        <input type="date" id="history_start" name="history_start" value="<?php echo date('Y-m-d', strtotime('-1 week')); ?>">
+                        <input type="date" id="history_start" name="history_start" value="<?php echo date('Y-m-d', strtotime('-1 week')); ?>" onchange="validateHistoryDates()">
                     </div>
                     <div class="form-group">
                         <label for="history_end">End Date:</label>
-                        <input type="date" id="history_end" name="history_end" value="<?php echo date('Y-m-d'); ?>">
+                        <input type="date" id="history_end" name="history_end" value="<?php echo date('Y-m-d'); ?>" onchange="validateHistoryDates()">
                     </div>
                 </form>
             </div>
@@ -213,11 +213,11 @@ require_once 'includes/header.php';
                 <form method="post" id="export-followups-form" class="export-form">
                     <div class="form-group">
                         <label for="followup_start">Start Date:</label>
-                        <input type="date" id="followup_start" name="followup_start" value="<?php echo date('Y-m-d'); ?>">
+                        <input type="date" id="followup_start" name="followup_start" value="<?php echo date('Y-m-d'); ?>" onchange="validateFollowupDates()">
                     </div>
                     <div class="form-group">
                         <label for="followup_end">End Date:</label>
-                        <input type="date" id="followup_end" name="followup_end" value="<?php echo date('Y-m-d', strtotime('+1 week')); ?>">
+                        <input type="date" id="followup_end" name="followup_end" value="<?php echo date('Y-m-d', strtotime('+1 week')); ?>" onchange="validateFollowupDates()">
                     </div>
                 </form>
             </div>
@@ -225,4 +225,56 @@ require_once 'includes/header.php';
 
         </div>
     </div>
+    
+    <script>
+        function validateHistoryDates() {
+            const startInput = document.getElementById('history_start');
+            const endInput = document.getElementById('history_end');
+            
+            const startDate = new Date(startInput.value);
+            const endDate = new Date(endInput.value);
+            
+            if (startDate > endDate) {
+                alert('Error: Start date cannot be later than end date');
+                // Reset to valid values
+                if (this === startInput) {
+                    startInput.value = endInput.value;
+                } else {
+                    endInput.value = startInput.value;
+                }
+            }
+            
+            // Set max and min attributes to prevent invalid selections
+            startInput.max = endInput.value;
+            endInput.min = startInput.value;
+        }
+        
+        function validateFollowupDates() {
+            const startInput = document.getElementById('followup_start');
+            const endInput = document.getElementById('followup_end');
+            
+            const startDate = new Date(startInput.value);
+            const endDate = new Date(endInput.value);
+            
+            if (startDate > endDate) {
+                alert('Error: Start date cannot be later than end date');
+                // Reset to valid values
+                if (this === startInput) {
+                    startInput.value = endInput.value;
+                } else {
+                    endInput.value = startInput.value;
+                }
+            }
+            
+            // Set max and min attributes to prevent invalid selections
+            startInput.max = endInput.value;
+            endInput.min = startInput.value;
+        }
+        
+        // Initialize date constraints when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            validateHistoryDates();
+            validateFollowupDates();
+        });
+    </script>
 <?php require_once 'includes/footer.php'; ?>

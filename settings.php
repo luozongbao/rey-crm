@@ -140,6 +140,7 @@ require_once 'includes/header.php';
     </form>
 
     <?php if (!empty($users)): ?>
+    <hr class="section-divider">
     <div class="users-list">
         <h4>Current Users</h4>
         <table class="users-table">
@@ -258,6 +259,17 @@ require_once 'includes/header.php';
     padding: 10px;
     border-radius: 4px;
     margin-bottom: 20px;
+}
+
+.section-divider {
+    margin: 30px 0;
+    border: 0;
+    height: 1px;
+    background-color: #ddd;
+}
+
+.users-list {
+    margin-top: 30px;
 }
 </style>
 
