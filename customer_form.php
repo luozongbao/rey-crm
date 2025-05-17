@@ -205,6 +205,7 @@ require_once 'includes/header.php';
                 <?php endif; ?>
             </div>
         </form>
+
         
         <?php if ($customer_id): ?>
         <div class="section">

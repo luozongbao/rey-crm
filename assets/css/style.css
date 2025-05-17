@@ -201,7 +201,8 @@ main.container {
 }
 
 .user-menu {
-  margin-left: 2rem;
+  display: flex;
+  margin-left: auto;
   padding-left: 2rem;
   border-left: 1px solid var(--gray-200);
 }
@@ -993,3 +994,53 @@ tr:hover {
 .form-section-header .btn {
   flex-shrink: 0;
 }
+
+/* Content Sections */
+.section {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+  margin-top: 3rem;
+}
+
+.section:first-of-type {
+  margin-top: 2rem;
+}
+
+form + .section {
+  margin-top: 3rem;
+}
+
+/* Section tables */
+.section .compact-table {
+  margin-top: 1rem;
+}
+
+.compact-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.compact-table th,
+.compact-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.compact-table th {
+  background-color: var(--gray-50);
+  font-weight: 600;
+  text-align: left;
+  color: var(--gray-600);
+}
+
+.compact-table tr:last-child td {
+  border-bottom: none;
+}
+
+.compact-table tr:hover {
+  background-color: var(--gray-50);
+}
+
