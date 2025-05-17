@@ -12,6 +12,14 @@ if (isset($_GET['restore']) && isset($_SESSION['last_page_state'])) {
     $sort = $state['sort'];
     $order = $state['order'];
     $page = $state['page'];
+    
+    // Clear the restore parameter by redirecting without it
+    $params = $_GET;
+    unset($params['restore']);
+    $queryString = http_build_query($params);
+    $redirectUrl = $_SERVER['PHP_SELF'] . ($queryString ? "?$queryString" : "");
+    header("Location: $redirectUrl");
+    exit;
 } else {
     $search = isset($_GET['search']) ? trim($_GET['search']) : '';
     $location = isset($_GET['location']) ? trim($_GET['location']) : '';
