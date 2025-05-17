@@ -7,8 +7,8 @@ session_start();
 
 // Get filter parameters
 $customer_id = $_GET['customer_id'] ?? '';
-$date_from = $_GET['date_from'] ?? '';
-$date_to = $_GET['date_to'] ?? '';
+$date_from = $_GET['date_from'] ?? date('Y-m-d', strtotime("-1 month"));
+$date_to = $_GET['date_to'] ?? date('Y-m-d');
 $sort = $_GET['sort'] ?? 'action_datetime';
 $order = $_GET['order'] ?? 'desc';
 
@@ -98,7 +98,7 @@ require_once 'includes/header.php';
                 <tr>
                     <td><?= htmlspecialchars($activity['company_name']) ?></td>
                     <td><?= htmlspecialchars($activity['action']) ?></td>
-                    <td><?= date('Y-m-d H:i', strtotime($activity['action_datetime'])) ?></td>
+                    <td class="datetime"><?= date('Y-m-d H:i', strtotime($activity['action_datetime'])) ?></td>
                     <td><?= htmlspecialchars($activity['response']) ?></td>
                 </tr>
                 <?php endforeach; ?>

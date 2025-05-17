@@ -72,7 +72,7 @@ $customer = getCustomerById($customer_id);
                 </div>
                 <div class="info-item status">
                     <label>Status:</label>
-                    <span><?php echo htmlspecialchars($customer['status']); ?></span>
+                    <span class="status-badge status-<?php echo strtolower(str_replace(' ', '-', $customer['status'])); ?>"><?php echo htmlspecialchars($customer['status']); ?></span>
                 </div>
             </div>
             <div class="info-row">

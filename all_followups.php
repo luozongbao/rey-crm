@@ -7,8 +7,8 @@ session_start();
 
 // Get filter parameters
 $customer_id = $_GET['customer_id'] ?? '';
-$date_from = $_GET['date_from'] ?? '';
-$date_to = $_GET['date_to'] ?? '';
+$date_from = $_GET['date_from'] ?? date('Y-m-d');
+$date_to = $_GET['date_to'] ?? date('Y-m-d', strtotime('+1 month'));
 $sort = $_GET['sort'] ?? 'follow_up_datetime';
 $order = $_GET['order'] ?? 'asc';
 
@@ -98,7 +98,7 @@ require_once 'includes/header.php';
                 <tr>
                     <td><?= htmlspecialchars($followup['company_name']) ?></td>
                     <td><?= htmlspecialchars($followup['action']) ?></td>
-                    <td><?= date('Y-m-d H:i', strtotime($followup['follow_up_datetime'])) ?></td>
+                    <td class="datetime"><?= date('Y-m-d H:i', strtotime($followup['follow_up_datetime'])) ?></td>
                     <td><?= htmlspecialchars($followup['next_step']) ?></td>
                 </tr>
                 <?php endforeach; ?>
