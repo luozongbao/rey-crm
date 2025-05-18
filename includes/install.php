@@ -3,13 +3,26 @@ session_start();
 $message = '';
 $error = '';
 
+// Reset installation if requested
+if (isset($_GET['reset_install'])) {
+    // Clear all installation-related session variables
+    unset($_SESSION['db_configured']);
+    unset($_SESSION['install_phase']);
+    session_regenerate_id(true);
+    
+    // Redirect back to the installation page
+    header('Location: ' . $_SERVER['PHP_SELF']);
+    exit;
+}
+
 // If config file already exists and setup is complete, redirect to home page
-if (file_exists(__DIR__ . '/config.php') && !isset($_SESSION['db_configured'])) {
+if (file_exists(__DIR__ . '/config.php') && !isset($_SESSION['db_configured']) && !isset($_SESSION['install_phase'])) {
     header('Location: /');
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_SESSION['install_phase'])) {
+    // Only process DB configuration if we're in the first phase
     $dbHost = trim($_POST['db_host'] ?? '');
     $dbName = trim($_POST['db_name'] ?? '');
     $dbUser = trim($_POST['db_user'] ?? '');
@@ -61,7 +74,7 @@ define('PASSWORD_RESET_EXPIRY_HOURS', 24); // Token validity in hours
 
 // Session configuration
 ini_set('session.cookie_httponly', 1);
-ini_set('session.cookie_secure', 1);
+ini_set('session.cookie_secure', 0);
 ini_set('session.use_only_cookies', 1);
 ini_set('session.cookie_samesite', 'Strict');
 
@@ -100,6 +113,7 @@ EOT;
 
                     if ($adminCount === 0) {
                         $_SESSION['db_configured'] = true;
+                        $_SESSION['install_phase'] = 'admin_creation';
                         $message = "Database configuration successful! Please create an admin user.";
                         // Force redirect to admin creation form
                         header('Location: ' . $_SERVER['PHP_SELF']);
@@ -143,7 +157,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_admin'])) {
             
             $stmt = $pdo->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, 'admin')");
             if ($stmt->execute([$username, $email, $hashedPassword])) {
+                // Clear all installation session variables
                 unset($_SESSION['db_configured']);
+                unset($_SESSION['install_phase']);
+                session_write_close();
+                
                 $message = "Admin user created successfully! <a href='/' class='btn'>Go to Homepage</a>";
             } else {
                 $error = "Failed to create admin user.";
@@ -155,7 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_admin'])) {
 }
 
 // Rest of the installation form
-if (!isset($_SESSION['db_configured'])) {
+if (!isset($_SESSION['db_configured']) && !isset($_SESSION['install_phase'])) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -255,7 +273,7 @@ if (!isset($_SESSION['db_configured'])) {
 </body>
 </html>
 <?php
-} else {
+} else if (isset($_SESSION['db_configured']) || isset($_SESSION['install_phase'])) {
     // Admin user creation form
     ?>
     <!DOCTYPE html>
@@ -358,6 +376,10 @@ if (!isset($_SESSION['db_configured'])) {
                         Create Admin User
                     </button>
                 </form>
+                
+                <div style="margin-top: 20px; text-align: center;">
+                    <a href="?reset_install=1" style="color: #666; font-size: 0.9em;">Reset installation</a>
+                </div>
             <?php endif; ?>
         </div>
     </body>
