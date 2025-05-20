@@ -1620,14 +1620,49 @@ body.dark-mode .settings-section {
   box-shadow: none;
 }
 
-/* Additional styles for better contrast */
-body.dark-mode .form-text.text-muted {
+/* Dark mode timeline and activity cards */
+body.dark-mode .timeline::before {
+  background-color: var(--border-dark);
+}
+
+body.dark-mode .timeline-item::before {
+  background-color: var(--primary-darkmode);
+  border-color: var(--card-dark);
+}
+
+body.dark-mode .timeline-item {
+  background: transparent;
+}
+
+body.dark-mode .timeline-content {
+  background-color: var(--card-dark);
+  border: 1px solid var(--border-dark);
+  box-shadow: none;
+}
+
+body.dark-mode .timeline-date {
   color: var(--text-dark-secondary);
 }
 
-body.dark-mode .settings-container .form-input.readonly {
-  background-color: var(--table-header-dark);
-  border-color: var(--border-dark);
+body.dark-mode .timeline-content h3 {
+  color: var(--text-dark);
+}
+
+body.dark-mode .timeline-content p {
   color: var(--text-dark-secondary);
+}
+
+body.dark-mode .timeline-content p strong {
+  color: var(--text-dark);
+}
+
+/* Dark mode for full width dashboard cards */
+body.dark-mode .dashboard-card.full-width {
+  background-color: var(--card-dark);
+  border: 1px solid var(--border-dark);
+}
+
+body.dark-mode .dashboard-card.full-width:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
 }
 
