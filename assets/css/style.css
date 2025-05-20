@@ -73,6 +73,23 @@ h1 { font-size: 1.875rem; }
 h2 { font-size: 1.5rem; }
 h3 { font-size: 1.25rem; }
 
+/* Ensure headings are visible in dark mode */
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode h4,
+body.dark-mode h5,
+body.dark-mode h6 {
+  color: var(--text-dark);
+}
+
+body.dark-mode .header h1,
+body.dark-mode .section-header h2,
+body.dark-mode .dashboard-card h2,
+body.dark-mode .section h2 {
+  color: var(--text-dark);
+}
+
 /* Layout */
 .container {
   max-width: 1280px;
