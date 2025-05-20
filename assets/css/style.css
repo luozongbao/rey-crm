@@ -1601,3 +1601,33 @@ body.dark-mode .help-text {
   color: var(--text-dark-secondary);
 }
 
+/* Settings header dark mode */
+body.dark-mode .settings-header {
+  background-color: var(--table-header-dark);
+  border-color: var(--border-dark);
+}
+
+body.dark-mode .settings-header h3 {
+  color: var(--text-dark);
+}
+
+body.dark-mode .settings-content {
+  background-color: var(--card-dark);
+}
+
+body.dark-mode .settings-section {
+  border: 1px solid var(--border-dark);
+  box-shadow: none;
+}
+
+/* Additional styles for better contrast */
+body.dark-mode .form-text.text-muted {
+  color: var(--text-dark-secondary);
+}
+
+body.dark-mode .settings-container .form-input.readonly {
+  background-color: var(--table-header-dark);
+  border-color: var(--border-dark);
+  color: var(--text-dark-secondary);
+}
+
