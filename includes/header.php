@@ -75,6 +75,9 @@
                                 <a href="/logout.php" class="btn logout-btn">
                                     Logout
                                 </a>
+                                <button id="dark-mode-toggle" class="btn icon-btn" title="Toggle dark mode" aria-label="Toggle dark mode">
+                                    <span id="dark-mode-icon" aria-hidden="true">🌙</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -84,10 +87,6 @@
         </div>
     </header>
 
-    <!-- Dark Mode Toggle -->
-    <button id="dark-mode-toggle" class="btn ghost" title="Toggle dark mode" aria-label="Toggle dark mode">
-        <span id="dark-mode-icon" aria-hidden="true">🌙</span>
-    </button>
 
     <script>
         // Mobile menu functionality
