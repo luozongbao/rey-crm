@@ -1,157 +1,202 @@
 # Rey CRM System
 
-A modern PHP-based Customer Relationship Management (CRM) system designed for managing customer interactions, contacts, and activity history. This comprehensive system helps businesses track customer relationships, follow-ups, and business activities efficiently with a clean, responsive interface. Features secure user authentication, role-based access control, and customizable settings.
+A professional PHP-based Customer Relationship Management (CRM) system designed for managing customer interactions, contacts, and activity history. This comprehensive system helps businesses track customer relationships, follow-ups, and business activities efficiently with a clean, responsive interface.
 
 ## Core Features
 
-### Time and Date Management
-- Complete timezone support:
-  - Configurable system timezone
-  - UTC storage with local timezone display
-  - Automatic conversion between UTC and local time
-  - Timezone-aware datetime inputs
-  - Consistent datetime handling across exports
-- Smart datetime formatting:
-  - Configurable date/time formats
-  - Fixed-width datetime columns (140px)
-  - Timezone indicator in relevant views
-
 ### Customer Management
-- Complete CRUD operations for customer records
-- Comprehensive company tracking:
-  - Company name and detailed location (Province, Country)
-  - Company type and classification
-  - Primary contact information
-  - Website and online presence
-  - Detailed notes and remarks
+- Complete customer lifecycle management with CRUD operations
+- Detailed company profiles:
+  - Company name and contact details
+  - Location tracking (Province/Country)
+  - Company type classification
+  - Status tracking (Prospect, Active, Inactive, etc.)
 - Smart location handling:
-  - Separate province and country fields
-  - Intelligent location display (Province, Country, or single field)
+  - Province/Country separation
+  - Intelligent location display
   - Location-based filtering with N/A handling
-  - Organized location dropdown in filters
-- Dynamic status management:
-  - Status options from database ENUM
-  - Status types: Prospect, Qualified, Not Qualified, New Customer, Active Customer, Inactive Customer, Won Customer, Lost Customer
-  - Visual status indicators with color-coded badges
-- State preservation:
-  - Remembers search, filter, and sort settings
-  - Maintains page position when returning from forms
-  - Smart navigation with state restoration
+  - Location statistics in dashboard
+- Status badges with visual indicators
+- Notes and remarks support
+- Automatic timestamp tracking
 
 ### Contact Person Management
 - Multiple contacts per customer
-- Contact details include:
+- Main contact auto-creation
+- Contact information includes:
   - Name and title
   - Role
-  - Contact number and email
+  - Contact number
+  - Email address
   - Custom notes
+- Contact history tracking
+- Contact statistics in dashboard
 
-### Activity History
-- Log all customer interactions
-- Track responses and next steps
-- Schedule follow-up activities with timezone support
-- Link activities to specific contacts
-- Automatic timezone conversion for:
-  - Action timestamps
-  - Follow-up schedules
-  - Export data
+### Activity History & Follow-ups
+- Comprehensive interaction logging:
+  - Action details
+  - Customer responses
+  - Next steps planning
+  - Follow-up scheduling
+- Contact person association
+- Timezone-aware datetime handling
+  - UTC storage with local display
+  - Automatic timezone conversion
+  - Configurable timezone settings
+- CSV export capabilities
+- Activity timeline view
+- Follow-up reminders
 
-### Dashboard Analytics
-- Comprehensive overview:
-  - Total customer count with status breakdown
-  - Customer location distribution
-  - Contact status statistics
-- Activity monitoring:
-  - Recent activities timeline with detailed view
-  - Upcoming follow-ups with datetime tracking
-  - Activity response tracking
+### Dashboard Features
+- Customer statistics:
+  - Status distribution
+  - Location breakdown
+  - Contact rates
+- Recent activity timeline
+- Upcoming follow-ups
+- Quick action shortcuts
+- Contact status tracking
 - Export capabilities:
-  - Action history export to CSV with proper timezone handling
-  - Follow-up schedule export to CSV
-  - Custom date range filtering
-- Enhanced UI features:
-  - Responsive table layouts
-  - Fixed-width datetime columns (140px)
-  - Status labels with dynamic width support
-  - Color-coded status indicators
+  - Activity history
+  - Follow-up schedules
+  - Custom date ranges
 
-### Email Functionality
-- Complete SMTP email integration
-- Configurable email settings:
-  - SMTP server configuration
-  - Authentication options
-  - TLS/SSL encryption
-  - Custom sender name and email
-- Email testing capability
-- Reusable email sending API for developers
-- HTML and plain text email support
-- File attachment capabilities
-- CC/BCC recipient support
+### System Settings
+- Timezone configuration
+- Items per page customization
+- User management:
+  - Role-based access control
+  - User creation and management
+  - Profile management
+- Email configuration:
+  - SMTP settings
+  - Email testing
+  - Custom sender details
 
-### UI/UX Features
-- Advanced Search and Filtering:
-  - Combined search for company name and phone
-  - Smart location filtering with proper handling of empty values
-  - Persistent search state across navigation
-- Improved Table Layout:
-  - Responsive table design
-  - Smart handling of location display (Province, Country)
-  - Efficient pagination with state preservation
-- Enhanced Navigation:
-  - State preservation across form submissions
-  - Intelligent back navigation
-  - User-friendly filter reset options
+### User Interface
+- Clean, modern design
+- Responsive layouts
+- Smart navigation:
+  - State preservation
+  - Intelligent back handling
+- Advanced filtering:
+  - Combined search fields
+  - Smart location filters
+  - Date range selection
+- Visual status indicators
+- Fixed-width datetime columns
+- Form state persistence
 
-### User Management and Settings
-- Secure user authentication system
-- Role-based access control
-- Customizable system settings:
-  - Timezone configuration
-  - Items per page
-  - Email settings
-  - User preferences
+## Technical Requirements
 
-## Technical Details
-
-### Installation
-1. Clone the repository
-2. Configure your web server to point to the project directory
-3. Import the database schema from `database/database.sql`
-4. Copy `includes/config.php.example` to `includes/config.php` and configure your database settings
-5. Set up your SMTP email settings in the admin panel
-6. Configure your system timezone in settings
-
-### Requirements
+### Server Requirements
 - PHP 7.4 or higher
-- MySQL 5.7 or higher
-- Apache/Nginx web server
-- PHP Extensions:
-  - PDO
-  - mysqli
-  - date
+- MySQL 5.7+ / MariaDB 10.2+
+- Apache 2.4+ / Nginx 1.14+
+- Required PHP extensions:
+  - PDO (with MySQL driver)
   - mbstring
+  - date
+  - session
 
-### Security Features
-- Password hashing using PHP's password_hash()
+### Browser Requirements
+- Modern web browsers (Chrome, Firefox, Safari, Edge)
+- JavaScript enabled
+- Minimum display width: 768px
+- Cookies enabled
+
+## Installation
+
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd rey-crm
+   ```
+
+2. Install dependencies:
+   ```bash
+   composer install
+   ```
+
+3. Set up web server:
+   - Configure Apache/Nginx to point to the project directory
+   - Ensure the web server has write permissions for `logs/` directory
+   - Set document root to the project's root directory
+
+4. Start installation:
+   - Access `http://your-domain/includes/install.php` in your browser
+   - Enter your database details in the installation form
+   - The system will:
+     - Create config.php with your settings
+     - Set up the database structure
+     - Create your admin account
+
+5. First-time setup:
+   - Log in with your admin credentials
+   - Configure system timezone
+   - Set up SMTP email settings
+   - Customize items per page
+   - Add additional users as needed
+
+6. Set file permissions:
+   ```bash
+   # Set proper ownership
+   chown -R www-data:www-data /path/to/rey-crm
+   
+   # Set proper permissions for files and directories
+   find /path/to/rey-crm -type f -exec chmod 644 {} \;
+   find /path/to/rey-crm -type d -exec chmod 755 {} \;
+   
+   # Special permissions for writable directories
+   chmod -R 775 logs/
+   chmod 400 includes/config.php
+   ```
+
+7. Access the application:
+   ```
+   http://your-server/path-to-rey-crm/
+   ```
+
+## Security Features
+
+- Secure authentication
+- Password hashing
 - CSRF protection
 - XSS prevention
 - SQL injection protection
-- Secure session handling
+- Session security
 - Role-based access control
 
-## Contributing
+## File Structure
 
-Please read CONTRIBUTING.md for details on our code of conduct and the process for submitting pull requests.
+```
+/
+├── assets/          # Static assets (CSS, JS)
+├── database/        # Database schema
+├── docs/           # Documentation
+├── includes/       # Core PHP files
+│   ├── config.php  # Configuration
+│   └── functions.php # Helper functions
+└── logs/           # System logs
+```
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For support and questions, please open an issue in the GitHub repository.
-
+This project is licensed under the MIT License. See LICENSE file for details.
 
 ---
 
 © 2025 VIBE Coding | Rey CRM System | Last Updated: May 18, 2025
+
+## Support
+
+For support and feature requests, please open an issue in the repository.
+
+## Security Recommendations
+
+1. Ensure HTTPS is configured for production
+2. Keep dependencies updated
+3. Review logs regularly for suspicious activity
+4. Perform regular database backups
+5. Implement rate limiting for login attempts
+6. Enable error logging
