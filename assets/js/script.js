@@ -17,4 +17,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+    
+    // Set dark mode on page load if enabled
+    if (localStorage.getItem('darkMode') === 'enabled') {
+        document.body.classList.add('dark-mode');
+    }
 });
