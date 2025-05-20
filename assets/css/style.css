@@ -26,6 +26,13 @@
   --radius: 0.5rem;
   --radius-lg: 0.75rem;
   --transition: all 0.2s ease;
+  --background-dark: #181a1b;
+  --header-dark: #23272a;
+  --text-dark: #e5e7eb;
+  --card-dark: #23272a;
+  --input-dark: #23272a;
+  --border-dark: #2d3236;
+  --primary-darkmode: #3b82f6;
 }
 
 /* Reset & Base Styles */
@@ -44,6 +51,11 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+body.dark-mode {
+  background-color: var(--background-dark);
+  color: var(--text-dark);
 }
 
 /* Typography */
@@ -1271,5 +1283,187 @@ form + .section {
   .settings-container {
     flex-direction: column;
   }
+}
+
+/* Dark Mode Styles */
+body.dark-mode .main-header,
+body.dark-mode .main-footer {
+  background-color: var(--header-dark);
+  border-color: var(--border-dark);
+  color: var(--text-dark);
+}
+
+body.dark-mode .container,
+body.dark-mode .dashboard-card,
+body.dark-mode .profile-box,
+body.dark-mode .password-box,
+body.dark-mode .settings-section,
+body.dark-mode .quick-stats,
+body.dark-mode .stat-box {
+  background-color: var(--card-dark);
+  color: var(--text-dark);
+  box-shadow: none;
+}
+
+body.dark-mode .main-nav a,
+body.dark-mode .nav-link,
+body.dark-mode .user-menu,
+body.dark-mode .username {
+  color: var(--text-dark);
+}
+
+body.dark-mode .main-nav a.active,
+body.dark-mode .main-nav a:hover,
+body.dark-mode .nav-link.active,
+body.dark-mode .nav-link:hover {
+  background-color: var(--primary-darkmode);
+  color: #fff;
+}
+
+body.dark-mode .btn,
+body.dark-mode .btn-primary {
+  background-color: var(--primary-darkmode);
+  color: #fff;
+}
+
+body.dark-mode .btn.ghost {
+  background: transparent;
+  color: var(--text-dark);
+  border-color: var(--border-dark);
+}
+
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea,
+body.dark-mode .form-input {
+  background-color: var(--input-dark);
+  color: var(--text-dark);
+  border-color: var(--border-dark);
+}
+
+body.dark-mode input:focus,
+body.dark-mode select:focus,
+body.dark-mode textarea:focus,
+body.dark-mode .form-input:focus {
+  border-color: var(--primary-darkmode);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+body.dark-mode .status-badge {
+  background: var(--gray-700);
+  color: #fff;
+}
+
+body.dark-mode .compact-table th,
+body.dark-mode .compact-table td {
+  background-color: var(--header-dark);
+  color: var(--text-dark);
+  border-color: var(--border-dark);
+}
+
+body.dark-mode .error-message {
+  background: #3b1e1e;
+  color: #ffb4b4;
+}
+
+body.dark-mode .success-message {
+  background: #1e3b1e;
+  color: #b4ffb4;
+}
+
+body.dark-mode .modal-content {
+  background-color: var(--header-dark);
+  color: var(--text-dark);
+}
+
+body.dark-mode .section-divider {
+  background-color: var(--border-dark);
+}
+
+body.dark-mode .readonly {
+  background-color: var(--header-dark);
+  color: var(--text-dark);
+}
+
+body.dark-mode .timeline-item {
+  background: var(--header-dark);
+  color: var(--text-dark);
+}
+
+body.dark-mode .stat-title {
+  color: var(--text-dark);
+}
+
+body.dark-mode .stat-value {
+  color: #fff;
+}
+
+body.dark-mode .quick-actions {
+  background: var(--header-dark);
+  color: var(--text-dark);
+}
+
+body.dark-mode .form-group label {
+  color: var(--text-dark);
+}
+
+body.dark-mode .main-header .logo a {
+  color: #fff;
+}
+
+body.dark-mode .main-header .logo a:hover {
+  color: var(--primary-darkmode);
+}
+
+body.dark-mode .main-header .logo a::before {
+  background: linear-gradient(135deg, var(--primary-darkmode) 0%, var(--primary) 100%);
+}
+
+body.dark-mode .logout-btn,
+body.dark-mode .profile-btn {
+  background-color: var(--header-dark);
+  color: var(--text-dark);
+  border-color: var(--border-dark);
+}
+
+body.dark-mode .logout-btn:hover {
+  background-color: #3b1e1e;
+  color: #ffb4b4;
+}
+
+body.dark-mode .profile-btn:hover {
+  background-color: var(--border-dark);
+  color: #fff;
+}
+
+body.dark-mode .btn.delete {
+  background-color: #b91c1c;
+}
+
+body.dark-mode .btn.delete:hover {
+  background-color: #991b1b;
+}
+
+body.dark-mode .btn.success {
+  background-color: #059669;
+}
+
+body.dark-mode .btn.success:hover {
+  background-color: #047857;
+}
+
+body.dark-mode .btn-outline {
+  background: transparent;
+  border: 1px solid var(--primary-darkmode);
+  color: var(--primary-darkmode);
+}
+
+body.dark-mode .btn-outline:hover {
+  background-color: var(--primary-darkmode);
+  color: #fff;
+}
+
+body.dark-mode .btn.ghost:hover {
+  background: var(--header-dark);
 }
 

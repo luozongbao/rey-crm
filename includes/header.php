@@ -84,18 +84,38 @@
         </div>
     </header>
 
+    <!-- Dark Mode Toggle -->
+    <button id="dark-mode-toggle" class="btn ghost" title="Toggle dark mode" aria-label="Toggle dark mode">
+        <span id="dark-mode-icon" aria-hidden="true">🌙</span>
+    </button>
+
     <script>
         // Mobile menu functionality
         document.addEventListener('DOMContentLoaded', function() {
             const mobileMenuButton = document.querySelector('.mobile-menu-button');
             const mainNav = document.querySelector('.main-nav');
-            
+            const darkModeToggle = document.getElementById('dark-mode-toggle');
+            const darkModeIcon = document.getElementById('dark-mode-icon');
+            // Set initial mode from localStorage
+            if (localStorage.getItem('darkMode') === 'enabled') {
+                document.body.classList.add('dark-mode');
+                if (darkModeIcon) darkModeIcon.textContent = '☀️';
+            }
             if (mobileMenuButton && mainNav) {
                 mobileMenuButton.addEventListener('click', function() {
                     mainNav.classList.toggle('show');
                     this.setAttribute('aria-expanded', 
                         this.getAttribute('aria-expanded') === 'true' ? 'false' : 'true'
                     );
+                });
+            }
+            // Dark mode toggle logic
+            if (darkModeToggle) {
+                darkModeToggle.addEventListener('click', function() {
+                    document.body.classList.toggle('dark-mode');
+                    const enabled = document.body.classList.contains('dark-mode');
+                    localStorage.setItem('darkMode', enabled ? 'enabled' : 'disabled');
+                    darkModeIcon.textContent = enabled ? '☀️' : '🌙';
                 });
             }
         });
