@@ -36,14 +36,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$isViewMode) {
         die("Error: Customer ID is missing");
     }
 
+    // Convert local datetime to UTC for storage
+    $action_datetime = localToUtc($_POST['action_datetime']);
+    $follow_up_datetime = localToUtc($_POST['follow_up_datetime']);
+
     $data = [
         'customer_id' => $customer_id,
         'contact_id' => !empty($_POST['contact_id']) ? $_POST['contact_id'] : null,
-        'action_datetime' => $_POST['action_datetime'],
+        'action_datetime' => $action_datetime,
         'action' => $_POST['action'],
         'response' => $_POST['response'],
         'next_step' => $_POST['next_step'],
-        'follow_up_datetime' => $_POST['follow_up_datetime'],
+        'follow_up_datetime' => $follow_up_datetime,
         'notes' => $_POST['notes'] ?? null
     ];
     
@@ -154,7 +158,7 @@ $customer = getCustomerById($customer_id);
                 <div class="form-group">
                     <label for="action_datetime">Date & Time:</label>
                     <input type="datetime-local" id="action_datetime" name="action_datetime" required 
-                        value="<?php echo $history ? date('Y-m-d\TH:i', strtotime($history['action_datetime'])) : date('Y-m-d\TH:i'); ?>" 
+                        value="<?php echo $history ? utcToLocal($history['action_datetime'], 'Y-m-d\TH:i') : date('Y-m-d\TH:i'); ?>" 
                         <?php echo $isViewMode ? 'disabled' : ''; ?>>
                 </div>
                 

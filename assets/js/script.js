@@ -4,9 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     datetimeInputs.forEach(input => {
         if (!input.value) {
             const now = new Date();
-            const timezoneOffset = now.getTimezoneOffset() * 60000;
-            const localISOTime = (new Date(now - timezoneOffset)).toISOString().slice(0, 16);
-            input.value = localISOTime;
+            input.value = now.toISOString().slice(0, 16);
         }
     });
     
