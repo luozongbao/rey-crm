@@ -308,6 +308,11 @@ main.container {
   font-size: 0.875rem;
 }
 
+/* Footer dark mode styles */
+body.dark-mode .main-footer p {
+  color: var(--text-dark);
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;
@@ -1563,5 +1568,36 @@ body.dark-mode .search-sort-container select:focus {
 body.dark-mode ::selection {
   background-color: var(--primary-darkmode);
   color: var(--text-dark);
+}
+
+/* Settings page user list dark mode styles */
+body.dark-mode .users-table {
+  border-color: var(--border-dark);
+}
+
+body.dark-mode .users-table th {
+  background-color: var(--table-header-dark);
+  color: var(--text-dark);
+  border-color: var(--border-dark);
+}
+
+body.dark-mode .users-table td {
+  color: var(--text-dark);
+  border-color: var(--border-dark);
+}
+
+body.dark-mode .users-table tr:hover {
+  background-color: var(--header-dark);
+}
+
+/* Settings section headers in dark mode */
+body.dark-mode .settings-section h3,
+body.dark-mode .settings-section h4 {
+  color: var(--text-dark);
+}
+
+/* Settings help text in dark mode */
+body.dark-mode .help-text {
+  color: var(--text-dark-secondary);
 }
 
