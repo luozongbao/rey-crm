@@ -1467,32 +1467,79 @@ body.dark-mode .btn.ghost:hover {
   background: var(--header-dark);
 }
 
-/* Dark Mode Toggle Button */
-.icon-btn {
-  min-width: 36px;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  margin-left: 0.5rem;
-  font-size: 1.125rem;
-  line-height: 1;
-  background: transparent;
-  border: 1px solid var(--gray-300);
-  color: var(--gray-700);
-}
-
-.icon-btn:hover {
-  background: var(--gray-100);
-  color: var(--gray-900);
-}
-
-body.dark-mode .icon-btn {
+/* Dark mode styles for filters and tables */
+body.dark-mode .header {
+  background-color: var(--card-dark);
+  color: var(--text-dark);
   border-color: var(--border-dark);
+}
+
+body.dark-mode .filter-form {
+  background-color: var(--card-dark);
+  border-color: var(--border-dark);
+}
+
+body.dark-mode .search-sort-container {
+  background-color: var(--card-dark);
+  border-color: var(--border-dark);
+}
+
+body.dark-mode .pagination-container {
+  background-color: var(--card-dark);
+  border-color: var(--border-dark);
+}
+
+body.dark-mode .data-table {
+  border-color: var(--border-dark);
+}
+
+body.dark-mode .data-table thead {
+  background-color: var(--header-dark);
+}
+
+body.dark-mode .data-table thead th {
+  color: var(--text-dark);
+  border-color: var(--border-dark);
+  background-color: var(--header-dark);
+}
+
+body.dark-mode .data-table tbody tr {
+  border-color: var(--border-dark);
+}
+
+body.dark-mode .data-table tbody tr:nth-child(even) {
+  background-color: var(--card-dark);
+}
+
+body.dark-mode .data-table tbody tr:hover {
+  background-color: var(--header-dark);
+}
+
+body.dark-mode .records-count {
   color: var(--text-dark);
 }
 
-body.dark-mode .icon-btn:hover {
-  background: var(--header-dark);
-  color: #fff;
+/* Ensure filter inputs and selects in dark mode are consistent */
+body.dark-mode .filter-form select,
+body.dark-mode .filter-form input[type="date"],
+body.dark-mode .filter-form input[type="text"],
+body.dark-mode .search-sort-container select {
+  background-color: var(--input-dark);
+  color: var(--text-dark);
+  border-color: var(--border-dark);
+}
+
+body.dark-mode .filter-form select:focus,
+body.dark-mode .filter-form input[type="date"]:focus,
+body.dark-mode .filter-form input[type="text"]:focus,
+body.dark-mode .search-sort-container select:focus {
+  border-color: var(--primary-darkmode);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* Dark mode for filter labels */
+body.dark-mode .filter-form label,
+body.dark-mode .search-sort-container label {
+  color: var(--text-dark);
 }
 
