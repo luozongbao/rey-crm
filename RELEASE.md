@@ -1,86 +1,47 @@
-# Rey CRM System v1.5.0 - Release Notes
+# Rey CRM System v1.5.2 - Release Notes
 
-**Release Date:** May 18, 2025  
-**Initial GitHub Release:** Yes  
-**Version:** 1.5.0  
+**Release Date:** May 20, 2025  
+**Initial GitHub Release:** No  
+**Version:** 1.5.2  
 
 ## Overview
 
-Rey CRM System is a modern PHP-based Customer Relationship Management (CRM) solution designed for managing customer interactions, contacts, and activity history. This is our first public release on GitHub, though the software has been in development and private use through version 1.4.1.
+Rey CRM System is a modern PHP-based Customer Relationship Management (CRM) solution designed for managing customer interactions, contacts, and activity history. This release adds comprehensive timezone support and improves datetime handling across the system.
 
-## Features
-
-### Core Functionality
-- Complete customer lifecycle management
-- Contact person management with multiple contacts per customer
-- Comprehensive activity history tracking and follow-up scheduling
-- Status-based customer tracking with visual indicators
-- Smart location handling with province/country support
-- Detailed dashboard with analytics and statistics
-- Email system integration with SMTP configuration
-- Secure password reset functionality
-
-### User Experience
-- Modern, responsive interface with clean design
-- Advanced search and filtering capabilities
-- Dynamic status badges with color coding
-- Efficient pagination with state preservation
-- Form state persistence across navigation
-
-### Security
-- Secure authentication system with password hashing
-- Self-service password reset with secure token system
-- Protection against SQL injection and XSS attacks
-- CSRF protection on all forms
-- Role-based access control
-- Secure session management
-- Rate limiting for sensitive operations
-
-## Technical Details
-
-- **PHP Version:** Requires PHP 7.4+ (7.0+ minimum)
-- **Database:** MySQL 5.7+ or MariaDB 10.2+
-- **Web Server:** Apache 2.4+/Nginx 1.14+
-- **Browser Support:** All modern browsers (Chrome, Firefox, Safari, Edge)
-
-## Installation
-
-Please refer to the [README.md](README.md) file for detailed installation instructions.
-
-## Changes in v1.5.0
+## Changes in v1.5.2
 
 ### New Features
-- Implemented comprehensive email system with SMTP configuration
-- Added secure password reset functionality with time-limited tokens
-- Created user profile page for account management
-- Built email testing capabilities for system verification
-- Added configurable token expiration settings
-
-### Changes in v1.4.1
-
-#### New Features
-- Added export capability for activity history to CSV
-- Implemented follow-up schedule export to CSV
-- Added custom date range filtering for exports
-- Enhanced status indicators with improved visual design
-- Added user settings page for personalized preferences
+- Implemented comprehensive timezone support:
+  - System-wide timezone configuration in settings
+  - Automatic UTC storage with local timezone display
+  - Smart conversion between UTC and local time
+  - Timezone-aware datetime inputs and displays
+  - Proper timezone handling in CSV exports
+- Added timezone selection in system settings
+- Enhanced datetime display consistency across all views
 
 ### Improvements
-- Optimized database queries for better performance
-- Enhanced mobile responsiveness for all screens
-- Improved form validation with better error messaging
-- Updated UI components for better accessibility
-- Streamlined navigation between related records
-- Added real-time password validation
-- Enhanced profile page with styled input forms
-- Implemented automatic cleanup of expired tokens
+- Refactored datetime handling for better consistency
+- Updated CSV exports to respect timezone settings
+- Enhanced activity history display with proper timezone conversion
+- Improved follow-up scheduling with timezone awareness
+- Updated dashboard datetime displays
 
 ### Bug Fixes
-- Fixed pagination issue when returning from detail views
-- Corrected date formatting inconsistencies
-- Resolved session timeout handling
-- Fixed customer filtering by empty location values
-- Addressed form submission issues on slower connections
+- Fixed inconsistent datetime display in activity lists
+- Corrected timezone handling in CSV exports
+- Resolved date formatting issues in follow-up views
+- Fixed datetime conversion in history form
+- Addressed timezone-related display issues in the dashboard
+
+### Technical Details
+- Added new timezone helper functions:
+  - getSystemTimezone()
+  - utcToLocal()
+  - localToUtc()
+- Enhanced database storage to consistently use UTC
+- Improved datetime input handling in forms
+- Added timezone configuration in system settings
 
 ## Known Issues
 - Very large data exports (>10,000 records) may time out on some server configurations
@@ -89,12 +50,15 @@ Please refer to the [README.md](README.md) file for detailed installation instru
 
 ## Upgrade Instructions
 
-For users upgrading from private releases:
+For users upgrading from v1.5.1:
 
 1. Back up your database and files
 2. Download the latest release
 3. Replace all files except `includes/config.php`
-4. Run any pending database migrations by visiting `includes/update.php`
+4. Run any pending database migrations
+5. Configure your timezone in System Settings
+
+Note: Existing datetime data will be interpreted as UTC. If your existing data was stored in a different timezone, please contact support for migration assistance.
 
 ## Credits
 
