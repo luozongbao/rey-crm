@@ -260,8 +260,8 @@ require_once 'includes/header.php';
                         <td class="action-col"><?php echo htmlspecialchars($history['action']); ?></td>
                         <td class="response-col"><?php echo htmlspecialchars($history['response']); ?></td>
                         <td class="nextstep-col"><?php echo htmlspecialchars($history['next_step']); ?></td>
-                        <td class="datetime-col"><?php echo htmlspecialchars(date('Y-m-d H:i', strtotime($history['action_datetime']))); ?></td>
-                        <td class="datetime-col"><?php echo htmlspecialchars(date('Y-m-d H:i', strtotime($history['follow_up_datetime']))); ?></td>
+                        <td class="datetime-col"><?php echo htmlspecialchars(utcToLocal($history['action_datetime'], 'Y-m-d H:i')); ?></td>
+                        <td class="datetime-col"><?php echo htmlspecialchars(utcToLocal($history['follow_up_datetime'], 'Y-m-d H:i')); ?></td>
                         <td class="actions-col">
                             <a href="history_form.php?action=edit&id=<?php echo $history['history_id']; ?>&customer_id=<?php echo $customer_id; ?>&source_action=<?php echo $action; ?>" class="btn">Edit</a>
                         </td>
