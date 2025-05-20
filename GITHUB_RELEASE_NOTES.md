@@ -1,24 +1,32 @@
-# Rey CRM System v1.5.2
+# Rey CRM System v1.5.2.1
 
 ## Latest Release Highlights
 
-### 🌍 Timezone Support
+### 📚 Documentation Improvements
+- **Updated installation process** - Corrected documentation to reflect automatic configuration setup
+- **Streamlined setup guide** - Clearer instructions for first-time installation
+- **Improved server configuration** - Enhanced guidance for web server setup
+- **Composer integration** - Better documentation of dependency management
+
+### Previous Version (v1.5.2)
+
+#### 🌍 Timezone Support
 - **System-wide timezone configuration** - Set your organization's timezone in system settings
 - **Smart datetime handling** - All dates are stored in UTC and displayed in your local timezone
 - **Consistent display** - Improved datetime formatting across all views and exports
 - **Automatic conversion** - Seamless conversion between UTC and local time for all operations
 
-### 🔄 Data Integrity
+#### 🔄 Data Integrity
 - **UTC-based storage** - All datetime data is now stored in UTC for consistency
 - **Timezone-aware exports** - CSV exports now respect your timezone settings
 - **Migration support** - Tools for handling existing datetime data
 
-### 📊 Enhanced Views
+#### 📊 Enhanced Views
 - **Improved activity history** - Better datetime display in activity lists
 - **Follow-up scheduling** - Timezone-aware scheduling and reminders
 - **Dashboard updates** - Enhanced datetime display in analytics and reports
 
-### 🛠️ Technical Improvements
+#### 🛠️ Technical Improvements
 - New timezone helper functions for developers
 - Enhanced form handling for datetime inputs
 - Improved data consistency across the system
@@ -71,18 +79,34 @@ This is the first public GitHub release of Rey CRM System, a modern PHP-based Cu
 
 ## Quick Start
 
-1. Clone the repository
-2. Run `composer install`
-3. Configure your web server
-4. Import database schema
-5. run installation script, includes/install.php
-6. Set your timezone in System Settings
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd rey-crm
+   ```
+
+2. Install dependencies:
+   ```bash
+   composer install
+   ```
+
+3. Configure web server:
+   - Point document root to project directory
+   - Ensure write permissions for logs/
+
+4. Run installation:
+   - Visit `http://your-domain/includes/install.php`
+   - Follow the setup wizard
+   - Configuration file will be created automatically
+
+5. Post-installation:
+   - Log in with admin credentials
+   - Set your timezone
+   - Configure SMTP settings
+   - Add users as needed
 
 ## Documentation
 
-- [User Guide](https://github.com/VIBE-Coding/rey-crm/wiki)
-- [API Documentation](https://github.com/VIBE-Coding/rey-crm/wiki/api)
-- [FAQ](https://github.com/VIBE-Coding/rey-crm/wiki/faq)
 - [Email System](docs/email_functionality.md)
 - [Password Reset](docs/password_reset.md)
 
