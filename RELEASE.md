@@ -1,14 +1,23 @@
-# Rey CRM System v1.5.2 - Release Notes
+# Rey CRM System v1.5.2.1 - Release Notes
 
 **Release Date:** May 20, 2025  
 **Initial GitHub Release:** No  
-**Version:** 1.5.2  
+**Version:** 1.5.2.1  
 
 ## Overview
 
-Rey CRM System is a modern PHP-based Customer Relationship Management (CRM) solution designed for managing customer interactions, contacts, and activity history. This release adds comprehensive timezone support and improves datetime handling across the system.
+Rey CRM System is a modern PHP-based Customer Relationship Management (CRM) solution designed for managing customer interactions, contacts, and activity history. This patch release fixes documentation issues and improves installation instructions.
 
-## Changes in v1.5.2
+## Changes in v1.5.2.1
+
+### Documentation Updates
+- Corrected installation instructions to reflect automatic config.php creation
+- Removed outdated references to config.php.example
+- Updated composer installation steps
+- Improved web server configuration guidance
+- Enhanced first-time setup instructions
+
+### Previous Changes in v1.5.2
 
 ### New Features
 - Implemented comprehensive timezone support:
