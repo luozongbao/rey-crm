@@ -27,11 +27,14 @@
   --radius-lg: 0.75rem;
   --transition: all 0.2s ease;
   --background-dark: #181a1b;
-  --header-dark: #23272a;
+  --header-dark: #1a1d21;
   --text-dark: #e5e7eb;
-  --card-dark: #23272a;
+  --card-dark: #2d3339;
   --input-dark: #23272a;
   --border-dark: #2d3236;
+  --table-row-dark: #262b30;
+  --table-header-dark: #1f2328;
+  --table-hover-dark: #363b41;
   --primary-darkmode: #3b82f6;
 }
 
@@ -1467,79 +1470,81 @@ body.dark-mode .btn.ghost:hover {
   background: var(--header-dark);
 }
 
-/* Dark mode styles for filters and tables */
-body.dark-mode .header {
-  background-color: var(--card-dark);
-  color: var(--text-dark);
-  border-color: var(--border-dark);
-}
-
-body.dark-mode .filter-form {
-  background-color: var(--card-dark);
-  border-color: var(--border-dark);
-}
-
-body.dark-mode .search-sort-container {
-  background-color: var(--card-dark);
-  border-color: var(--border-dark);
-}
-
+/* Enhanced dark mode styles for better visibility */
+body.dark-mode .header,
+body.dark-mode .filter-form,
+body.dark-mode .search-sort-container,
 body.dark-mode .pagination-container {
   background-color: var(--card-dark);
-  border-color: var(--border-dark);
+  border: 1px solid var(--border-dark);
 }
 
 body.dark-mode .data-table {
   border-color: var(--border-dark);
+  background-color: var(--card-dark);
 }
 
 body.dark-mode .data-table thead {
-  background-color: var(--header-dark);
+  background-color: var(--table-header-dark);
 }
 
 body.dark-mode .data-table thead th {
   color: var(--text-dark);
   border-color: var(--border-dark);
-  background-color: var(--header-dark);
+  background-color: var(--table-header-dark);
+  font-weight: 600;
+}
+
+body.dark-mode .data-table tbody td {
+  color: var(--text-dark);
+  border-color: var(--border-dark);
 }
 
 body.dark-mode .data-table tbody tr {
   border-color: var(--border-dark);
-}
-
-body.dark-mode .data-table tbody tr:nth-child(even) {
   background-color: var(--card-dark);
 }
 
+body.dark-mode .data-table tbody tr:nth-child(even) {
+  background-color: var(--table-row-dark);
+}
+
 body.dark-mode .data-table tbody tr:hover {
-  background-color: var(--header-dark);
+  background-color: var(--table-hover-dark);
 }
 
 body.dark-mode .records-count {
-  color: var(--text-dark);
+  color: var(--text-dark-secondary);
 }
 
-/* Ensure filter inputs and selects in dark mode are consistent */
+/* Enhanced dark mode form elements */
 body.dark-mode .filter-form select,
 body.dark-mode .filter-form input[type="date"],
 body.dark-mode .filter-form input[type="text"],
 body.dark-mode .search-sort-container select {
-  background-color: var(--input-dark);
+  background-color: var(--table-header-dark);
   color: var(--text-dark);
-  border-color: var(--border-dark);
+  border: 1px solid var(--border-dark);
 }
 
+body.dark-mode .filter-form label,
+body.dark-mode .search-sort-container label {
+  color: var(--text-dark-secondary);
+}
+
+/* Dark mode form focus states */
 body.dark-mode .filter-form select:focus,
 body.dark-mode .filter-form input[type="date"]:focus,
 body.dark-mode .filter-form input[type="text"]:focus,
 body.dark-mode .search-sort-container select:focus {
   border-color: var(--primary-darkmode);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  background-color: var(--table-header-dark);
 }
 
-/* Dark mode for filter labels */
-body.dark-mode .filter-form label,
-body.dark-mode .search-sort-container label {
+/* Ensure text remains visible during selection */
+body.dark-mode ::selection {
+  background-color: var(--primary-darkmode);
   color: var(--text-dark);
 }
 
