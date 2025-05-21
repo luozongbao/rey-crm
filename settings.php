@@ -201,17 +201,40 @@ require_once 'includes/header.php';
         <div class="success-message"><?php echo htmlspecialchars($message); ?></div>
     <?php endif; ?>
 
-<div class="settings-section">
-    <h3>Pagination Settings</h3>
-    <form method="POST" action="">
-        <div class="form-group">
-            <label for="items_per_page">Items per page:</label>
-            <input type="number" id="items_per_page" name="items_per_page" 
-                   value="<?php echo htmlspecialchars($items_per_page); ?>" 
-                   min="1" max="100" required>
-        </div>
-        <button type="submit" name="update_pagination" class="btn">Update Pagination</button>
-    </form>
+<div class="settings-row" style="display: flex; gap: 2rem; flex-wrap: wrap; margin-bottom: 20px;">
+    <div class="settings-section" style="flex:1 1 320px; min-width:300px;">
+        <h3>Pagination Settings</h3>
+        <form method="POST" action="">
+            <div class="form-group">
+                <label for="items_per_page">Items per page:</label>
+                <input type="number" id="items_per_page" name="items_per_page" 
+                       value="<?php echo htmlspecialchars(
+                           $items_per_page); ?>" 
+                       min="1" max="100" required>
+            </div>
+            <button type="submit" name="update_pagination" class="btn">Update Pagination</button>
+        </form>
+    </div>
+
+    <div class="settings-section" style="flex:1 1 320px; min-width:300px;">
+        <h3>Timezone Settings</h3>
+        <form method="POST" action="">
+            <div class="form-group">
+                <label for="timezone">System Timezone:</label>
+                <select id="timezone" name="timezone" required>
+                    <?php
+                    $timezones = DateTimeZone::listIdentifiers();
+                    foreach ($timezones as $tz) {
+                        $selected = ($tz === $current_timezone) ? 'selected' : '';
+                        echo "<option value=\"" . htmlspecialchars($tz) . "\" $selected>" . htmlspecialchars($tz) . "</option>";
+                    }
+                    ?>
+                </select>
+                <small class="help-text">This timezone will be used for displaying dates and times throughout the system.</small>
+            </div>
+            <button type="submit" name="update_timezone" class="btn">Update Timezone</button>
+        </form>
+    </div>
 </div>
 
 <div class="settings-section">
@@ -300,26 +323,6 @@ require_once 'includes/header.php';
 </div>
 
 <div class="settings-section">
-    <h3>Timezone Settings</h3>
-    <form method="POST" action="">
-        <div class="form-group">
-            <label for="timezone">System Timezone:</label>
-            <select id="timezone" name="timezone" required>
-                <?php
-                $timezones = DateTimeZone::listIdentifiers();
-                foreach ($timezones as $tz) {
-                    $selected = ($tz === $current_timezone) ? 'selected' : '';
-                    echo "<option value=\"" . htmlspecialchars($tz) . "\" $selected>" . htmlspecialchars($tz) . "</option>";
-                }
-                ?>
-            </select>
-            <small class="help-text">This timezone will be used for displaying dates and times throughout the system.</small>
-        </div>
-        <button type="submit" name="update_timezone" class="btn">Update Timezone</button>
-    </form>
-</div>
-
-<div class="settings-section">
     <h3>User Management</h3>
     <form method="POST" action="" class="user-form">
         <input type="hidden" name="manage_user" value="1">
@@ -391,6 +394,13 @@ require_once 'includes/header.php';
     border-radius: 8px;
     margin-bottom: 20px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.settings-row {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
 }
 
 .form-group {

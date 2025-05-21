@@ -258,7 +258,7 @@ main.container {
 
 .profile-btn {
   background-color: var(--gray-100);
-  color: var(--gray-700);
+  color: var(--text-dark);
   border: 1px solid var(--gray-300);
   padding: 0.375rem 0.75rem;
   font-size: 0.875rem;
@@ -281,7 +281,7 @@ main.container {
   padding: 0.375rem 0.75rem;
   font-size: 0.813rem;
   background-color: var(--gray-100);
-  color: var(--gray-700);
+  color: var(--text-dark);
   border: 1px solid var(--gray-200);
   display: inline-flex;
   align-items: center;
