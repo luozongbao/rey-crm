@@ -213,20 +213,22 @@ function getFollowupsForExport($start_date, $end_date) {
 
 function getAllLocations() {
     global $pdo;
-    $stmt = $pdo->query("SELECT DISTINCT 
-                        NULLIF(TRIM(province), '') as province,
-                        NULLIF(TRIM(country), '') as country,
+    try {
+        $stmt = $pdo->query("SELECT DISTINCT 
                         CASE
                             WHEN NULLIF(TRIM(province), '') IS NULL AND NULLIF(TRIM(country), '') IS NULL THEN 'N/A'
-                            WHEN NULLIF(TRIM(province), '') IS NULL THEN NULLIF(TRIM(country), '')
-                            WHEN NULLIF(TRIM(country), '') IS NULL THEN NULLIF(TRIM(province), '')
+                            WHEN NULLIF(TRIM(province), '') IS NULL THEN TRIM(country)
+                            WHEN NULLIF(TRIM(country), '') IS NULL THEN TRIM(province)
                             ELSE CONCAT(TRIM(province), ', ', TRIM(country))
                         END as location
-                        FROM customers 
-                        ORDER BY 
-                            CASE WHEN NULLIF(TRIM(province), '') IS NULL AND NULLIF(TRIM(country), '') IS NULL THEN 1 ELSE 0 END,
-                            location");
-    return $stmt->fetchAll(PDO::FETCH_COLUMN, 2);
+                        FROM customers
+                        ORDER BY CASE WHEN location = 'N/A' THEN 1 ELSE 0 END, 
+                        location");
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    } catch (PDOException $e) {
+        error_log("Error in getAllLocations: " . $e->getMessage());
+        return [];
+    }
 }
 
 function getFilteredCustomers($conditions = [], $params = []) {
@@ -272,32 +274,88 @@ function getCustomerCount($conditions = [], $params = []) {
     return $stmt->fetchColumn();
 }
 
-function getPaginatedCustomers($conditions = [], $params = [], $page = 1, $perPage = 20, $sort = 'created_at', $order = 'desc') {
+function getPaginatedCustomers($page = 1, $perPage = 10, $search = '', $location = '', $sort = 'created_at', $order = 'desc') {
     global $pdo;
     
+    // Validate sort/order
+    $validSorts = ['company_name', 'address', 'status', 'created_at'];
+    $validOrders = ['asc', 'desc'];
+    $sort = in_array($sort, $validSorts) ? $sort : 'created_at';
+    $order = in_array($order, $validOrders) ? $order : 'desc';
+    
+    // Calculate offset
     $offset = ($page - 1) * $perPage;
     
+    // Build query
     $query = "SELECT c.*, 
-             (SELECT MAX(action_datetime) FROM action_history WHERE customer_id = c.customer_id) as last_contact
+             (SELECT MAX(action_datetime) FROM action_history WHERE customer_id = c.customer_id) as last_contact,
+             CONCAT_WS(', ', 
+                NULLIF(TRIM(c.province), ''),
+                NULLIF(TRIM(c.country), '')
+            ) as location,
+             CONCAT_WS(', ', 
+                c.address,
+                NULLIF(c.province, ''),
+                NULLIF(c.country, '')
+            ) as full_address
              FROM customers c";
     
-    if (!empty($conditions)) {
-        $query .= " WHERE " . implode(" AND ", $conditions);
+    $countQuery = "SELECT COUNT(*) FROM customers c";
+    
+    $conditions = [];
+    $params = [];
+    
+    if (!empty($search)) {
+        $searchPattern = "%$search%";
+        $conditions[] = "(LOWER(c.company_name) LIKE LOWER(:search_name) OR c.contact_phone LIKE :search_phone)";
+        $params[':search_name'] = $searchPattern;
+        $params[':search_phone'] = $searchPattern;
     }
     
+    if (!empty($location)) {
+        if ($location === 'N/A') {
+            $conditions[] = "(NULLIF(TRIM(c.province), '') IS NULL AND NULLIF(TRIM(c.country), '') IS NULL)";
+        } else {
+            $conditions[] = "(CONCAT_WS(', ', 
+                NULLIF(TRIM(c.province), ''),
+                NULLIF(TRIM(c.country), '')
+            ) = :location)";
+            $params[':location'] = $location;
+        }
+    }
+    
+    if (!empty($conditions)) {
+        $whereClause = " WHERE " . implode(" AND ", $conditions);
+        $query .= $whereClause;
+        $countQuery .= $whereClause;
+    }
+    
+    // Add sorting and pagination
     $query .= " ORDER BY $sort $order LIMIT :limit OFFSET :offset";
     
-    $stmt = $pdo->prepare($query);
+    // Get total count
+    $countStmt = $pdo->prepare($countQuery);
+    foreach ($params as $key => $val) {
+        $countStmt->bindValue($key, $val);
+    }
+    $countStmt->execute();
+    $total = $countStmt->fetchColumn();
     
+    // Get paginated results
+    $stmt = $pdo->prepare($query);
     foreach ($params as $key => $val) {
         $stmt->bindValue($key, $val);
     }
-    
     $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->execute();
     
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    return [
+        'data' => $stmt->fetchAll(PDO::FETCH_ASSOC),
+        'total' => $total,
+        'pages' => ceil($total / $perPage),
+        'current_page' => $page
+    ];
 }
 
 function buildQueryString($newParams = []) {
@@ -402,7 +460,7 @@ function getSortedCustomers($search = '', $location = '', $sort = 'created_at', 
     $validSorts = ['company_name', 'address', 'status', 'created_at'];
     $validOrders = ['asc', 'desc'];
     $sort = in_array($sort, $validSorts) ? $sort : 'created_at';
-    $order = in_array($validOrders, $order) ? $order : 'desc';
+    $order = in_array($order, $validOrders) ? $order : 'desc';
     
     // Build query
     $query = "SELECT c.*, 
@@ -413,12 +471,17 @@ function getSortedCustomers($search = '', $location = '', $sort = 'created_at', 
     $params = [];
     
     if (!empty($search)) {
-        $conditions[] = "company_name LIKE :search";
+        $conditions[] = "(LOWER(company_name) LIKE LOWER(:search) OR contact_phone LIKE :search)";
         $params[':search'] = "%$search%";
     }
     
     if (!empty($location)) {
-        $conditions[] = "address = :location";
+        $conditions[] = "CASE
+            WHEN NULLIF(TRIM(province), '') IS NULL AND NULLIF(TRIM(country), '') IS NULL THEN 'N/A'
+            WHEN NULLIF(TRIM(province), '') IS NULL THEN TRIM(country)
+            WHEN NULLIF(TRIM(country), '') IS NULL THEN TRIM(province)
+            ELSE CONCAT(TRIM(province), ', ', TRIM(country))
+        END = :location";
         $params[':location'] = $location;
     }
     
