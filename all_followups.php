@@ -108,7 +108,11 @@ require_once 'includes/header.php';
             <tbody>
                 <?php foreach ($followups as $followup): ?>
                 <tr>
-                    <td><?= htmlspecialchars($followup['company_name']) ?></td>
+                    <td>
+                            <a href="customer_form.php?action=view&id=<?= $followup['customer_id'] ?>" class="customer-link">
+                            <?= htmlspecialchars($followup['company_name']) ?>
+                        </a>
+                    </td>                    
                     <td><?= htmlspecialchars($followup['action']) ?></td>
                     <td class="datetime"><?= utcToLocal($followup['follow_up_datetime'], 'Y-m-d H:i') ?></td>
                     <td><?= htmlspecialchars($followup['next_step']) ?></td>
