@@ -1666,3 +1666,40 @@ body.dark-mode .dashboard-card.full-width:hover {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
 }
 
+
+/* Ensure user action buttons in the settings page have consistent color and background as other pages */
+.user-actions .btn {
+  background-color: var(--primary);
+  color: #fff;
+  border: 1px solid transparent;
+  transition: var(--transition);
+}
+
+.user-actions .btn:hover {
+  background-color: var(--primary-dark);
+  color: #fff;
+}
+
+/* Customer Links */
+.customer-link {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.customer-link:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+.dark-mode .customer-link {
+    color: var(--primary-darkmode);
+}
+
+.dark-mode .customer-link:hover {
+    color: var(--primary-light);
+}

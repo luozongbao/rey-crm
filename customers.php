@@ -41,39 +41,14 @@ if (!isset($_GET['restore'])) {
     ];
 }
 
-// Validate sort parameters
-$validSorts = ['company_name', 'address', 'status', 'created_at'];
-$validOrders = ['asc', 'desc'];
-
-$sort = in_array($sort, $validSorts) ? $sort : 'created_at';
-$order = in_array($order, $validOrders) ? $order : 'desc';
-
-// Build query conditions
-$conditions = [];
-$params = [];
-
-if (!empty($search)) {
-    $conditions[] = "(company_name LIKE :search OR contact_phone LIKE :search)";
-    $params[':search'] = "%$search%";
-}
-
-if (!empty($location)) {
-    $conditions[] = "CASE
-        WHEN NULLIF(TRIM(province), '') IS NULL AND NULLIF(TRIM(country), '') IS NULL THEN 'N/A'
-        WHEN NULLIF(TRIM(province), '') IS NULL THEN NULLIF(TRIM(country), '')
-        WHEN NULLIF(TRIM(country), '') IS NULL THEN NULLIF(TRIM(province), '')
-        ELSE CONCAT(TRIM(province), ', ', TRIM(country))
-    END = :location";
-    $params[':location'] = $location;
-}
-
 // Get all unique locations for filter dropdown
 $locations = getAllLocations();
 
 // Get paginated and sorted customers
-$customers = getPaginatedCustomers($conditions, $params, $page, $perPage, $sort, $order);
-$totalCustomers = getCustomerCount($conditions, $params);
-$totalPages = ceil($totalCustomers / $perPage);
+$result = getPaginatedCustomers($page, $perPage, $search, $location, $sort, $order);
+$customers = $result['data'];
+$totalCustomers = $result['total'];
+$totalPages = $result['pages'];
 
 // Get status counts for dashboard
 $statusCounts = getCustomerStatusCounts();
@@ -149,8 +124,6 @@ require_once 'includes/header.php';
                         <option value="asc" <?php echo $order == 'asc' ? 'selected' : ''; ?>>A-Z</option>
                         <option value="desc" <?php echo $order == 'desc' ? 'selected' : ''; ?>>Z-A</option>
                     </select>
-                    
-                    <button type="submit" name="apply_sort" class="btn sort-btn">Sort</button>
                 </div>
             </form>
         </div>

@@ -91,7 +91,7 @@ require_once 'includes/header.php';
     <div class="container">
         <div class="header">
             <h1><?php echo ucfirst($action); ?> Customer</h1>
-            <a href="customers.php?restore=1" class="btn">Back</a>
+            <a href="<?php echo isset($_SERVER['HTTP_REFERER']) ? htmlspecialchars($_SERVER['HTTP_REFERER']) : 'customers.php?restore=1'; ?>" class="btn">Back</a>
         </div>
         
         <form method="post">
