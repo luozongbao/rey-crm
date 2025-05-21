@@ -1,6 +1,14 @@
-# Rey CRM System v1.5.2.1
+# Rey CRM System v1.5.3
 
 ## Latest Release Highlights
+
+### ✨ New Features
+- **Dark mode toggle in header** — Instantly switch between light and dark themes
+- **Settings page improvements** — Settings cards are now arranged for better usability and clarity
+
+---
+
+## Previous Release (v1.5.2.1)
 
 ### 📚 Documentation Improvements
 - **Updated installation process** - Corrected documentation to reflect automatic configuration setup

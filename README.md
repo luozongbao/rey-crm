@@ -86,6 +86,8 @@ A professional PHP-based Customer Relationship Management (CRM) system designed 
 - Visual status indicators
 - Fixed-width datetime columns
 - Form state persistence
+- **Dark mode toggle in header** (v1.5.3)
+- **Improved settings page layout with arranged cards** (v1.5.3)
 
 ## Technical Requirements
 
@@ -186,7 +188,7 @@ This project is licensed under the MIT License. See LICENSE file for details.
 
 ---
 
-© 2025 VIBE Coding | Rey CRM System | Last Updated: May 18, 2025
+© 2025 VIBE Coding | Rey CRM System | Last Updated: May 21, 2025
 
 ## Support
 
