@@ -53,18 +53,23 @@ $conditions = [];
 $params = [];
 
 if (!empty($search)) {
-    $conditions[] = "(company_name LIKE :search OR contact_phone LIKE :search)";
+    $search = trim($search);
+    $conditions[] = "(LOWER(company_name) LIKE LOWER(:search))";
     $params[':search'] = "%$search%";
 }
 
 if (!empty($location)) {
-    $conditions[] = "CASE
-        WHEN NULLIF(TRIM(province), '') IS NULL AND NULLIF(TRIM(country), '') IS NULL THEN 'N/A'
-        WHEN NULLIF(TRIM(province), '') IS NULL THEN NULLIF(TRIM(country), '')
-        WHEN NULLIF(TRIM(country), '') IS NULL THEN NULLIF(TRIM(province), '')
-        ELSE CONCAT(TRIM(province), ', ', TRIM(country))
-    END = :location";
-    $params[':location'] = $location;
+    $location = trim($location);
+    if ($location === 'N/A') {
+        $conditions[] = "(NULLIF(TRIM(province), '') IS NULL AND NULLIF(TRIM(country), '') IS NULL)";
+    } else {
+        $conditions[] = "CASE
+            WHEN NULLIF(TRIM(province), '') IS NULL THEN TRIM(country) = :location
+            WHEN NULLIF(TRIM(country), '') IS NULL THEN TRIM(province) = :location
+            ELSE CONCAT(TRIM(province), ', ', TRIM(country)) = :location
+        END";
+        $params[':location'] = $location;
+    }
 }
 
 // Get all unique locations for filter dropdown
@@ -149,8 +154,6 @@ require_once 'includes/header.php';
                         <option value="asc" <?php echo $order == 'asc' ? 'selected' : ''; ?>>A-Z</option>
                         <option value="desc" <?php echo $order == 'desc' ? 'selected' : ''; ?>>Z-A</option>
                     </select>
-                    
-                    <button type="submit" name="apply_sort" class="btn sort-btn">Sort</button>
                 </div>
             </form>
         </div>

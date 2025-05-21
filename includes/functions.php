@@ -213,20 +213,22 @@ function getFollowupsForExport($start_date, $end_date) {
 
 function getAllLocations() {
     global $pdo;
-    $stmt = $pdo->query("SELECT DISTINCT 
-                        NULLIF(TRIM(province), '') as province,
-                        NULLIF(TRIM(country), '') as country,
+    try {
+        $stmt = $pdo->query("SELECT DISTINCT 
                         CASE
                             WHEN NULLIF(TRIM(province), '') IS NULL AND NULLIF(TRIM(country), '') IS NULL THEN 'N/A'
-                            WHEN NULLIF(TRIM(province), '') IS NULL THEN NULLIF(TRIM(country), '')
-                            WHEN NULLIF(TRIM(country), '') IS NULL THEN NULLIF(TRIM(province), '')
+                            WHEN NULLIF(TRIM(province), '') IS NULL THEN TRIM(country)
+                            WHEN NULLIF(TRIM(country), '') IS NULL THEN TRIM(province)
                             ELSE CONCAT(TRIM(province), ', ', TRIM(country))
                         END as location
-                        FROM customers 
-                        ORDER BY 
-                            CASE WHEN NULLIF(TRIM(province), '') IS NULL AND NULLIF(TRIM(country), '') IS NULL THEN 1 ELSE 0 END,
-                            location");
-    return $stmt->fetchAll(PDO::FETCH_COLUMN, 2);
+                        FROM customers
+                        ORDER BY CASE WHEN location = 'N/A' THEN 1 ELSE 0 END, 
+                        location");
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    } catch (PDOException $e) {
+        error_log("Error in getAllLocations: " . $e->getMessage());
+        return [];
+    }
 }
 
 function getFilteredCustomers($conditions = [], $params = []) {
@@ -275,29 +277,43 @@ function getCustomerCount($conditions = [], $params = []) {
 function getPaginatedCustomers($conditions = [], $params = [], $page = 1, $perPage = 20, $sort = 'created_at', $order = 'desc') {
     global $pdo;
     
+    // Validate sort/order
+    $validSorts = ['company_name', 'address', 'status', 'created_at'];
+    $validOrders = ['asc', 'desc'];
+    $sort = in_array($sort, $validSorts) ? $sort : 'created_at';
+    $order = in_array($order, $validOrders) ? $order : 'desc';
+    
     $offset = ($page - 1) * $perPage;
     
-    $query = "SELECT c.*, 
-             (SELECT MAX(action_datetime) FROM action_history WHERE customer_id = c.customer_id) as last_contact
-             FROM customers c";
-    
-    if (!empty($conditions)) {
-        $query .= " WHERE " . implode(" AND ", $conditions);
+    try {
+        $query = "SELECT c.*, 
+                 (SELECT MAX(action_datetime) FROM action_history WHERE customer_id = c.customer_id) as last_contact
+                 FROM customers c";
+
+        if (!empty($conditions)) {
+            $query .= " WHERE " . implode(" AND ", $conditions);
+        }
+        
+        // Use proper escaping for column names and prepared statements for parameters
+        $query .= " ORDER BY `" . str_replace('`', '``', $sort) . "` " . ($order === 'desc' ? 'DESC' : 'ASC') . " LIMIT :limit OFFSET :offset";
+        
+        $stmt = $pdo->prepare($query);
+        
+        // First bind the search and filter parameters
+        foreach ($params as $key => $val) {
+            $stmt->bindValue($key, $val);
+        }
+        
+        // Then bind the pagination parameters
+        $stmt->bindValue(':limit', (int)$perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+        
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log("Error in getPaginatedCustomers: " . $e->getMessage());
+        return [];
     }
-    
-    $query .= " ORDER BY $sort $order LIMIT :limit OFFSET :offset";
-    
-    $stmt = $pdo->prepare($query);
-    
-    foreach ($params as $key => $val) {
-        $stmt->bindValue($key, $val);
-    }
-    
-    $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
-    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-    $stmt->execute();
-    
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 function buildQueryString($newParams = []) {
@@ -402,7 +418,7 @@ function getSortedCustomers($search = '', $location = '', $sort = 'created_at', 
     $validSorts = ['company_name', 'address', 'status', 'created_at'];
     $validOrders = ['asc', 'desc'];
     $sort = in_array($sort, $validSorts) ? $sort : 'created_at';
-    $order = in_array($validOrders, $order) ? $order : 'desc';
+    $order = in_array($order, $validOrders) ? $order : 'desc';
     
     // Build query
     $query = "SELECT c.*, 
