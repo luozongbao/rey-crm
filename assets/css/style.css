@@ -26,6 +26,16 @@
   --radius: 0.5rem;
   --radius-lg: 0.75rem;
   --transition: all 0.2s ease;
+  --background-dark: #181a1b;
+  --header-dark: #1a1d21;
+  --text-dark: #e5e7eb;
+  --card-dark: #2d3339;
+  --input-dark: #23272a;
+  --border-dark: #2d3236;
+  --table-row-dark: #262b30;
+  --table-header-dark: #1f2328;
+  --table-hover-dark: #363b41;
+  --primary-darkmode: #3b82f6;
 }
 
 /* Reset & Base Styles */
@@ -46,6 +56,11 @@ body {
   flex-direction: column;
 }
 
+body.dark-mode {
+  background-color: var(--background-dark);
+  color: var(--text-dark);
+}
+
 /* Typography */
 h1, h2, h3, h4, h5, h6 {
   color: var(--gray-900);
@@ -57,6 +72,23 @@ h1, h2, h3, h4, h5, h6 {
 h1 { font-size: 1.875rem; }
 h2 { font-size: 1.5rem; }
 h3 { font-size: 1.25rem; }
+
+/* Ensure headings are visible in dark mode */
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode h4,
+body.dark-mode h5,
+body.dark-mode h6 {
+  color: var(--text-dark);
+}
+
+body.dark-mode .header h1,
+body.dark-mode .section-header h2,
+body.dark-mode .dashboard-card h2,
+body.dark-mode .section h2 {
+  color: var(--text-dark);
+}
 
 /* Layout */
 .container {
@@ -226,7 +258,7 @@ main.container {
 
 .profile-btn {
   background-color: var(--gray-100);
-  color: var(--gray-700);
+  color: var(--text-dark);
   border: 1px solid var(--gray-300);
   padding: 0.375rem 0.75rem;
   font-size: 0.875rem;
@@ -249,7 +281,7 @@ main.container {
   padding: 0.375rem 0.75rem;
   font-size: 0.813rem;
   background-color: var(--gray-100);
-  color: var(--gray-700);
+  color: var(--text-dark);
   border: 1px solid var(--gray-200);
   display: inline-flex;
   align-items: center;
@@ -274,6 +306,11 @@ main.container {
   text-align: center;
   color: var(--gray-600);
   font-size: 0.875rem;
+}
+
+/* Footer dark mode styles */
+body.dark-mode .main-footer p {
+  color: var(--text-dark);
 }
 
 /* Buttons */
@@ -1271,5 +1308,361 @@ form + .section {
   .settings-container {
     flex-direction: column;
   }
+}
+
+/* Dark Mode Styles */
+body.dark-mode .main-header,
+body.dark-mode .main-footer {
+  background-color: var(--header-dark);
+  border-color: var(--border-dark);
+  color: var(--text-dark);
+}
+
+body.dark-mode .container,
+body.dark-mode .dashboard-card,
+body.dark-mode .profile-box,
+body.dark-mode .password-box,
+body.dark-mode .settings-section,
+body.dark-mode .quick-stats,
+body.dark-mode .stat-box {
+  background-color: var(--card-dark);
+  color: var(--text-dark);
+  box-shadow: none;
+}
+
+body.dark-mode .main-nav a,
+body.dark-mode .nav-link,
+body.dark-mode .user-menu,
+body.dark-mode .username {
+  color: var(--text-dark);
+}
+
+body.dark-mode .main-nav a.active,
+body.dark-mode .main-nav a:hover,
+body.dark-mode .nav-link.active,
+body.dark-mode .nav-link:hover {
+  background-color: var(--primary-darkmode);
+  color: #fff;
+}
+
+body.dark-mode .btn,
+body.dark-mode .btn-primary {
+  background-color: var(--primary-darkmode);
+  color: #fff;
+}
+
+body.dark-mode .btn.ghost {
+  background: transparent;
+  color: var(--text-dark);
+  border-color: var(--border-dark);
+}
+
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea,
+body.dark-mode .form-input {
+  background-color: var(--input-dark);
+  color: var(--text-dark);
+  border-color: var(--border-dark);
+}
+
+body.dark-mode input:focus,
+body.dark-mode select:focus,
+body.dark-mode textarea:focus,
+body.dark-mode .form-input:focus {
+  border-color: var(--primary-darkmode);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+body.dark-mode .status-badge {
+  background: var(--gray-700);
+  color: #fff;
+}
+
+body.dark-mode .compact-table th,
+body.dark-mode .compact-table td {
+  background-color: var(--header-dark);
+  color: var(--text-dark);
+  border-color: var(--border-dark);
+}
+
+body.dark-mode .error-message {
+  background: #3b1e1e;
+  color: #ffb4b4;
+}
+
+body.dark-mode .success-message {
+  background: #1e3b1e;
+  color: #b4ffb4;
+}
+
+body.dark-mode .modal-content {
+  background-color: var(--header-dark);
+  color: var(--text-dark);
+}
+
+body.dark-mode .section-divider {
+  background-color: var(--border-dark);
+}
+
+body.dark-mode .readonly {
+  background-color: var(--header-dark);
+  color: var(--text-dark);
+}
+
+body.dark-mode .timeline-item {
+  background: var(--header-dark);
+  color: var(--text-dark);
+}
+
+body.dark-mode .stat-title {
+  color: var(--text-dark);
+}
+
+body.dark-mode .stat-value {
+  color: #fff;
+}
+
+body.dark-mode .quick-actions {
+  background: var(--header-dark);
+  color: var(--text-dark);
+}
+
+body.dark-mode .form-group label {
+  color: var(--text-dark);
+}
+
+body.dark-mode .main-header .logo a {
+  color: #fff;
+}
+
+body.dark-mode .main-header .logo a:hover {
+  color: var(--primary-darkmode);
+}
+
+body.dark-mode .main-header .logo a::before {
+  background: linear-gradient(135deg, var(--primary-darkmode) 0%, var(--primary) 100%);
+}
+
+body.dark-mode .logout-btn,
+body.dark-mode .profile-btn {
+  background-color: var(--header-dark);
+  color: var(--text-dark);
+  border-color: var(--border-dark);
+}
+
+body.dark-mode .logout-btn:hover {
+  background-color: #3b1e1e;
+  color: #ffb4b4;
+}
+
+body.dark-mode .profile-btn:hover {
+  background-color: var(--border-dark);
+  color: #fff;
+}
+
+body.dark-mode .btn.delete {
+  background-color: #b91c1c;
+}
+
+body.dark-mode .btn.delete:hover {
+  background-color: #991b1b;
+}
+
+body.dark-mode .btn.success {
+  background-color: #059669;
+}
+
+body.dark-mode .btn.success:hover {
+  background-color: #047857;
+}
+
+body.dark-mode .btn-outline {
+  background: transparent;
+  border: 1px solid var(--primary-darkmode);
+  color: var(--primary-darkmode);
+}
+
+body.dark-mode .btn-outline:hover {
+  background-color: var(--primary-darkmode);
+  color: #fff;
+}
+
+body.dark-mode .btn.ghost:hover {
+  background: var(--header-dark);
+}
+
+/* Enhanced dark mode styles for better visibility */
+body.dark-mode .header,
+body.dark-mode .filter-form,
+body.dark-mode .search-sort-container,
+body.dark-mode .pagination-container {
+  background-color: var(--card-dark);
+  border: 1px solid var(--border-dark);
+}
+
+body.dark-mode .data-table {
+  border-color: var(--border-dark);
+  background-color: var(--card-dark);
+}
+
+body.dark-mode .data-table thead {
+  background-color: var(--table-header-dark);
+}
+
+body.dark-mode .data-table thead th {
+  color: var(--text-dark);
+  border-color: var(--border-dark);
+  background-color: var(--table-header-dark);
+  font-weight: 600;
+}
+
+body.dark-mode .data-table tbody td {
+  color: var(--text-dark);
+  border-color: var(--border-dark);
+}
+
+body.dark-mode .data-table tbody tr {
+  border-color: var(--border-dark);
+  background-color: var(--card-dark);
+}
+
+body.dark-mode .data-table tbody tr:nth-child(even) {
+  background-color: var(--table-row-dark);
+}
+
+body.dark-mode .data-table tbody tr:hover {
+  background-color: var(--table-hover-dark);
+}
+
+body.dark-mode .records-count {
+  color: var(--text-dark-secondary);
+}
+
+/* Enhanced dark mode form elements */
+body.dark-mode .filter-form select,
+body.dark-mode .filter-form input[type="date"],
+body.dark-mode .filter-form input[type="text"],
+body.dark-mode .search-sort-container select {
+  background-color: var(--table-header-dark);
+  color: var(--text-dark);
+  border: 1px solid var(--border-dark);
+}
+
+body.dark-mode .filter-form label,
+body.dark-mode .search-sort-container label {
+  color: var(--text-dark-secondary);
+}
+
+/* Dark mode form focus states */
+body.dark-mode .filter-form select:focus,
+body.dark-mode .filter-form input[type="date"]:focus,
+body.dark-mode .filter-form input[type="text"]:focus,
+body.dark-mode .search-sort-container select:focus {
+  border-color: var(--primary-darkmode);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  background-color: var(--table-header-dark);
+}
+
+/* Ensure text remains visible during selection */
+body.dark-mode ::selection {
+  background-color: var(--primary-darkmode);
+  color: var(--text-dark);
+}
+
+/* Settings page user list dark mode styles */
+body.dark-mode .users-table {
+  border-color: var(--border-dark);
+}
+
+body.dark-mode .users-table th {
+  background-color: var(--table-header-dark);
+  color: var(--text-dark);
+  border-color: var(--border-dark);
+}
+
+body.dark-mode .users-table td {
+  color: var(--text-dark);
+  border-color: var(--border-dark);
+}
+
+body.dark-mode .users-table tr:hover {
+  background-color: var(--header-dark);
+}
+
+/* Settings section headers in dark mode */
+body.dark-mode .settings-section h3,
+body.dark-mode .settings-section h4 {
+  color: var(--text-dark);
+}
+
+/* Settings help text in dark mode */
+body.dark-mode .help-text {
+  color: var(--text-dark-secondary);
+}
+
+/* Settings header dark mode */
+body.dark-mode .settings-header {
+  background-color: var(--table-header-dark);
+  border-color: var(--border-dark);
+}
+
+body.dark-mode .settings-header h3 {
+  color: var(--text-dark);
+}
+
+body.dark-mode .settings-content {
+  background-color: var(--card-dark);
+}
+
+body.dark-mode .settings-section {
+  border: 1px solid var(--border-dark);
+  box-shadow: none;
+}
+
+/* Dark mode timeline and activity cards */
+body.dark-mode .timeline::before {
+  background-color: var(--border-dark);
+}
+
+body.dark-mode .timeline-item::before {
+  background-color: var(--primary-darkmode);
+  border-color: var(--card-dark);
+}
+
+body.dark-mode .timeline-item {
+  background: transparent;
+}
+
+body.dark-mode .timeline-content {
+  background-color: var(--card-dark);
+  border: 1px solid var(--border-dark);
+  box-shadow: none;
+}
+
+body.dark-mode .timeline-date {
+  color: var(--text-dark-secondary);
+}
+
+body.dark-mode .timeline-content h3 {
+  color: var(--text-dark);
+}
+
+body.dark-mode .timeline-content p {
+  color: var(--text-dark-secondary);
+}
+
+body.dark-mode .timeline-content p strong {
+  color: var(--text-dark);
+}
+
+/* Dark mode for full width dashboard cards */
+body.dark-mode .dashboard-card.full-width {
+  background-color: var(--card-dark);
+  border: 1px solid var(--border-dark);
+}
+
+body.dark-mode .dashboard-card.full-width:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
 }
 

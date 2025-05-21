@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 
 -- Insert default settings
-INSERT INTO settings (setting_name, value) VALUES
+INSERT IGNORE INTO settings (setting_name, value) VALUES
 ('items_per_page', '10');
 
 -- Create users table for user management
