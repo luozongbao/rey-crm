@@ -199,7 +199,7 @@ $customer = getCustomerById($customer_id);
                 <div class="form-group">
                     <label for="follow_up_datetime">Follow Up Date & Time:</label>
                     <input type="datetime-local" id="follow_up_datetime" name="follow_up_datetime" required 
-                        value="<?php echo $history ? date('Y-m-d\TH:i', strtotime($history['follow_up_datetime'])) : date('Y-m-d\TH:i', strtotime('+1 week')); ?>" 
+                        value="<?php echo $history ? utcToLocal($history['follow_up_datetime'], 'Y-m-d\TH:i') : date('Y-m-d\TH:i', strtotime('+1 week')); ?>" 
                         <?php echo $isViewMode ? 'disabled' : ''; ?>>
                 </div>
                 
