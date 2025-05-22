@@ -109,7 +109,7 @@ require_once 'includes/header.php';
                 <tr>
                     <td><?= htmlspecialchars($activity['company_name']) ?></td>
                     <td><?= htmlspecialchars($activity['action']) ?></td>
-                    <td class="datetime"><?= utcToLocal($activity['action_datetime'], 'Y-m-d H:i') ?></td>
+                    <td class="datetime"><?= $activity['action_datetime'] ?></td>
                     <td><?= htmlspecialchars($activity['response']) ?></td>
                 </tr>
                 <?php endforeach; ?>

@@ -19,11 +19,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_history'])) {
         fputcsv($output, [
             $row['company_name'],
             $row['contact_name'] ?? 'N/A',
-            utcToLocal($row['action_datetime'], 'Y-m-d H:i'),
+            $row['action_datetime'],
             $row['action'],
             $row['response'],
             $row['next_step'],
-            utcToLocal($row['follow_up_datetime'], 'Y-m-d H:i')
+            $row['follow_up_datetime']
         ]);
     }
     fclose($output);
