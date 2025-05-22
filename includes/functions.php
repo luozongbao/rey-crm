@@ -837,30 +837,11 @@ function getItemsPerPage() {
 }
 
 /**
- * Get the system timezone setting
- */
-function getSystemTimezone() {
-    global $pdo;
-    try {
-        $stmt = $pdo->query("SELECT value FROM settings WHERE setting_name = 'timezone'");
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result ? $result['value'] : 'UTC';
-    } catch (PDOException $e) {
-        logError("Failed to get timezone setting: " . $e->getMessage());
-        return 'UTC'; // Default to UTC if setting can't be fetched
-    }
-}
-
-/**
  * Convert UTC datetime to local timezone
  */
 function utcToLocal($utcDateTime, $format = 'Y-m-d H:i:s') {
     if (empty($utcDateTime)) return '';
-    
-    $timezone = getSystemTimezone();
-    $dt = new DateTime($utcDateTime, new DateTimeZone('UTC'));
-    $dt->setTimezone(new DateTimeZone($timezone));
-    return $dt->format($format);
+    return $utcDateTime; // The actual conversion will be done client-side
 }
 
 /**
@@ -868,10 +849,6 @@ function utcToLocal($utcDateTime, $format = 'Y-m-d H:i:s') {
  */
 function localToUtc($localDateTime) {
     if (empty($localDateTime)) return '';
-    
-    $timezone = getSystemTimezone();
-    $dt = new DateTime($localDateTime, new DateTimeZone($timezone));
-    $dt->setTimezone(new DateTimeZone('UTC'));
-    return $dt->format('Y-m-d H:i:s');
+    return $localDateTime; // The actual conversion will be done client-side when form is submitted
 }
 ?>
