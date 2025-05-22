@@ -36,9 +36,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$isViewMode) {
         die("Error: Customer ID is missing");
     }
 
-    // Convert local datetime to UTC for storage
-    $action_datetime = localToUtc($_POST['action_datetime']);
-    $follow_up_datetime = localToUtc($_POST['follow_up_datetime']);
+    // JavaScript has already converted to UTC before form submission
+    $action_datetime = $_POST['action_datetime'];
+    $follow_up_datetime = $_POST['follow_up_datetime'];
 
     $data = [
         'customer_id' => $customer_id,
@@ -158,7 +158,7 @@ $customer = getCustomerById($customer_id);
                 <div class="form-group">
                     <label for="action_datetime">Date & Time:</label>
                     <input type="datetime-local" id="action_datetime" name="action_datetime" required 
-                        value="<?php echo $history ? utcToLocal($history['action_datetime'], 'Y-m-d\TH:i') : date('Y-m-d\TH:i'); ?>" 
+                        value="<?php echo $history ? date('Y-m-d\TH:i', strtotime($history['action_datetime'])) : date('Y-m-d\TH:i'); ?>" 
                         <?php echo $isViewMode ? 'disabled' : ''; ?>>
                 </div>
                 
@@ -199,7 +199,7 @@ $customer = getCustomerById($customer_id);
                 <div class="form-group">
                     <label for="follow_up_datetime">Follow Up Date & Time:</label>
                     <input type="datetime-local" id="follow_up_datetime" name="follow_up_datetime" required 
-                        value="<?php echo $history ? utcToLocal($history['follow_up_datetime'], 'Y-m-d\TH:i') : date('Y-m-d\TH:i', strtotime('+1 week')); ?>" 
+                        value="<?php echo $history ? date('Y-m-d\TH:i', strtotime($history['follow_up_datetime'])) : date('Y-m-d\TH:i', strtotime('+1 week')); ?>" 
                         <?php echo $isViewMode ? 'disabled' : ''; ?>>
                 </div>
                 

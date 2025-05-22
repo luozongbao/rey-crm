@@ -47,15 +47,21 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Initialize datetime-local inputs to current local time
+    // Initialize datetime-local inputs with proper timezone conversion
     document.querySelectorAll('input[type="datetime-local"]').forEach(input => {
         if (!input.value) {
             const now = new Date();
             input.value = now.toISOString().slice(0, 16);
         } else {
-            // Convert any existing UTC values to local
+            // Convert existing UTC values to local
             const utcDate = new Date(input.value + 'Z');
-            input.value = utcDate.toISOString().slice(0, 16);
+            const localDate = new Date(utcDate.getTime() + (utcDate.getTimezoneOffset() * 60000));
+            const year = localDate.getFullYear();
+            const month = String(localDate.getMonth() + 1).padStart(2, '0');
+            const day = String(localDate.getDate()).padStart(2, '0');
+            const hours = String(localDate.getHours()).padStart(2, '0');
+            const minutes = String(localDate.getMinutes()).padStart(2, '0');
+            input.value = `${year}-${month}-${day}T${hours}:${minutes}`;
         }
     });
 });

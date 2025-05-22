@@ -836,19 +836,5 @@ function getItemsPerPage() {
     }
 }
 
-/**
- * Convert UTC datetime to local timezone
- */
-function utcToLocal($utcDateTime, $format = 'Y-m-d H:i:s') {
-    if (empty($utcDateTime)) return '';
-    return $utcDateTime; // The actual conversion will be done client-side
-}
 
-/**
- * Convert local datetime to UTC
- */
-function localToUtc($localDateTime) {
-    if (empty($localDateTime)) return '';
-    return $localDateTime; // The actual conversion will be done client-side when form is submitted
-}
 ?>
