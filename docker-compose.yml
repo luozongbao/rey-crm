@@ -1,0 +1,51 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: dockerfile
+    container_name: reycrm
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - reycrm:/var/www/html
+      - ./logs:/var/www/html/logs
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - db
+      - php
+    networks:
+      - reycrm-network
+  php:
+    image: php:8.3-fpm  
+    container_name: php
+    restart: always
+    volumes:
+      - reycrm:/var/www/html
+    command: > 
+      bash -c "docker-php-ext-install pdo pdo_mysql mysqli 
+      && php-fpm"
+    networks:
+      - reycrm-network
+  db:
+    image: mariadb:latest
+    container_name: db
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_DATABASE=$DATABASENAME
+      - MYSQL_USER=$DATABASEUSER
+      - MYSQL_PASSWORD=$DATABASEPASS
+      - MYSQL_ROOT_PASSWORD=rootpassword
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database:/docker-entrypoint-initdb.d
+    networks:
+      - reycrm-network
+networks:
+  reycrm-network:
+    driver: bridge
+volumes:
+  mysql_data:
+  reycrm:

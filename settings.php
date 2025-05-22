@@ -123,33 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_smtp'])) {
     }
 }
 
-// Handle timezone settings form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_timezone'])) {
-    $timezone = trim($_POST['timezone']);
-    if (in_array($timezone, DateTimeZone::listIdentifiers())) {
-        try {
-            // Check if setting exists
-            $stmt = $pdo->prepare("SELECT setting_id FROM settings WHERE setting_name = 'timezone'");
-            $stmt->execute();
-            
-            if ($stmt->rowCount() > 0) {
-                // Update existing setting
-                $stmt = $pdo->prepare("UPDATE settings SET value = ?, updated_at = NOW() WHERE setting_name = 'timezone'");
-                $stmt->execute([$timezone]);
-            } else {
-                // Insert new setting
-                $stmt = $pdo->prepare("INSERT INTO settings (setting_name, value) VALUES ('timezone', ?)");
-                $stmt->execute([$timezone]);
-            }
-            
-            $message = "Timezone setting updated successfully!";
-        } catch (PDOException $e) {
-            $error = "Failed to update timezone setting: " . htmlspecialchars($e->getMessage());
-        }
-    } else {
-        $error = "Invalid timezone selected.";
-    }
-}
+
 
 // Get current settings
 try {
@@ -216,25 +190,7 @@ require_once 'includes/header.php';
         </form>
     </div>
 
-    <div class="settings-section" style="flex:1 1 320px; min-width:300px;">
-        <h3>Timezone Settings</h3>
-        <form method="POST" action="">
-            <div class="form-group">
-                <label for="timezone">System Timezone:</label>
-                <select id="timezone" name="timezone" required>
-                    <?php
-                    $timezones = DateTimeZone::listIdentifiers();
-                    foreach ($timezones as $tz) {
-                        $selected = ($tz === $current_timezone) ? 'selected' : '';
-                        echo "<option value=\"" . htmlspecialchars($tz) . "\" $selected>" . htmlspecialchars($tz) . "</option>";
-                    }
-                    ?>
-                </select>
-                <small class="help-text">This timezone will be used for displaying dates and times throughout the system.</small>
-            </div>
-            <button type="submit" name="update_timezone" class="btn">Update Timezone</button>
-        </form>
-    </div>
+
 </div>
 
 <div class="settings-section">

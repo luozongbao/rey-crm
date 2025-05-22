@@ -114,7 +114,7 @@ require_once 'includes/header.php';
                         </a>
                     </td>                    
                     <td><?= htmlspecialchars($followup['action']) ?></td>
-                    <td class="datetime"><?= utcToLocal($followup['follow_up_datetime'], 'Y-m-d H:i') ?></td>
+                    <td class="datetime"><?= $followup['follow_up_datetime'] ?></td>
                     <td><?= htmlspecialchars($followup['next_step']) ?></td>
                 </tr>
                 <?php endforeach; ?>

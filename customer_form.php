@@ -91,7 +91,17 @@ require_once 'includes/header.php';
     <div class="container">
         <div class="header">
             <h1><?php echo ucfirst($action); ?> Customer</h1>
-            <a href="<?php echo isset($_SERVER['HTTP_REFERER']) ? htmlspecialchars($_SERVER['HTTP_REFERER']) : 'customers.php?restore=1'; ?>" class="btn">Back</a>
+            <?php
+            $backUrl = 'customers.php?restore=1';
+            if (isset($_SERVER['HTTP_REFERER'])) {
+                $referer = $_SERVER['HTTP_REFERER'];
+                // Only use referer if it's not from contact_form or history_form
+                if (!strpos($referer, 'contact_form.php') && !strpos($referer, 'history_form.php')) {
+                    $backUrl = $referer;
+                }
+            }
+            ?>
+            <a href="<?php echo htmlspecialchars($backUrl); ?>" class="btn">Back</a>
         </div>
         
         <form method="post">
@@ -260,8 +270,8 @@ require_once 'includes/header.php';
                         <td class="action-col"><?php echo htmlspecialchars($history['action']); ?></td>
                         <td class="response-col"><?php echo htmlspecialchars($history['response']); ?></td>
                         <td class="nextstep-col"><?php echo htmlspecialchars($history['next_step']); ?></td>
-                        <td class="datetime-col"><?php echo htmlspecialchars(utcToLocal($history['action_datetime'], 'Y-m-d H:i')); ?></td>
-                        <td class="datetime-col"><?php echo htmlspecialchars(utcToLocal($history['follow_up_datetime'], 'Y-m-d H:i')); ?></td>
+                        <td class="datetime-col datetime"><?php echo htmlspecialchars($history['action_datetime']); ?></td>
+                        <td class="datetime-col datetime"><?php echo htmlspecialchars($history['follow_up_datetime']); ?></td>
                         <td class="actions-col">
                             <a href="history_form.php?action=edit&id=<?php echo $history['history_id']; ?>&customer_id=<?php echo $customer_id; ?>&source_action=<?php echo $action; ?>" class="btn">Edit</a>
                         </td>
