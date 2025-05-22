@@ -1,10 +1,69 @@
-# Rey CRM System v1.5.3
+# Rey CRM System v1.6.0
 
-## Latest Release Highlights
+## Major Updates in This Release
 
-### ✨ New Features
-- **Dark mode toggle in header** — Instantly switch between light and dark themes
-- **Settings page improvements** — Settings cards are now arranged for better usability and clarity
+### 🌍 Client-side Timezone Management
+- **Automatic Timezone Detection**
+  - Uses browser's timezone
+  - No configuration needed
+  - Seamless user experience
+- **UTC-based Storage**
+  - Consistent data storage
+  - Reliable time tracking
+  - Cross-timezone compatibility
+- **24-Hour Time Format**
+  - Professional time display
+  - Consistent formatting
+  - Enhanced readability
+
+### 🐳 Docker Integration
+- **Containerized Stack**
+  ```yaml
+  - Nginx (Latest)
+  - PHP 8.3-FPM
+  - MariaDB (Latest)
+  ```
+- **Development Features**
+  - Hot reload support
+  - Mounted volumes
+  - Easy configuration
+- **Production Ready**
+  - Optimized containers
+  - Security considerations
+  - Performance tuning
+
+### 💻 Technical Details
+
+#### Docker Configuration
+```yaml
+services:
+  web: nginx:latest
+  php: php:8.3-fpm
+  db:  mariadb:latest
+```
+
+#### Time Handling
+```javascript
+// Client-side timezone conversion
+const localDate = new Date();
+const utcDate = new Date(localDate.getTime() - localDate.getTimezoneOffset() * 60000);
+```
+
+## Installation
+
+### Quick Start with Docker
+```bash
+git clone https://github.com/yourusername/rey-crm.git
+cd rey-crm
+cp .env.example .env
+docker-compose up -d
+```
+
+### Requirements
+- Docker Engine 20.10.0+
+- Docker Compose v2.0.0+
+- 2GB RAM minimum
+- 10GB disk space
 
 ---
 
