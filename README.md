@@ -89,6 +89,32 @@ A professional PHP-based Customer Relationship Management (CRM) system designed 
 - **Dark mode toggle in header** (v1.5.3)
 - **Improved settings page layout with arranged cards** (v1.5.3)
 
+### Time & Location Handling
+- Smart timezone management:
+  - Browser-based timezone detection
+  - Automatic local time display
+  - UTC-based storage for consistency
+  - 24-hour time format support
+- Seamless datetime handling:
+  - Automatic timezone conversion
+  - Client-side timezone processing
+  - Consistent datetime display across all views
+
+### Docker Support
+- Full containerization support:
+  - Nginx web server
+  - PHP 8.3-FPM
+  - MariaDB database
+- Easy deployment:
+  - Docker Compose configuration
+  - Environment isolation
+  - Volume persistence
+  - Automatic container orchestration
+- Development ready:
+  - Hot-reload support
+  - Log volume mounting
+  - Easy configuration via environment variables
+
 ## Technical Requirements
 
 ### Server Requirements
@@ -108,6 +134,8 @@ A professional PHP-based Customer Relationship Management (CRM) system designed 
 - Cookies enabled
 
 ## Installation
+
+### Traditional Setup
 
 1. Clone the repository:
    ```bash
@@ -158,6 +186,42 @@ A professional PHP-based Customer Relationship Management (CRM) system designed 
    ```
    http://your-server/path-to-rey-crm/
    ```
+
+### Docker Installation
+1. Make sure you have Docker and Docker Compose installed
+2. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/rey-crm.git
+   cd rey-crm
+   ```
+3. Configure your environment:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your settings
+   ```
+4. Start the containers:
+   ```bash
+   docker-compose up -d
+   ```
+5. The application will be available at http://localhost
+
+## System Requirements
+
+### Traditional Installation
+- PHP 7.4 or higher
+- MySQL 5.7+ / MariaDB 10.2+
+- Apache 2.4+ / Nginx 1.14+
+- Required PHP extensions:
+  - PDO (with MySQL driver)
+  - mbstring
+  - date
+  - session
+
+### Docker Installation
+- Docker Engine 20.10.0 or later
+- Docker Compose v2.0.0 or later
+- 2GB RAM minimum
+- 10GB disk space
 
 ## Security Features
 
