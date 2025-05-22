@@ -1,0 +1,8 @@
+.gitignore
+docker-compose.yml
+dockerfile
+nginx.conf
+.env
+logs/
+docker/
+includes/config.php
