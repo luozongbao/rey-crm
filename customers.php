@@ -2,7 +2,6 @@
 require_once 'includes/functions.php';
 
 requireLogin();
-session_start();
 
 // Get page state either from session (if restoring) or from GET parameters
 if (isset($_GET['restore']) && isset($_SESSION['last_page_state'])) {

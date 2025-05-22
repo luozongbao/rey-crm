@@ -1,8 +1,14 @@
 <?php
 // Check if config file exists, if not redirect to install
-if (!file_exists(__DIR__ . '/config.php')) {
-    header('Location: /includes/install.php');
-    exit;
+if (!file_exists(__DIR__ . '/config.php') && basename($_SERVER['PHP_SELF']) !== 'install.php') {
+    if (!headers_sent()) {
+        header('Location: includes/install.php');
+        exit;
+    } else {
+        echo '<script>window.location.href = "/install.php";</script>';
+        echo 'If you are not redirected, <a href="/install.php">click here</a>.';
+        exit;
+    }
 }
 
 require_once 'config.php';
@@ -836,5 +842,22 @@ function getItemsPerPage() {
     }
 }
 
+function redirectTo($path) {
+    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
+    $host = $_SERVER['HTTP_HOST'];
+    // Remove leading slash if present
+    $path = ltrim($path, '/');
+    $url = "$protocol$host/$path";
+    
+    if (!headers_sent()) {
+        header("Location: $url");
+        exit;
+    } else {
+        // If headers are sent, use JavaScript
+        echo '<script>window.location.href = "' . $url . '";</script>';
+        echo 'If you are not redirected, <a href="' . $url . '">click here</a>.';
+        exit;
+    }
+}
 
 ?>

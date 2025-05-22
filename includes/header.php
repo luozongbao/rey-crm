@@ -1,3 +1,14 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Redirect to login if not logged in
+if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) !== 'login.php' && basename($_SERVER['PHP_SELF']) !== 'install.php') {
+    header('Location: /login.php');
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,16 +18,6 @@
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
 <body>
-    <?php
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
-    // Redirect to login if not logged in
-    if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) !== 'login.php' && basename($_SERVER['PHP_SELF']) !== 'install.php') {
-        header('Location: /login.php');
-        exit;
-    }
-    ?>
     <header class="main-header">
         <div class="container">
             <div class="header-content">

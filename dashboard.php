@@ -2,7 +2,6 @@
 require_once 'includes/functions.php';
 
 requireLogin();
-session_start();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_history'])) {
     $start_date = $_POST['history_start'] ?? date('Y-m-d', strtotime('-1 week'));
