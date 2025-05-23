@@ -30,9 +30,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             input.value = formatDateForInput(now);
         } else {
-            // Convert existing UTC values to local
-            const utcDate = new Date(input.value + 'Z');
-            const localDate = new Date(utcDate.getTime() + (utcDate.getTimezoneOffset() * 60000));
+            // Convert existing values (already in UTC) to local
+            const utcDate = new Date(input.value); // No need to append 'Z' as it's already UTC
+            const localDate = new Date(utcDate.getTime());
             input.value = formatDateForInput(localDate);
         }
     });
@@ -52,22 +52,23 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.classList.add('dark-mode');
     }
     
-    // Convert UTC dates to local timezone for display (24-hour format)
+    // Convert dates for display (24-hour format)
     document.querySelectorAll('.datetime').forEach(element => {
         if (element.tagName === 'TD' || element.tagName === 'TH') {
             const utcDate = element.textContent.trim();
             if (utcDate && utcDate !== 'N/A') {
-                const localDate = new Date(utcDate + 'Z'); // Append Z to treat as UTC
-                element.textContent = formatDateTo24Hour(localDate);
+                const date = new Date(utcDate); // No need to append 'Z' as it's already UTC
+                element.textContent = formatDateTo24Hour(date);
             }
         }
     });
 
-    // Convert local dates to UTC when submitting forms
+    // Convert dates when submitting forms
     document.querySelectorAll('form').forEach(form => {
         form.addEventListener('submit', function(e) {
             this.querySelectorAll('input[type="datetime-local"]').forEach(input => {
                 if (input.value) {
+                    // Convert local input to UTC format
                     const localDate = new Date(input.value);
                     const utcDate = new Date(localDate.getTime() - localDate.getTimezoneOffset() * 60000);
                     input.value = utcDate.toISOString().slice(0, 16);

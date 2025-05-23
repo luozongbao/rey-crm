@@ -1,6 +1,39 @@
-# Rey CRM System v1.6.1
+# Rey CRM System v1.6.2
 
 ## Major Updates in This Release
+
+### 🕒 Time Handling Enhancements
+- **Timezone Handling Optimization**
+  - Removed redundant UTC conversion in frontend
+  - Fixed double timezone conversion issue
+  - Streamlined datetime handling across forms
+- **Form DateTime Management**
+  - Improved history form datetime handling
+  - Enhanced follow-up datetime pickers
+  - Consistent timezone display
+
+### 💻 Technical Details
+
+#### DateTime Handling Implementation
+```javascript
+// Updated datetime conversion (removed redundant UTC conversion)
+document.querySelectorAll('.datetime').forEach(element => {
+    if (element.tagName === 'TD' || element.tagName === 'TH') {
+        const utcDate = element.textContent.trim();
+        if (utcDate && utcDate !== 'N/A') {
+            const date = new Date(utcDate); // No 'Z' suffix as dates are already UTC
+            element.textContent = formatDateTo24Hour(date);
+        }
+    }
+});
+```
+
+#### Database Integration
+```sql
+-- Database already handles timezone conversion
+SELECT CONVERT_TZ(action_datetime, '+00:00', @@session.time_zone) as action_datetime
+FROM action_history
+```
 
 ### 🔒 Contact Management Security
 - **Main Contact Protection**
@@ -22,32 +55,6 @@
   - Improved contact hierarchy
   - Better data presentation
 
-### 💻 Technical Details
-
-#### Contact Protection Implementation
-```php
-// Server-side protection
-if ($contact && strtolower($contact['role']) === 'main contact') {
-    die("Error: Cannot delete Main Contact");
-}
-
-// UI-level protection
-if (!$isViewMode && (!$contact || strtolower($contact['role']) !== 'main contact')) {
-    // Show delete button
-} else {
-    // Show disabled button or hide
-}
-```
-
-#### Historical Data Access
-```sql
--- Updated follow-ups query
-SELECT ah.*, c.company_name 
-FROM action_history ah
-JOIN customers c ON ah.customer_id = c.customer_id
-WHERE 1=1  -- Removed date restriction
-```
-
 ### 🎨 UI/UX Improvements
 - Protected contacts clearly identified
 - Enhanced role display
@@ -67,8 +74,6 @@ WHERE 1=1  -- Removed date restriction
 git clone https://github.com/yourusername/rey-crm.git
 cd rey-crm
 composer install
-cp includes/config.php.example includes/config.php
-# Configure your database settings
 ```
 
 ## Previous Versions
