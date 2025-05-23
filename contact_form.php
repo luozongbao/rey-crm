@@ -8,6 +8,14 @@ $customer_id = $_GET['customer_id'] ?? 0;
 $source_action = $_GET['source_action'] ?? 'edit';
 
 if ($action == 'delete' && $contact_id) {
+    // Get contact details before deletion
+    $contact = getContactPersonById($contact_id);
+    
+    // Check if it's a Main Contact
+    if ($contact && strtolower($contact['role']) === 'main contact') {
+        die("Error: Cannot delete Main Contact");
+    }
+    
     deleteContactPerson($contact_id);
     header("Location: customer_form.php?action=$source_action&id=$customer_id");
     exit;
@@ -170,10 +178,12 @@ $customer = getCustomerById($customer_id);
                                 <button type="submit" class="btn">Save</button>
                                 <a href="customer_form.php?action=<?php echo $source_action; ?>&id=<?php echo $customer_id; ?>" class="btn">Cancel</a>
                             </div>
-                            <a href="contact_form.php?action=delete&id=<?php echo $contact_id; ?>&customer_id=<?php echo $customer_id; ?>&source_action=<?php echo $source_action; ?>" 
-                               <?php echo $isViewMode ? 'disabled' : ''; ?> 
-                               <?php echo $isViewMode ? 'style="display:none;"' : ''; ?>
-                            class="btn delete">Delete Contact</a>
+                            <?php if (!$isViewMode && (!$contact || strtolower($contact['role']) !== 'main contact')): ?>
+                                <a href="contact_form.php?action=delete&id=<?php echo $contact_id; ?>&customer_id=<?php echo $customer_id; ?>&source_action=<?php echo $source_action; ?>" 
+                                   class="btn delete">Delete Contact</a>
+                            <?php elseif (!$isViewMode): ?>
+                                <button type="button" class="btn delete" disabled title="Main Contact cannot be deleted">Delete Contact</button>
+                            <?php endif; ?>
                         </div>
                     <?php endif; ?>
                 </div>
