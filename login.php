@@ -5,8 +5,7 @@ session_start();
 
 // If already logged in, redirect to dashboard
 if (isset($_SESSION['user_id'])) {
-    header('Location: dashboard.php');
-    exit;
+    redirectTo('dashboard.php');
 }
 
 $error = '';
