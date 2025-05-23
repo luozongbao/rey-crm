@@ -22,10 +22,13 @@ A professional PHP-based Customer Relationship Management (CRM) system designed 
 
 ### Contact Person Management
 - Multiple contacts per customer
-- Main contact auto-creation
+- Main contact auto-creation and protection:
+  - Automatic main contact creation
+  - Protected from deletion
+  - Role-based identification
 - Contact information includes:
   - Name and title
-  - Role
+  - Role display in parentheses
   - Contact number
   - Email address
   - Custom notes
@@ -39,6 +42,10 @@ A professional PHP-based Customer Relationship Management (CRM) system designed 
   - Next steps planning
   - Follow-up scheduling
 - Contact person association
+- Historical data access:
+  - Access to past follow-ups
+  - Historical activity tracking
+  - Complete timeline view
 - Timezone-aware datetime handling
   - UTC storage with local display
   - Automatic timezone conversion
@@ -90,15 +97,15 @@ A professional PHP-based Customer Relationship Management (CRM) system designed 
 - **Improved settings page layout with arranged cards** (v1.5.3)
 
 ### Time & Location Handling
-- Smart timezone management:
-  - Browser-based timezone detection
-  - Automatic local time display
-  - UTC-based storage for consistency
-  - 24-hour time format support
-- Seamless datetime handling:
-  - Automatic timezone conversion
-  - Client-side timezone processing
-  - Consistent datetime display across all views
+- Advanced timezone management:
+  - Optimized timezone conversion pipeline
+  - Database-level timezone handling with CONVERT_TZ
+  - Streamlined frontend datetime processing
+  - Automatic timezone detection
+  - Consistent datetime display across all forms
+  - Smart handling of UTC conversions
+  - Enhanced datetime picker support
+  - Improved follow-up scheduling accuracy
 
 ### Docker Support
 - Full containerization support:

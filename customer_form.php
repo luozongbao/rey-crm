@@ -224,7 +224,7 @@ require_once 'includes/header.php';
                 <a href="contact_form.php?action=add&customer_id=<?php echo $customer_id; ?>&source_action=<?php echo $action; ?>" class="btn">Add Contact Person</a>
             </div>
             
-            <table class="compact-table">
+            <table class="compact-table contact-persons-table">
                 <thead>
                     <tr>
                         <th>Name</th>
@@ -236,7 +236,14 @@ require_once 'includes/header.php';
                 <tbody>
                     <?php foreach ($contact_persons as $contact): ?>
                     <tr>
-                        <td><?php echo htmlspecialchars($contact['name']); ?></td>
+                        <td>
+                            <?php 
+                            echo htmlspecialchars($contact['name']);
+                            if (!empty($contact['role'])) {
+                                echo '<span class="contact-person-role">(' . htmlspecialchars($contact['role']) . ')</span>';
+                            }
+                            ?>
+                        </td>
                         <td><?php echo htmlspecialchars($contact['contact_number'] ?? 'N/A'); ?></td>
                         <td><?php echo htmlspecialchars($contact['contact_email'] ?? 'N/A'); ?></td>
                         <td>

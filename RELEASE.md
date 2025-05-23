@@ -1,46 +1,50 @@
 # Rey CRM System Release Notes
 
-## Version 1.6.0 (2023-05-23)
+## Version 1.6.2 (2025-05-23)
 
-### 🌍 Improved Timezone Handling
-- **Client-side Timezone Processing**
-  - Automatic browser timezone detection
-  - No server configuration needed
-  - Seamless timezone conversion
-- **Consistent DateTime Display**
-  - 24-hour time format support
-  - UTC-based storage
-  - Local time display everywhere
-- **Enhanced User Experience**
-  - Automatic timezone conversion
-  - No more timezone configuration needed
+### 🕒 Time Handling Improvements
+- **Fixed Timezone Handling**
+  - Removed redundant UTC conversion in JavaScript
+  - Fixed double timezone conversion issue
+  - Improved datetime display across all forms
+- **Enhanced DateTime Management**
+  - More accurate datetime handling in forms
+  - Consistent timezone display in history forms
+  - Better handling of follow-up datetime pickers
 
-### 🐳 Docker Support
-- **Complete Containerization**
-  - Nginx web server container
-  - PHP 8.3-FPM container
-  - MariaDB database container
-  - Docker Compose orchestration
-- **Development Features**
-  - Volume mounting for live updates
-  - Log persistence
-  - Easy environment configuration
-- **Deployment Improvements**
-  - One-command deployment
-  - Consistent environments
-  - Built-in composer installation
-  - Automatic dependency management
+### 🔒 Enhanced Contact Management
+- **Main Contact Protection**
+  - Automatic main contact identification
+  - Protected deletion of main contacts
+  - Improved UI feedback
+- **Contact Display Improvements**
+  - Role information in contacts list
+  - Clearer contact relationships
+  - Better contact organization
 
-### 🔧 Technical Improvements
-- Removed legacy timezone settings
-- Optimized datetime handling
-- Improved code organization
-- Enhanced development workflow
+### 📊 Data Management Improvements
+- **Historical Data Access**
+  - Full access to past follow-ups
+  - Complete activity history
+  - Improved date filtering
+- **Contact Role Handling**
+  - Better role display
+  - Enhanced contact organization
+  - Improved data consistency
+
+### 🎨 UI/UX Enhancements
+- Added role display in contact lists
+- Improved contact deletion handling
+- Better visual feedback for protected contacts
 
 ### 🐛 Bug Fixes
-- Fixed timezone inconsistencies
-- Resolved AM/PM format issues
-- Improved date validation
+- Fixed historical follow-up data access
+- Improved date range filtering in activities
+- Enhanced contact management security
+- Fixed issue with datetime display in customer forms
+- Resolved timezone conversion redundancy
+- Improved datetime handling in activity history
+- Enhanced datetime picker behavior in history forms
 
 ## Previous Versions
 

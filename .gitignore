@@ -6,6 +6,7 @@ composer.phar
 
 # Config files that may contain sensitive information
 includes/config.php
+.env
 
 # Debug and temporary files
 phpinfo.php

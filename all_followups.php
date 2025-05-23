@@ -3,7 +3,6 @@
 require_once 'includes/functions.php';
 
 requireLogin();
-session_start();
 
 // Get filter parameters
 $customer_id = $_GET['customer_id'] ?? '';

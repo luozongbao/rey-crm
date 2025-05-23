@@ -1,73 +1,82 @@
-# Rey CRM System v1.6.0
+# Rey CRM System v1.6.2
 
 ## Major Updates in This Release
 
-### 🌍 Client-side Timezone Management
-- **Automatic Timezone Detection**
-  - Uses browser's timezone
-  - No configuration needed
-  - Seamless user experience
-- **UTC-based Storage**
-  - Consistent data storage
-  - Reliable time tracking
-  - Cross-timezone compatibility
-- **24-Hour Time Format**
-  - Professional time display
-  - Consistent formatting
-  - Enhanced readability
-
-### 🐳 Docker Integration
-- **Containerized Stack**
-  ```yaml
-  - Nginx (Latest)
-  - PHP 8.3-FPM
-  - MariaDB (Latest)
-  ```
-- **Development Features**
-  - Hot reload support
-  - Mounted volumes
-  - Easy configuration
-- **Production Ready**
-  - Optimized containers
-  - Security considerations
-  - Performance tuning
+### 🕒 Time Handling Enhancements
+- **Timezone Handling Optimization**
+  - Removed redundant UTC conversion in frontend
+  - Fixed double timezone conversion issue
+  - Streamlined datetime handling across forms
+- **Form DateTime Management**
+  - Improved history form datetime handling
+  - Enhanced follow-up datetime pickers
+  - Consistent timezone display
 
 ### 💻 Technical Details
 
-#### Docker Configuration
-```yaml
-services:
-  web: nginx:latest
-  php: php:8.3-fpm
-  db:  mariadb:latest
+#### DateTime Handling Implementation
+```javascript
+// Updated datetime conversion (removed redundant UTC conversion)
+document.querySelectorAll('.datetime').forEach(element => {
+    if (element.tagName === 'TD' || element.tagName === 'TH') {
+        const utcDate = element.textContent.trim();
+        if (utcDate && utcDate !== 'N/A') {
+            const date = new Date(utcDate); // No 'Z' suffix as dates are already UTC
+            element.textContent = formatDateTo24Hour(date);
+        }
+    }
+});
 ```
 
-#### Time Handling
-```javascript
-// Client-side timezone conversion
-const localDate = new Date();
-const utcDate = new Date(localDate.getTime() - localDate.getTimezoneOffset() * 60000);
+#### Database Integration
+```sql
+-- Database already handles timezone conversion
+SELECT CONVERT_TZ(action_datetime, '+00:00', @@session.time_zone) as action_datetime
+FROM action_history
 ```
+
+### 🔒 Contact Management Security
+- **Main Contact Protection**
+  - Server-side deletion prevention
+  - UI-level protection
+  - Role-based validation
+- **Enhanced Contact Display**
+  - Role information in lists
+  - Improved visual organization
+  - Better contact relationships
+
+### 📊 Data Access Improvements
+- **Historical Data Management**
+  - Complete follow-up history
+  - Full activity timeline
+  - Enhanced date filtering
+- **Contact Organization**
+  - Role-based display
+  - Improved contact hierarchy
+  - Better data presentation
+
+### 🎨 UI/UX Improvements
+- Protected contacts clearly identified
+- Enhanced role display
+- Improved feedback messages
+- Better date range handling
 
 ## Installation
 
-### Quick Start with Docker
+### Requirements
+- PHP 8.3+
+- MySQL/MariaDB
+- Web server (Apache/Nginx)
+- Composer
+
+### Quick Start
 ```bash
 git clone https://github.com/yourusername/rey-crm.git
 cd rey-crm
-cp .env.example .env
-docker-compose up -d
+composer install
 ```
 
-### Requirements
-- Docker Engine 20.10.0+
-- Docker Compose v2.0.0+
-- 2GB RAM minimum
-- 10GB disk space
-
----
-
-## Previous Release (v1.5.2.1)
+## Previous Versions
 
 ### 📚 Documentation Improvements
 - **Updated installation process** - Corrected documentation to reflect automatic configuration setup
