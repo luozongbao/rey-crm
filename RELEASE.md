@@ -1,46 +1,36 @@
 # Rey CRM System Release Notes
 
-## Version 1.6.0 (2023-05-23)
+## Version 1.6.1 (2025-05-23)
 
-### 🌍 Improved Timezone Handling
-- **Client-side Timezone Processing**
-  - Automatic browser timezone detection
-  - No server configuration needed
-  - Seamless timezone conversion
-- **Consistent DateTime Display**
-  - 24-hour time format support
-  - UTC-based storage
-  - Local time display everywhere
-- **Enhanced User Experience**
-  - Automatic timezone conversion
-  - No more timezone configuration needed
+### 🔒 Enhanced Contact Management
+- **Main Contact Protection**
+  - Automatic main contact identification
+  - Protected deletion of main contacts
+  - Improved UI feedback
+- **Contact Display Improvements**
+  - Role information in contacts list
+  - Clearer contact relationships
+  - Better contact organization
 
-### 🐳 Docker Support
-- **Complete Containerization**
-  - Nginx web server container
-  - PHP 8.3-FPM container
-  - MariaDB database container
-  - Docker Compose orchestration
-- **Development Features**
-  - Volume mounting for live updates
-  - Log persistence
-  - Easy environment configuration
-- **Deployment Improvements**
-  - One-command deployment
-  - Consistent environments
-  - Built-in composer installation
-  - Automatic dependency management
+### 📊 Data Management Improvements
+- **Historical Data Access**
+  - Full access to past follow-ups
+  - Complete activity history
+  - Improved date filtering
+- **Contact Role Handling**
+  - Better role display
+  - Enhanced contact organization
+  - Improved data consistency
 
-### 🔧 Technical Improvements
-- Removed legacy timezone settings
-- Optimized datetime handling
-- Improved code organization
-- Enhanced development workflow
+### 🎨 UI/UX Enhancements
+- Added role display in contact lists
+- Improved contact deletion handling
+- Better visual feedback for protected contacts
 
 ### 🐛 Bug Fixes
-- Fixed timezone inconsistencies
-- Resolved AM/PM format issues
-- Improved date validation
+- Fixed historical follow-up data access
+- Improved date range filtering in activities
+- Enhanced contact management security
 
 ## Previous Versions
 

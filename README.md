@@ -22,10 +22,13 @@ A professional PHP-based Customer Relationship Management (CRM) system designed 
 
 ### Contact Person Management
 - Multiple contacts per customer
-- Main contact auto-creation
+- Main contact auto-creation and protection:
+  - Automatic main contact creation
+  - Protected from deletion
+  - Role-based identification
 - Contact information includes:
   - Name and title
-  - Role
+  - Role display in parentheses
   - Contact number
   - Email address
   - Custom notes
@@ -39,6 +42,10 @@ A professional PHP-based Customer Relationship Management (CRM) system designed 
   - Next steps planning
   - Follow-up scheduling
 - Contact person association
+- Historical data access:
+  - Access to past follow-ups
+  - Historical activity tracking
+  - Complete timeline view
 - Timezone-aware datetime handling
   - UTC storage with local display
   - Automatic timezone conversion
