@@ -8,6 +8,121 @@ requireAdmin(); // Only admins can access settings
 $message = '';
 $error = '';
 
+// Handle database export
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_db'])) {
+    try {
+        // Create backup folder if it doesn't exist
+        $backup_dir = __DIR__ . '/backup';
+        if (!is_dir($backup_dir)) {
+            mkdir($backup_dir, 0755, true);
+        }
+
+        // Generate backup filename with timestamp
+        $timestamp = date('Y-m-d-His');
+        $backup_file = "$backup_dir/backup_$timestamp.sql";
+        
+        // Get database credentials from config
+        $db_config = require_once 'includes/config.php';
+        
+        // Create mysqldump command
+        $command = sprintf(
+            'mysqldump --user=%s --password=%s --host=%s %s > %s',
+            escapeshellarg(DB_USER),
+            escapeshellarg(DB_PASS),
+            escapeshellarg(DB_HOST),
+            escapeshellarg(DB_NAME),
+            escapeshellarg($backup_file)
+        );
+        
+        // Execute mysqldump
+        exec($command, $output, $return_var);
+        
+        if ($return_var === 0) {
+            // Create gzip file
+            $gzip_file = "$backup_file.gz";
+            $gz = gzopen($gzip_file, 'w9');
+            gzwrite($gz, file_get_contents($backup_file));
+            gzclose($gz);
+            
+            // Delete the uncompressed file
+            unlink($backup_file);
+            
+            // Send the file to the browser
+            header('Content-Type: application/x-gzip');
+            header('Content-Disposition: attachment; filename="' . basename($gzip_file) . '"');
+            header('Content-Length: ' . filesize($gzip_file));
+            readfile($gzip_file);
+            
+            // Delete the gzip file
+            unlink($gzip_file);
+            exit;
+        } else {
+            throw new Exception("Database backup failed");
+        }
+    } catch (Exception $e) {
+        $error = "Export failed: " . htmlspecialchars($e->getMessage());
+    }
+}
+
+// Handle database import
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_db'])) {
+    try {
+        if (!isset($_FILES['import_file']) || $_FILES['import_file']['error'] !== UPLOAD_ERR_OK) {
+            throw new Exception("No file uploaded or upload failed");
+        }
+
+        $file = $_FILES['import_file'];
+        $tmp_name = $file['tmp_name'];
+        $name = $file['name'];
+
+        // Validate file type
+        $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+        if (!in_array($ext, ['sql', 'gz'])) {
+            throw new Exception("Invalid file type. Only .sql and .gz files are allowed");
+        }
+
+        // Create a temporary file for processing
+        $import_file = tempnam(sys_get_temp_dir(), 'sql_import_');
+
+        if ($ext === 'gz') {
+            // Decompress gzip file
+            $gz = gzopen($tmp_name, 'rb');
+            $fp = fopen($import_file, 'wb');
+            while (!gzeof($gz)) {
+                fwrite($fp, gzread($gz, 4096));
+            }
+            gzclose($gz);
+            fclose($fp);
+        } else {
+            // Move SQL file to temporary location
+            move_uploaded_file($tmp_name, $import_file);
+        }
+
+        // Import the SQL file
+        $command = sprintf(
+            'mysql --user=%s --password=%s --host=%s %s < %s',
+            escapeshellarg(DB_USER),
+            escapeshellarg(DB_PASS),
+            escapeshellarg(DB_HOST),
+            escapeshellarg(DB_NAME),
+            escapeshellarg($import_file)
+        );
+
+        exec($command, $output, $return_var);
+
+        // Delete temporary file
+        unlink($import_file);
+
+        if ($return_var === 0) {
+            $message = "Database imported successfully!";
+        } else {
+            throw new Exception("Database import failed");
+        }
+    } catch (Exception $e) {
+        $error = "Import failed: " . htmlspecialchars($e->getMessage());
+    }
+}
+
 // Handle form submission for pagination settings
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_pagination'])) {
     $items_per_page = intval($_POST['items_per_page']);
@@ -122,8 +237,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_smtp'])) {
         $error = "Failed to update SMTP settings: " . htmlspecialchars($e->getMessage());
     }
 }
-
-
 
 // Get current settings
 try {
@@ -343,6 +456,30 @@ require_once 'includes/header.php';
     <?php endif; ?>
 </div>
 
+<div class="settings-section">
+    <h3>Database Management</h3>
+    <div class="form-row">
+        <div class="form-group half-width">
+            <form method="post" action="">
+                <h4>Export Database</h4>
+                <p class="form-text">Export the complete database as a compressed file.</p>
+                <button type="submit" name="export_db" class="btn">Export Database</button>
+            </form>
+        </div>
+        
+        <div class="form-group half-width">
+            <form method="post" action="" enctype="multipart/form-data">
+                <h4>Import Database</h4>
+                <p class="form-text">Import a previously exported database file.</p>
+                <div class="form-group">
+                    <input type="file" id="import_file" name="import_file" accept=".sql,.gz" required>
+                </div>
+                <button type="submit" name="import_db" class="btn" onclick="return confirm('Warning: This will overwrite the current database. Are you sure you want to continue?');">Import Database</button>
+            </form>
+        </div>
+    </div>
+</div>
+
 <style>
 .settings-section {
     background: white;
@@ -505,6 +642,37 @@ require_once 'includes/header.php';
 #test-email-result.error {
     background-color: var(--danger-light);
     color: var(--danger);
+}
+
+/* Database Management Styles */
+.form-text {
+    color: var(--gray-600);
+    font-size: 0.9em;
+    margin-bottom: 1rem;
+}
+
+input[type="file"] {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0.5rem;
+    width: 100%;
+    margin-bottom: 1rem;
+}
+
+input[type="file"]:hover {
+    background-color: #f8f9fa;
+}
+
+.form-group.half-width {
+    padding: 1rem;
+    background: var(--gray-100);
+    border-radius: var(--radius);
+}
+
+.form-group.half-width h4 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    color: var(--gray-800);
 }
 </style>
 
