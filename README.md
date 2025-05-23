@@ -97,15 +97,15 @@ A professional PHP-based Customer Relationship Management (CRM) system designed 
 - **Improved settings page layout with arranged cards** (v1.5.3)
 
 ### Time & Location Handling
-- Smart timezone management:
-  - Browser-based timezone detection
-  - Automatic local time display
-  - UTC-based storage for consistency
-  - 24-hour time format support
-- Seamless datetime handling:
-  - Automatic timezone conversion
-  - Client-side timezone processing
-  - Consistent datetime display across all views
+- Advanced timezone management:
+  - Optimized timezone conversion pipeline
+  - Database-level timezone handling with CONVERT_TZ
+  - Streamlined frontend datetime processing
+  - Automatic timezone detection
+  - Consistent datetime display across all forms
+  - Smart handling of UTC conversions
+  - Enhanced datetime picker support
+  - Improved follow-up scheduling accuracy
 
 ### Docker Support
 - Full containerization support:

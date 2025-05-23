@@ -1,6 +1,16 @@
 # Rey CRM System Release Notes
 
-## Version 1.6.1 (2025-05-23)
+## Version 1.6.2 (2025-05-23)
+
+### 🕒 Time Handling Improvements
+- **Fixed Timezone Handling**
+  - Removed redundant UTC conversion in JavaScript
+  - Fixed double timezone conversion issue
+  - Improved datetime display across all forms
+- **Enhanced DateTime Management**
+  - More accurate datetime handling in forms
+  - Consistent timezone display in history forms
+  - Better handling of follow-up datetime pickers
 
 ### 🔒 Enhanced Contact Management
 - **Main Contact Protection**
@@ -31,6 +41,10 @@
 - Fixed historical follow-up data access
 - Improved date range filtering in activities
 - Enhanced contact management security
+- Fixed issue with datetime display in customer forms
+- Resolved timezone conversion redundancy
+- Improved datetime handling in activity history
+- Enhanced datetime picker behavior in history forms
 
 ## Previous Versions
 
