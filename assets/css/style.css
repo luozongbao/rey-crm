@@ -627,6 +627,7 @@ tr:hover {
 }
 
 /* Status Badges */
+body.dark-mode .status-badge,
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -637,41 +638,49 @@ tr:hover {
   text-transform: capitalize;
 }
 
+body.dark-mode .status-active,
 .status-active { 
   background-color: var(--success-light);
   color: var(--success);
 }
 
+body.dark-mode .status-inactive,
 .status-inactive {
   background-color: var(--danger-light);
   color: var(--danger);
 }
 
+body.dark-mode .status-prospect,
 .status-prospect {
   background-color: var(--warning-light);
   color: var(--warning);
 }
 
+body.dark-mode .status-qualified,
 .status-qualified {
   background-color: var(--primary-light);
   color: var(--primary);
 }
 
+body.dark-mode .status-notqualified,
 .status-notqualified {
   background-color: var(--gray-200);
   color: var(--gray-600);
 }
 
+body.dark-mode .status-new-customer,
 .status-new-customer {
   background-color: var(--success-light);
   color: var(--success);
 }
 
+body.dark-mode .status-lost-customer,
 .status-lost-customer {
   background-color: var(--danger-light);
   color: var(--danger);
 }
 
+body.dark-mode .status-closed-won,
 .status-closed-won {
   background-color: var(--primary-light);
   color: var(--primary-dark);
@@ -1374,10 +1383,6 @@ body.dark-mode .form-input:focus {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
-body.dark-mode .status-badge {
-  background: var(--gray-700);
-  color: #fff;
-}
 
 body.dark-mode .compact-table th,
 body.dark-mode .compact-table td {
@@ -1791,10 +1796,6 @@ body.dark-mode select {
   background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23e5e7eb'><path fill-rule='evenodd' d='M10 12.586l4.293-4.293a1 1 0 011.414 1.414l-5 5a1 1 0 01-1.414 0l-5-5a1 1 0 111.414-1.414L10 12.586z' clip-rule='evenodd'/></svg>");
 }
 
-body.dark-mode .status-badge {
-  background-color: var(--input-dark);
-  border: 1px solid var(--border-dark);
-}
 
 /* Dark mode styles for activity history */
 body.dark-mode .action-history {
@@ -1837,8 +1838,3 @@ body.dark-mode .form-container textarea:disabled {
 body.dark-mode .form-row {
   border-bottom: 1px solid var(--border-dark);
 }
-
-/* Dark mode specific status badge colors */
-body.dark-mode .status-badge.status-prospect { background-color: var(--primary-darkmode); }
-body.dark-mode .status-badge.status-active { background-color: var(--success); }
-body.dark-mode .status-badge.status-inactive { background-color: var(--danger); }
