@@ -627,7 +627,7 @@ tr:hover {
 }
 
 /* Status Badges */
-body.dark-mode .status-badge,
+body.dark-mode .satus-badge,
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -638,50 +638,66 @@ body.dark-mode .status-badge,
   text-transform: capitalize;
 }
 
+/* Active status */
 body.dark-mode .status-active,
 .status-active { 
   background-color: var(--success-light);
   color: var(--success);
 }
 
+/* Inactive status */
 body.dark-mode .status-inactive,
 .status-inactive {
   background-color: var(--danger-light);
   color: var(--danger);
 }
 
+/* Prospect status */
 body.dark-mode .status-prospect,
 .status-prospect {
   background-color: var(--warning-light);
   color: var(--warning);
 }
 
+/* Qualified status */
 body.dark-mode .status-qualified,
 .status-qualified {
   background-color: var(--primary-light);
   color: var(--primary);
 }
 
+/* Not Qualified status - support both hyphenated and non-hyphenated versions */
 body.dark-mode .status-notqualified,
-.status-notqualified {
+body.dark-mode .status-not-qualified,
+.status-notqualified,
+.status-not-qualified {
   background-color: var(--gray-200);
   color: var(--gray-600);
 }
 
+/* New Customer status */
 body.dark-mode .status-new-customer,
-.status-new-customer {
+.status-new-customer,
+body.dark-mode .status-newcustomer,
+.status-newcustomer {
   background-color: var(--success-light);
   color: var(--success);
 }
 
+/* Lost Customer status */
 body.dark-mode .status-lost-customer,
-.status-lost-customer {
+.status-lost-customer,
+body.dark-mode .status-lostcustomer,
+.status-lostcustomer {
   background-color: var(--danger-light);
   color: var(--danger);
 }
 
+/* Closed Won status */
 body.dark-mode .status-closed-won,
-.status-closed-won {
+.status-closed-won,
+body.dark-mode .status-closedwon,
+.status-closedwon {
   background-color: var(--primary-light);
   color: var(--primary-dark);
 }
@@ -1795,6 +1811,7 @@ body.dark-mode .form-actions {
 body.dark-mode select {
   background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23e5e7eb'><path fill-rule='evenodd' d='M10 12.586l4.293-4.293a1 1 0 011.414 1.414l-5 5a1 1 0 01-1.414 0l-5-5a1 1 0 111.414-1.414L10 12.586z' clip-rule='evenodd'/></svg>");
 }
+
 
 
 /* Dark mode styles for activity history */

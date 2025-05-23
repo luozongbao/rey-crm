@@ -513,7 +513,7 @@ function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '',
     $query = "SELECT ah.*, c.company_name 
               FROM action_history ah
               JOIN customers c ON ah.customer_id = c.customer_id
-              WHERE ah.follow_up_datetime >= NOW()";
+              WHERE 1=1";
     
     $params = [];
     
