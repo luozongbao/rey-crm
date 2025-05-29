@@ -94,19 +94,18 @@ require_once 'includes/header.php';
             </div>
             
             <div class="dashboard-card">
-                <h2>Customer Locations</h2>
-                <div class="location-stats">
-                    <?php foreach ($locationStats as $location): ?>
-                    <?php 
-                    $percentage = $totalCustomers > 0 ? round(($location['count'] / $totalCustomers) * 100) : 0;
-                    $locationName = htmlspecialchars($location['location']);
-                    ?>
-                    <div class="location-item" title="<?php echo $location['count']; ?> customers in <?php echo $locationName; ?>">
-                        <span class="location-name"><?php echo $locationName; ?>:</span>
-                        <span class="location-percent"><?php echo $percentage; ?>%</span>
-                        <div class="location-bar" style="width: <?php echo $percentage; ?>%"></div>
+                <h2>Contact Status</h2>
+                <div class="contact-stats">
+                    <div class="contact-item">
+                        <span>Contacted:</span>
+                        <span><?php echo $totalCustomers > 0 ? round(($contactStats['contacted'] / $contactStats['total']) * 100) : 0; ?>%</span>
+                        <div class="contact-bar" style="width: <?php echo $totalCustomers > 0 ? ($contactStats['contacted'] / $contactStats['total']) * 100 : 0; ?>%"></div>
                     </div>
-                    <?php endforeach; ?>
+                    <div class="contact-item">
+                        <span>Not Contacted:</span>
+                        <span><?php echo $totalCustomers > 0 ? round(($contactStats['not_contacted'] / $contactStats['total']) * 100) : 0; ?>%</span>
+                        <div class="contact-bar" style="width: <?php echo $totalCustomers > 0 ? ($contactStats['not_contacted'] / $contactStats['total']) * 100 : 0; ?>%"></div>
+                    </div>
                 </div>
             </div>
             
@@ -128,20 +127,21 @@ require_once 'includes/header.php';
                 <p>No contact history found</p>
                 <?php endif; ?>
             </div>
-            
+
             <div class="dashboard-card">
-                <h2>Contact Status</h2>
-                <div class="contact-stats">
-                    <div class="contact-item">
-                        <span>Contacted:</span>
-                        <span><?php echo $totalCustomers > 0 ? round(($contactStats['contacted'] / $contactStats['total']) * 100) : 0; ?>%</span>
-                        <div class="contact-bar" style="width: <?php echo $totalCustomers > 0 ? ($contactStats['contacted'] / $contactStats['total']) * 100 : 0; ?>%"></div>
+                <h2>Customer Locations</h2>
+                <div class="location-stats">
+                    <?php foreach ($locationStats as $location): ?>
+                    <?php 
+                    $percentage = $totalCustomers > 0 ? round(($location['count'] / $totalCustomers) * 100) : 0;
+                    $locationName = htmlspecialchars($location['location']);
+                    ?>
+                    <div class="location-item" title="<?php echo $location['count']; ?> customers in <?php echo $locationName; ?>">
+                        <span class="location-name"><?php echo $locationName; ?>:</span>
+                        <span class="location-percent"><?php echo $percentage; ?>%</span>
+                        <div class="location-bar" style="width: <?php echo $percentage; ?>%"></div>
                     </div>
-                    <div class="contact-item">
-                        <span>Not Contacted:</span>
-                        <span><?php echo $totalCustomers > 0 ? round(($contactStats['not_contacted'] / $contactStats['total']) * 100) : 0; ?>%</span>
-                        <div class="contact-bar" style="width: <?php echo $totalCustomers > 0 ? ($contactStats['not_contacted'] / $contactStats['total']) * 100 : 0; ?>%"></div>
-                    </div>
+                    <?php endforeach; ?>
                 </div>
             </div>
             
