@@ -52,9 +52,9 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.classList.add('dark-mode');
     }
     
-    // Convert dates for display (24-hour format)
+    // Convert dates for display (24-hour format) - only process TD elements, not TH headers
     document.querySelectorAll('.datetime').forEach(element => {
-        if (element.tagName === 'TD' || element.tagName === 'TH') {
+        if (element.tagName === 'TD') {
             const utcDate = element.textContent.trim();
             if (utcDate && utcDate !== 'N/A') {
                 const date = new Date(utcDate); // No need to append 'Z' as it's already UTC

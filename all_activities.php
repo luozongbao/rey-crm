@@ -5,6 +5,7 @@ requireLogin();
 
 // Get filter parameters
 $customer_id = $_GET['customer_id'] ?? '';
+$customer_status = $_GET['customer_status'] ?? '';
 $date_from = $_GET['date_from'] ?? date('Y-m-d', strtotime("-1 month"));
 $date_to = $_GET['date_to'] ?? date('Y-m-d');
 
@@ -19,7 +20,7 @@ $sort = $_GET['sort'] ?? 'action_datetime';
 $order = $_GET['order'] ?? 'desc';
 
 // Validate parameters
-$validSorts = ['company_name', 'action_datetime'];
+$validSorts = ['company_name', 'action_datetime', 'customer_status'];
 $validOrders = ['asc', 'desc'];
 
 $sort = in_array($sort, $validSorts) ? $sort : 'action_datetime';
@@ -28,8 +29,11 @@ $order = in_array($order, $validOrders) ? $order : 'desc';
 // Get all customers for filter dropdown
 $customers = getAllCustomers();
 
+// Get customer status options for filter dropdown
+$customerStatusOptions = getCustomerStatusOptions();
+
 // Get filtered activities
-$activities = getFilteredActivities($customer_id, $date_from, $date_to, $sort, $order);
+$activities = getFilteredActivities($customer_id, $date_from, $date_to, $sort, $order, $customer_status);
 
 require_once 'includes/header.php';
 ?>
@@ -49,6 +53,20 @@ require_once 'includes/header.php';
                         <option value="<?= $customer['customer_id'] ?>" 
                             <?= $customer_id == $customer['customer_id'] ? 'selected' : '' ?>>
                             <?= htmlspecialchars($customer['company_name']) ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="customer_status">Customer Status:</label>
+                    <select name="customer_status" id="customer_status">
+                        <option value="">All Status</option>
+                        <option value="All Except Not Qualified" <?= $customer_status == 'All Except Not Qualified' ? 'selected' : '' ?>>All Except Not Qualified</option>
+                        <?php foreach ($customerStatusOptions as $statusOption): ?>
+                        <option value="<?= htmlspecialchars($statusOption) ?>" 
+                            <?= $customer_status == $statusOption ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($statusOption) ?>
                         </option>
                         <?php endforeach; ?>
                     </select>
@@ -79,6 +97,7 @@ require_once 'includes/header.php';
                     <select name="sort" onchange="this.form.submit()">
                         <option value="action_datetime" <?= $sort == 'action_datetime' ? 'selected' : '' ?>>Activity Date</option>
                         <option value="company_name" <?= $sort == 'company_name' ? 'selected' : '' ?>>Customer Name</option>
+                        <option value="customer_status" <?= $sort == 'customer_status' ? 'selected' : '' ?>>Customer Status</option>
                     </select>
                 </div>
 
@@ -98,6 +117,7 @@ require_once 'includes/header.php';
             <thead>
                 <tr>
                     <th>Customer</th>
+                    <th>Status</th>
                     <th>Action</th>
                     <th class="datetime">Date/Time</th>
                     <th>Response</th>
@@ -107,6 +127,7 @@ require_once 'includes/header.php';
                 <?php foreach ($activities as $activity): ?>
                 <tr>
                     <td><?= htmlspecialchars($activity['company_name']) ?></td>
+                    <td><span class="status-badge status-<?= strtolower(str_replace(' ', '-', $activity['customer_status'])) ?>"><?= htmlspecialchars($activity['customer_status']) ?></span></td>
                     <td><?= htmlspecialchars($activity['action']) ?></td>
                     <td class="datetime"><?= $activity['action_datetime'] ?></td>
                     <td><?= htmlspecialchars($activity['response']) ?></td>

@@ -6,6 +6,7 @@ requireLogin();
 
 // Get filter parameters
 $customer_id = $_GET['customer_id'] ?? '';
+$customer_status = $_GET['customer_status'] ?? '';
 $date_from = $_GET['date_from'] ?? date('Y-m-d');
 $date_to = $_GET['date_to'] ?? date('Y-m-d', strtotime('+1 month'));
 
@@ -20,7 +21,7 @@ $sort = $_GET['sort'] ?? 'follow_up_datetime';
 $order = $_GET['order'] ?? 'asc';
 
 // Validate parameters
-$validSorts = ['company_name', 'follow_up_datetime', 'action_datetime'];
+$validSorts = ['company_name', 'follow_up_datetime', 'action_datetime', 'customer_status'];
 $validOrders = ['asc', 'desc'];
 
 $sort = in_array($sort, $validSorts) ? $sort : 'follow_up_datetime';
@@ -29,8 +30,11 @@ $order = in_array($order, $validOrders) ? $order : 'asc';
 // Get all customers for filter dropdown
 $customers = getAllCustomers();
 
+// Get customer status options for filter dropdown
+$customerStatusOptions = getCustomerStatusOptions();
+
 // Get filtered follow-ups
-$followups = getFilteredFollowups($customer_id, $date_from, $date_to, $sort, $order);
+$followups = getFilteredFollowups($customer_id, $date_from, $date_to, $sort, $order, $customer_status);
 
 require_once 'includes/header.php';
 ?>
@@ -50,6 +54,20 @@ require_once 'includes/header.php';
                         <option value="<?= $customer['customer_id'] ?>" 
                             <?= $customer_id == $customer['customer_id'] ? 'selected' : '' ?>>
                             <?= htmlspecialchars($customer['company_name']) ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="customer_status">Customer Status:</label>
+                    <select name="customer_status" id="customer_status">
+                        <option value="">All Status</option>
+                        <option value="All Except Not Qualified" <?= $customer_status == 'All Except Not Qualified' ? 'selected' : '' ?>>All Except Not Qualified</option>
+                        <?php foreach ($customerStatusOptions as $statusOption): ?>
+                        <option value="<?= htmlspecialchars($statusOption) ?>" 
+                            <?= $customer_status == $statusOption ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($statusOption) ?>
                         </option>
                         <?php endforeach; ?>
                     </select>
@@ -80,6 +98,7 @@ require_once 'includes/header.php';
                     <select name="sort" onchange="this.form.submit()">
                         <option value="follow_up_datetime" <?= $sort == 'follow_up_datetime' ? 'selected' : '' ?>>Follow-up Date</option>
                         <option value="company_name" <?= $sort == 'company_name' ? 'selected' : '' ?>>Customer Name</option>
+                        <option value="customer_status" <?= $sort == 'customer_status' ? 'selected' : '' ?>>Customer Status</option>
                     </select>
                 </div>
 
@@ -99,6 +118,7 @@ require_once 'includes/header.php';
             <thead>
                 <tr>
                     <th>Customer</th>
+                    <th>Status</th>
                     <th>Action</th>
                     <th class="datetime">Follow-up Date</th>
                     <th>Next Step</th>
@@ -111,7 +131,12 @@ require_once 'includes/header.php';
                             <a href="customer_form.php?action=view&id=<?= $followup['customer_id'] ?>" class="customer-link">
                             <?= htmlspecialchars($followup['company_name']) ?>
                         </a>
-                    </td>                    
+                    </td>
+                    <td>
+                        <span class="status-badge status-<?= strtolower(str_replace(' ', '-', $followup['customer_status'])) ?>">
+                            <?= htmlspecialchars($followup['customer_status']) ?>
+                        </span>
+                    </td>
                     <td><?= htmlspecialchars($followup['action']) ?></td>
                     <td class="datetime"><?= $followup['follow_up_datetime'] ?></td>
                     <td><?= htmlspecialchars($followup['next_step']) ?></td>

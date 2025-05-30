@@ -507,10 +507,10 @@ function getSortedCustomers($search = '', $location = '', $sort = 'created_at', 
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '', $sort = 'follow_up_datetime', $order = 'asc') {
+function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '', $sort = 'follow_up_datetime', $order = 'asc', $customer_status = '') {
     global $pdo;
     
-    $query = "SELECT ah.*, c.company_name 
+    $query = "SELECT ah.*, c.company_name, c.status as customer_status
               FROM action_history ah
               JOIN customers c ON ah.customer_id = c.customer_id
               WHERE 1=1";
@@ -532,9 +532,23 @@ function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '',
         $params[':date_to'] = $date_to;
     }
     
-    $validSorts = ['company_name', 'follow_up_datetime', 'action_datetime'];
+    if (!empty($customer_status)) {
+        if ($customer_status === 'All Except Not Qualified') {
+            $query .= " AND c.status != 'Not Qualified'";
+        } else {
+            $query .= " AND c.status = :customer_status";
+            $params[':customer_status'] = $customer_status;
+        }
+    }
+    
+    $validSorts = ['company_name', 'follow_up_datetime', 'action_datetime', 'customer_status'];
     $sort = in_array($sort, $validSorts) ? $sort : 'follow_up_datetime';
     $order = in_array($order, ['asc', 'desc']) ? $order : 'asc';
+    
+    // Handle sorting by customer_status (which is actually c.status in the query)
+    if ($sort === 'customer_status') {
+        $sort = 'c.status';
+    }
     
     $query .= " ORDER BY $sort $order";
     
@@ -548,10 +562,10 @@ function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '',
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-function getFilteredActivities($customer_id = '', $date_from = '', $date_to = '', $sort = 'action_datetime', $order = 'desc') {
+function getFilteredActivities($customer_id = '', $date_from = '', $date_to = '', $sort = 'action_datetime', $order = 'desc', $customer_status = '') {
     global $pdo;
     
-    $query = "SELECT ah.*, c.company_name 
+    $query = "SELECT ah.*, c.company_name, c.status as customer_status
               FROM action_history ah
               JOIN customers c ON ah.customer_id = c.customer_id
               WHERE 1=1";
@@ -573,9 +587,23 @@ function getFilteredActivities($customer_id = '', $date_from = '', $date_to = ''
         $params[':date_to'] = $date_to;
     }
     
-    $validSorts = ['company_name', 'action_datetime'];
+    if (!empty($customer_status)) {
+        if ($customer_status === 'All Except Not Qualified') {
+            $query .= " AND c.status != 'Not Qualified'";
+        } else {
+            $query .= " AND c.status = :customer_status";
+            $params[':customer_status'] = $customer_status;
+        }
+    }
+    
+    $validSorts = ['company_name', 'action_datetime', 'customer_status'];
     $sort = in_array($sort, $validSorts) ? $sort : 'action_datetime';
     $order = in_array($order, ['asc', 'desc']) ? $order : 'desc';
+    
+    // Handle sorting by customer_status (which is actually c.status in the query)
+    if ($sort === 'customer_status') {
+        $sort = 'c.status';
+    }
     
     $query .= " ORDER BY $sort $order";
     

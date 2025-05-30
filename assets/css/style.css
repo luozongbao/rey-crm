@@ -612,9 +612,21 @@ td.datetime {
 
 /* Table column widths */
 .data-table th:nth-child(1) { width: 25%; } /* Customer */
-.data-table th:nth-child(2) { width: 20%; } /* Action */
+.data-table th:nth-child(2) { width: 120px; } /* Status - Fixed compact width */
+.data-table th:nth-child(3) { width: 20%; } /* Action */
 .data-table th.datetime { width: 160px; } /* Date/Time */
 .data-table th:last-child { width: auto; } /* Response/Next Step */
+
+/* Status column specific styling */
+.data-table th:nth-child(2),
+.data-table td:nth-child(2) {
+  width: 120px;
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
 
 /* Ensure content doesn't wrap in date column */
 .data-table td.datetime {
@@ -631,11 +643,15 @@ body.dark-mode .satus-badge,
 .status-badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.25rem 0.75rem;
+  padding: 0.2rem 0.5rem;
   border-radius: 9999px;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 500;
   text-transform: capitalize;
+  max-width: 100px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Active status */
@@ -799,7 +815,7 @@ body.dark-mode .status-closedwon,
 
 .filter-form .form-group {
   flex: 1;
-  min-width: 200px;
+  min-width: 150px;
   margin-bottom: 0;
   display: flex;
   flex-direction: row;
@@ -810,8 +826,9 @@ body.dark-mode .status-closedwon,
 .filter-form .form-group label {
   margin-bottom: 0;
   white-space: nowrap;
-  min-width: 80px;
+  min-width: 70px;
   text-align: right;
+  font-size: 0.8rem;
 }
 
 .filter-form .form-group select,
@@ -819,15 +836,16 @@ body.dark-mode .status-closedwon,
   flex: 1;
 }
 
-/* Customer filter takes more space */
+/* Customer filter takes less space to fit all elements on one line */
 .filter-form .form-group:first-child {
-  flex: 2;
-  min-width: 300px;
+  flex: 1;
+  min-width: 150px;
+  max-width: 200px;
 }
 
 /* Adjust label width for customer filter */
 .filter-form .form-group:first-child label {
-  min-width: 90px;
+  min-width: 70px;
 }
 
 /* Date inputs */
@@ -838,9 +856,10 @@ body.dark-mode .status-closedwon,
 /* Button group */
 .filter-form .btn-group {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.5rem;
   align-items: center;
-  margin-left: 20px;
+  margin-left: 10px;
+  flex-shrink: 0;
 }
 
 /* Sort section specific styles */
