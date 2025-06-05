@@ -510,7 +510,7 @@ function getSortedCustomers($search = '', $location = '', $sort = 'created_at', 
 function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '', $sort = 'follow_up_datetime', $order = 'asc', $customer_status = '') {
     global $pdo;
     
-    $query = "SELECT ah.*, c.company_name, c.status as customer_status
+    $query = "SELECT ah.*, c.company_name, c.status as customer_status, c.province, c.customer_id
               FROM action_history ah
               JOIN customers c ON ah.customer_id = c.customer_id
               WHERE 1=1";
@@ -565,7 +565,7 @@ function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '',
 function getFilteredActivities($customer_id = '', $date_from = '', $date_to = '', $sort = 'action_datetime', $order = 'desc', $customer_status = '') {
     global $pdo;
     
-    $query = "SELECT ah.*, c.company_name, c.status as customer_status
+    $query = "SELECT ah.*, c.company_name, c.status as customer_status, c.province, c.customer_id
               FROM action_history ah
               JOIN customers c ON ah.customer_id = c.customer_id
               WHERE 1=1";

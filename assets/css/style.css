@@ -1736,159 +1736,57 @@ body.dark-mode .dashboard-card.full-width:hover {
     text-decoration: underline;
 }
 
-.dark-mode .customer-link {
+.customer-link .province {
+  color: var(--gray-500);
+  font-weight: 400;
+  font-size: 0.85em;
+  margin-left: 0.25rem;
+}
+
+/* Dark mode customer links */
+body.dark-mode .customer-link {
     color: var(--primary-darkmode);
 }
 
-.dark-mode .customer-link:hover {
-    color: var(--primary-light);
+body.dark-mode .customer-link:hover {
+    color: #60a5fa;
 }
 
-/* Dark mode styles for form sections */
-body.dark-mode .form-container {
-  background-color: var(--card-dark);
-  border: 1px solid var(--border-dark);
-  border-radius: var(--radius);
-  padding: 1.5rem;
-}
-
-body.dark-mode .section {
-  background-color: var(--card-dark);
-  border: 1px solid var(--border-dark);
-  border-radius: var(--radius);
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-body.dark-mode label {
-  color: var(--text-dark);
-}
-
-body.dark-mode input[type="text"],
-body.dark-mode input[type="email"],
-body.dark-mode input[type="tel"],
-body.dark-mode input[type="password"],
-body.dark-mode input[type="url"],
-body.dark-mode input[type="date"],
-body.dark-mode input[type="datetime-local"],
-body.dark-mode input[type="time"],
-body.dark-mode select,
-body.dark-mode textarea {
-  background-color: var(--input-dark);
-  border-color: var(--border-dark);
-  color: var(--text-dark);
-}
-
-body.dark-mode input:focus,
-body.dark-mode select:focus,
-body.dark-mode textarea:focus {
-  border-color: var(--primary-darkmode);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-}
-
-body.dark-mode .customer-info-panel {
-  background-color: var(--card-dark);
-  border: 1px solid var(--border-dark);
-}
-
-body.dark-mode .info-item label {
+body.dark-mode .customer-link .province {
   color: var(--gray-400);
 }
 
-body.dark-mode .info-item span {
-  color: var(--text-dark);
+/* Customer Links in Tables */
+.customer-link {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: var(--transition);
 }
 
-body.dark-mode .compact-table {
-  background-color: var(--card-dark);
-  border: 1px solid var(--border-dark);
+.customer-link:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
 }
 
-body.dark-mode .compact-table th {
-  background-color: var(--table-header-dark);
-  color: var(--text-dark);
-  border-bottom: 1px solid var(--border-dark);
+.customer-link .province {
+  color: var(--gray-500);
+  font-weight: 400;
+  font-size: 0.85em;
+  margin-left: 0.25rem;
 }
 
-body.dark-mode .compact-table td {
-  border-bottom: 1px solid var(--border-dark);
-  color: var(--text-dark);
+/* Dark mode customer links */
+body.dark-mode .customer-link {
+  color: var(--primary-darkmode);
 }
 
-body.dark-mode .compact-table tr:hover {
-  background-color: var(--table-hover-dark);
+body.dark-mode .customer-link:hover {
+  color: #60a5fa;
 }
 
-body.dark-mode .section-header {
-  border-bottom: 1px solid var(--border-dark);
-}
-
-body.dark-mode .form-actions {
-  border-top: 1px solid var(--border-dark);
-}
-
-body.dark-mode select {
-  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23e5e7eb'><path fill-rule='evenodd' d='M10 12.586l4.293-4.293a1 1 0 011.414 1.414l-5 5a1 1 0 01-1.414 0l-5-5a1 1 0 111.414-1.414L10 12.586z' clip-rule='evenodd'/></svg>");
-}
-
-
-
-/* Dark mode styles for activity history */
-body.dark-mode .action-history {
-  background-color: var(--card-dark);
-  border: 1px solid var(--border-dark);
-}
-
-body.dark-mode .action-col,
-body.dark-mode .response-col,
-body.dark-mode .nextstep-col,
-body.dark-mode .datetime-col {
-  color: var(--text-dark);
-}
-
-body.dark-mode .form-actions-row {
-  border-top: 1px solid var(--border-dark);
-}
-
-/* Dark mode button styles */
-body.dark-mode .btn.ghost {
-  background-color: transparent;
-  border-color: var(--border-dark);
-  color: var(--text-dark);
-}
-
-body.dark-mode .btn.ghost:hover {
-  background-color: var(--table-hover-dark);
-  border-color: var(--gray-500);
-}
-
-/* Dark mode form container enhancements */
-body.dark-mode .form-container input:disabled,
-body.dark-mode .form-container select:disabled,
-body.dark-mode .form-container textarea:disabled {
-  background-color: var(--table-row-dark);
+body.dark-mode .customer-link .province {
   color: var(--gray-400);
-  border-color: var(--border-dark);
 }
 
-body.dark-mode .form-row {
-  border-bottom: 1px solid var(--border-dark);
-}
-
-/* Contact Persons Table Column Widths */
-.contact-persons-table th:nth-child(1) { width: 45%; } /* Name column */
-.contact-persons-table th:nth-child(2) { width: 25%; } /* Contact Number */
-.contact-persons-table th:nth-child(3) { width: 20%; } /* Contact Email */
-.contact-persons-table th:nth-child(4) { width: 8%; } /* Actions */
-
-.contact-person-role {
-    color: var(--gray-500);
-    font-size: 0.875rem;
-    margin-left: 0.25rem;
-}
-
-/* Contact Persons Table Column Widths */
-.compact-table th:nth-child(1) { width: 20%; } /* Action column */
-.compact-table th:nth-child(2) { width: 20%; } /* Response */
-.compact-table th:nth-child(3) { width: 20%; } /* Nextstep */
-.compact-table th:nth-child(6) { width: 8%; } /* Actions */
+/* ...existing status badge styles... */

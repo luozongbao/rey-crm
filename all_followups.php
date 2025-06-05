@@ -128,8 +128,11 @@ require_once 'includes/header.php';
                 <?php foreach ($followups as $followup): ?>
                 <tr>
                     <td>
-                            <a href="customer_form.php?action=view&id=<?= $followup['customer_id'] ?>" class="customer-link">
+                        <a href="customer_form.php?action=view&id=<?= $followup['customer_id'] ?>" class="customer-link">
                             <?= htmlspecialchars($followup['company_name']) ?>
+                            <?php if (!empty($followup['province'])): ?>
+                                <span class="province">(<?= htmlspecialchars($followup['province']) ?>)</span>
+                            <?php endif; ?>
                         </a>
                     </td>
                     <td>

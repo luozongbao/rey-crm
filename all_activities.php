@@ -126,7 +126,14 @@ require_once 'includes/header.php';
             <tbody>
                 <?php foreach ($activities as $activity): ?>
                 <tr>
-                    <td><?= htmlspecialchars($activity['company_name']) ?></td>
+                    <td>
+                        <a href="customer_form.php?action=view&id=<?= $activity['customer_id'] ?>" class="customer-link">
+                            <?= htmlspecialchars($activity['company_name']) ?>
+                            <?php if (!empty($activity['province'])): ?>
+                                <span class="province">(<?= htmlspecialchars($activity['province']) ?>)</span>
+                            <?php endif; ?>
+                        </a>
+                    </td>
                     <td><span class="status-badge status-<?= strtolower(str_replace(' ', '-', $activity['customer_status'])) ?>"><?= htmlspecialchars($activity['customer_status']) ?></span></td>
                     <td><?= htmlspecialchars($activity['action']) ?></td>
                     <td class="datetime"><?= $activity['action_datetime'] ?></td>
