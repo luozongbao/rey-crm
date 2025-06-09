@@ -1789,4 +1789,67 @@ body.dark-mode .customer-link .province {
   color: var(--gray-400);
 }
 
-/* ...existing status badge styles... */
+/* Dark mode styles for missing elements */
+body.dark-mode .section {
+  background-color: var(--card-dark);
+  color: var(--text-dark);
+  border: 1px solid var(--border-dark);
+  box-shadow: none;
+}
+
+body.dark-mode .customer-info-panel {
+  background-color: var(--card-dark);
+  color: var(--text-dark);
+  border: 1px solid var(--border-dark);
+  box-shadow: none;
+}
+
+body.dark-mode .customer-info-panel label {
+  color: #f9fafb;
+  font-weight: 600;
+}
+
+body.dark-mode .form-group.half-width {
+  background-color: transparent;
+  color: var(--text-dark);
+}
+
+/* Additional dark mode fixes for headers and containers */
+body.dark-mode .header {
+  background-color: var(--card-dark);
+  color: var(--text-dark);
+  border: 1px solid var(--border-dark);
+  box-shadow: none;
+}
+
+body.dark-mode .section-header {
+  border-color: var(--border-dark);
+}
+
+body.dark-mode .form-section-header h3,
+body.dark-mode .form-section-header label {
+  color: var(--text-dark);
+}
+
+/* Dark mode for auth pages and quick stats */
+body.dark-mode .auth-card {
+  background-color: var(--card-dark);
+  color: var(--text-dark);
+  border: 1px solid var(--border-dark);
+  box-shadow: none;
+}
+
+body.dark-mode .auth-title {
+  color: var(--text-dark);
+}
+
+body.dark-mode .auth-subtitle {
+  color: var(--gray-400);
+}
+
+body.dark-mode .quick-stats {
+  background-color: var(--card-dark);
+  color: var(--text-dark);
+  border: 1px solid var(--border-dark);
+  box-shadow: none;
+}
