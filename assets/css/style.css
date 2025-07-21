@@ -1203,6 +1203,12 @@ body.dark-mode .status-closedwon,
   flex-shrink: 0;
 }
 
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 /* Section headers within forms */
 .section-header {
   display: flex;
@@ -2208,6 +2214,42 @@ body.dark-mode .attachment-list li {
 
 body.dark-mode .attachment-list small {
   color: var(--text-dark-secondary);
+}
+
+/* Email History Table Styles */
+.datetime-col,
+td.datetime-col {
+  width: 120px;
+  white-space: nowrap;
+}
+
+.datetime-compact {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  color: var(--gray-600);
+}
+
+.project-link {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.project-link:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
+body.dark-mode .datetime-compact {
+  color: var(--text-dark-secondary);
+}
+
+body.dark-mode .project-link {
+  color: var(--primary-light);
+}
+
+body.dark-mode .project-link:hover {
+  color: var(--primary);
 }
 
 body.dark-mode .empty-state {

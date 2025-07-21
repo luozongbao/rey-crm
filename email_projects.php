@@ -35,15 +35,16 @@ include 'includes/header.php';
 ?>
 
 <div class="container">
-    <div class="page-header">
-        <div class="page-title-container">
-            <h1 class="page-title">Email Projects</h1>
-            <p class="page-subtitle">Manage your email project templates</p>
-        </div>
-        <div class="page-actions">
+    <div class="header">
+        <h1>Email Projects</h1>
+        <div class="header-actions">
             <a href="email_project_form.php" class="btn btn-primary">
                 <span class="btn-icon">+</span>
                 Create Project
+            </a>
+            <a href="email_history.php" class="btn btn-secondary">
+                <span class="btn-icon">📧</span>
+                Email History
             </a>
         </div>
     </div>
@@ -113,10 +114,6 @@ include 'includes/header.php';
                 </div>
             <?php endif; ?>
         </div>
-    </div>
-
-    <div class="page-actions-bottom">
-        <a href="email_history.php" class="btn btn-secondary">View Email History</a>
     </div>
 </div>
 

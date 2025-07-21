@@ -6,7 +6,7 @@ $page_title = 'Email History';
 $current_page = 'email_history';
 
 // Pagination settings
-$items_per_page = 20;
+$items_per_page = getItemsPerPage();
 $page = max(1, (int)($_GET['page'] ?? 1));
 $offset = ($page - 1) * $items_per_page;
 
@@ -58,16 +58,11 @@ include 'includes/header.php';
 ?>
 
 <div class="container">
-    <div class="page-header">
-        <div class="page-title-container">
-            <h1 class="page-title">Email History</h1>
-            <p class="page-subtitle">View all sent emails</p>
-        </div>
-        <div class="page-actions">
-            <a href="email_projects.php" class="btn btn-secondary">
-                Back to Projects
-            </a>
-        </div>
+    <div class="header">
+        <h1>Email History</h1>
+        <a href="email_projects.php" class="btn btn-secondary">
+            Back to Projects
+        </a>
     </div>
 
     <?php if (isset($error)): ?>
@@ -129,21 +124,19 @@ include 'includes/header.php';
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Date & Time</th>
+                                <th class="datetime-col">Date & Time</th>
                                 <th>To</th>
                                 <th>CC</th>
                                 <th>Project Name</th>
-                                <th>Subject</th>
                                 <th>Attachments</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($email_history as $email): ?>
                                 <tr>
-                                    <td>
-                                        <div class="datetime">
-                                            <div class="date"><?php echo date('M j, Y', strtotime($email['sent_datetime'])); ?></div>
-                                            <div class="time"><?php echo date('g:i A', strtotime($email['sent_datetime'])); ?></div>
+                                    <td class="datetime-col">
+                                        <div class="datetime-compact">
+                                            <?php echo date('m/d/y g:i A', strtotime($email['sent_datetime'])); ?>
                                         </div>
                                     </td>
                                     <td>
@@ -162,15 +155,12 @@ include 'includes/header.php';
                                     </td>
                                     <td>
                                         <?php if ($email['project_name']): ?>
-                                            <strong><?php echo htmlspecialchars($email['project_name']); ?></strong>
+                                            <a href="email_project_form.php?id=<?php echo $email['project_id']; ?>" class="project-link">
+                                                <strong><?php echo htmlspecialchars($email['project_name']); ?></strong>
+                                            </a>
                                         <?php else: ?>
                                             <span class="text-muted">Project deleted</span>
                                         <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <div class="subject">
-                                            <?php echo htmlspecialchars($email['subject']); ?>
-                                        </div>
                                     </td>
                                     <td>
                                         <?php if (!empty($email['attachments'])): ?>
@@ -206,35 +196,39 @@ include 'includes/header.php';
                 <!-- Pagination -->
                 <?php if ($total_pages > 1): ?>
                     <div class="pagination-container">
-                        <nav class="pagination">
-                            <?php
-                            $query_params = $_GET;
+                        <div class="pagination">
+                            <?php if ($page > 1): ?>
+                                <a href="?<?php echo buildQueryString(['page' => 1]); ?>" class="btn">First</a>
+                                <a href="?<?php echo buildQueryString(['page' => $page - 1]); ?>" class="btn">Previous</a>
+                            <?php endif; ?>
                             
-                            // Previous page
-                            if ($page > 1):
-                                $query_params['page'] = $page - 1;
-                                $prev_url = '?' . http_build_query($query_params);
+                            <?php 
+                            // Show page numbers
+                            $startPage = max(1, $page - 2);
+                            $endPage = min($total_pages, $page + 2);
+                            
+                            for ($i = $startPage; $i <= $endPage; $i++): 
                             ?>
-                                <a href="<?php echo htmlspecialchars($prev_url); ?>" class="pagination-btn">
-                                    &larr; Previous
+                                <a href="?<?php echo buildQueryString(['page' => $i]); ?>" 
+                                   class="btn <?php echo $i == $page ? 'active' : ''; ?>">
+                                    <?php echo $i; ?>
                                 </a>
+                            <?php endfor; ?>
+                            
+                            <?php if ($page < $total_pages): ?>
+                                <a href="?<?php echo buildQueryString(['page' => $page + 1]); ?>" class="btn">Next</a>
+                                <a href="?<?php echo buildQueryString(['page' => $total_pages]); ?>" class="btn">Last</a>
                             <?php endif; ?>
-
-                            <span class="pagination-info">
-                                Page <?php echo $page; ?> of <?php echo $total_pages; ?>
-                            </span>
-
+                        </div>
+                        
+                        <div class="records-count">
                             <?php
-                            // Next page
-                            if ($page < $total_pages):
-                                $query_params['page'] = $page + 1;
-                                $next_url = '?' . http_build_query($query_params);
+                            // Calculate the current record range
+                            $startRecord = ($page - 1) * $items_per_page + 1;
+                            $endRecord = min($page * $items_per_page, $total_count);
+                            echo "Showing $startRecord - $endRecord of $total_count records";
                             ?>
-                                <a href="<?php echo htmlspecialchars($next_url); ?>" class="pagination-btn">
-                                    Next &rarr;
-                                </a>
-                            <?php endif; ?>
-                        </nav>
+                        </div>
                     </div>
                 <?php endif; ?>
             <?php endif; ?>
@@ -323,36 +317,6 @@ include 'includes/header.php';
 
 .attachments:hover .attachment-tooltip {
     display: block;
-}
-
-.pagination-container {
-    margin-top: 20px;
-    text-align: center;
-}
-
-.pagination {
-    display: inline-flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.pagination-btn {
-    padding: 8px 15px;
-    background: #007bff;
-    color: white;
-    text-decoration: none;
-    border-radius: 4px;
-    transition: background-color 0.2s;
-}
-
-.pagination-btn:hover {
-    background: #0056b3;
-    color: white;
-}
-
-.pagination-info {
-    color: #6c757d;
-    font-weight: 500;
 }
 
 .text-muted {
