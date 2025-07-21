@@ -73,10 +73,9 @@ if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) !== 'login.ph
 
                     <div class="user-menu">
                         <div class="user-info">
-                            <span class="username">Welcome, <?php echo htmlspecialchars($_SESSION['username']); ?></span>
                             <div class="user-actions">
                                 <a href="/profile.php" class="btn profile-btn" title="My Profile">
-                                    My Profile
+                                    <?php echo htmlspecialchars($_SESSION['username']); ?>
                                 </a>
                                 <a href="/logout.php" class="btn logout-btn">
                                     Logout
