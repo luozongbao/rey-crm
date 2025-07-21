@@ -73,14 +73,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {
             // Create PHPMailer instance
             $mail = new PHPMailer(true);
             
+            // Enable SMTP debugging (remove in production)
+            $mail->SMTPDebug = 0; // Set to 2 for detailed debug output
+            $mail->Debugoutput = 'html';
+            
             // Server settings
             $mail->isSMTP();
             $mail->Host = $smtp_settings['smtp_host'] ?? 'localhost';
             $mail->SMTPAuth = true;
             $mail->Username = $smtp_settings['smtp_username'] ?? '';
             $mail->Password = $smtp_settings['smtp_password'] ?? '';
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            
+            // Set encryption based on settings
+            $encryption = $smtp_settings['smtp_encryption'] ?? 'tls';
+            if ($encryption === 'ssl') {
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS; // SSL
+            } else {
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS; // TLS/STARTTLS
+            }
+            
             $mail->Port = $smtp_settings['smtp_port'] ?? 587;
+            
+            // Additional SSL/TLS options for better compatibility
+            $mail->SMTPOptions = array(
+                'ssl' => array(
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                    'allow_self_signed' => true
+                )
+            );
             
             // Recipients
             $mail->setFrom($smtp_settings['smtp_from_email'] ?? 'noreply@example.com', 
