@@ -102,10 +102,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {
                 )
             );
             
-            // Recipients
+            // Recipients - handle multiple emails in TO field
             $mail->setFrom($smtp_settings['smtp_from_email'] ?? 'noreply@example.com', 
                           $smtp_settings['smtp_from_name'] ?? 'Rey CRM');
-            $mail->addAddress($to_email);
+            
+            // Parse TO emails (may contain multiple addresses)
+            $to_emails = parse_cc_emails($to_email);
+            foreach ($to_emails as $email) {
+                $mail->addAddress($email);
+            }
             
             // Add CC if specified
             if (!empty($project['cc'])) {
@@ -166,6 +171,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {
             ]);
             
             $success_message = 'Email sent successfully!';
+            
+            // Add recipient info
+            $recipient_emails = parse_cc_emails($to_email);
+            if (count($recipient_emails) > 1) {
+                $success_message .= ' (Sent to ' . count($recipient_emails) . ' recipients)';
+            }
             
             // Add attachment info if there were attachments
             if (!empty($attachment_status)) {
@@ -260,20 +271,30 @@ include 'includes/header.php';
                                     $grouped_recipients[$company] = [];
                                 }
                                 
+                                // Handle customer emails (may contain multiple emails)
                                 if ($recipient['customer_email']) {
-                                    $grouped_recipients[$company][] = [
-                                        'email' => $recipient['customer_email'],
-                                        'name' => $company . ' (Company)',
-                                        'type' => 'customer'
-                                    ];
+                                    $customer_emails = parse_cc_emails($recipient['customer_email']);
+                                    if (!empty($customer_emails)) {
+                                        $grouped_recipients[$company][] = [
+                                            'email' => $recipient['customer_email'], // Keep original for backend processing
+                                            'display_emails' => $customer_emails, // Parsed for display
+                                            'name' => $company . ' (Company)',
+                                            'type' => 'customer'
+                                        ];
+                                    }
                                 }
                                 
+                                // Handle contact emails (may contain multiple emails)
                                 if ($recipient['contact_email'] && $recipient['contact_name']) {
-                                    $grouped_recipients[$company][] = [
-                                        'email' => $recipient['contact_email'],
-                                        'name' => $recipient['contact_name'] . ' (' . $company . ')',
-                                        'type' => 'contact'
-                                    ];
+                                    $contact_emails = parse_cc_emails($recipient['contact_email']);
+                                    if (!empty($contact_emails)) {
+                                        $grouped_recipients[$company][] = [
+                                            'email' => $recipient['contact_email'], // Keep original for backend processing
+                                            'display_emails' => $contact_emails, // Parsed for display
+                                            'name' => $recipient['contact_name'] . ' (' . $company . ')',
+                                            'type' => 'contact'
+                                        ];
+                                    }
                                 }
                             }
                             
@@ -281,13 +302,38 @@ include 'includes/header.php';
                             ?>
                                 <optgroup label="<?php echo htmlspecialchars($company); ?>">
                                     <?php foreach ($company_recipients as $recipient): ?>
-                                        <option value="<?php echo htmlspecialchars($recipient['email']); ?>">
+                                        <option value="<?php echo htmlspecialchars($recipient['email']); ?>"
+                                                data-emails="<?php echo htmlspecialchars(implode(', ', $recipient['display_emails'])); ?>"
+                                                data-type="<?php echo htmlspecialchars($recipient['type']); ?>"
+                                                data-name="<?php echo htmlspecialchars($recipient['name']); ?>">
                                             <?php echo htmlspecialchars($recipient['name']); ?>
+                                            <?php if (count($recipient['display_emails']) > 1): ?>
+                                                (<?php echo count($recipient['display_emails']); ?> emails)
+                                            <?php endif; ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </optgroup>
                             <?php endforeach; ?>
                         </select>
+                    </div>
+
+                    <!-- Recipient Information Display -->
+                    <div id="recipient-info" class="recipient-info" style="display: none;">
+                        <h4>Recipient Information</h4>
+                        <div class="recipient-details">
+                            <div class="recipient-field">
+                                <label>Selected:</label>
+                                <div id="selected-name"></div>
+                            </div>
+                            <div class="recipient-field">
+                                <label>Email(s) to send to:</label>
+                                <div id="selected-emails"></div>
+                            </div>
+                            <div class="recipient-field">
+                                <label>Type:</label>
+                                <div id="selected-type"></div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="email-preview">
@@ -355,15 +401,42 @@ include 'includes/header.php';
 document.addEventListener('DOMContentLoaded', function() {
     const toEmailSelect = document.getElementById('to_email');
     const sendButton = document.getElementById('send-button');
+    const recipientInfo = document.getElementById('recipient-info');
+    const selectedName = document.getElementById('selected-name');
+    const selectedEmails = document.getElementById('selected-emails');
+    const selectedType = document.getElementById('selected-type');
 
-    function toggleSendButton() {
-        sendButton.disabled = !toEmailSelect.value;
+    function updateRecipientInfo() {
+        const selectedOption = toEmailSelect.selectedOptions[0];
+        
+        if (!selectedOption || !selectedOption.value) {
+            // No recipient selected
+            recipientInfo.style.display = 'none';
+            sendButton.disabled = true;
+            return;
+        }
+
+        // Show recipient information
+        recipientInfo.style.display = 'block';
+        sendButton.disabled = false;
+
+        // Get data from the selected option
+        const name = selectedOption.dataset.name || selectedOption.textContent;
+        const emails = selectedOption.dataset.emails || selectedOption.value;
+        const type = selectedOption.dataset.type || 'unknown';
+
+        // Update display
+        selectedName.textContent = name;
+        selectedEmails.innerHTML = emails.split(', ').map(email => 
+            `<span class="email-badge">${email.trim()}</span>`
+        ).join(' ');
+        selectedType.textContent = type === 'customer' ? 'Company Contact' : 'Person Contact';
     }
 
-    toEmailSelect.addEventListener('change', toggleSendButton);
+    toEmailSelect.addEventListener('change', updateRecipientInfo);
     
     // Initial check
-    toggleSendButton();
+    updateRecipientInfo();
 });
 </script>
 
@@ -418,6 +491,67 @@ document.addEventListener('DOMContentLoaded', function() {
 #send-button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+/* Recipient Information Styles */
+.recipient-info {
+    background: #e3f2fd;
+    border: 1px solid #bbdefb;
+    border-radius: 6px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.recipient-info h4 {
+    margin: 0 0 10px 0;
+    color: #1976d2;
+    font-size: 1.1em;
+}
+
+.recipient-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.recipient-field {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.recipient-field label {
+    font-weight: bold;
+    min-width: 120px;
+    color: #555;
+    font-size: 0.9em;
+}
+
+.recipient-field div {
+    flex: 1;
+    color: #333;
+}
+
+.email-badge {
+    display: inline-block;
+    background: #2196f3;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    margin-right: 5px;
+    margin-bottom: 3px;
+}
+
+@media (max-width: 768px) {
+    .recipient-field {
+        flex-direction: column;
+        gap: 2px;
+    }
+    
+    .recipient-field label {
+        min-width: auto;
+    }
 }
 </style>
 
