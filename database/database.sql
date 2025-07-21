@@ -82,7 +82,6 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 
--- SQL for password reset functionality
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -91,4 +90,30 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
     used TINYINT(1) NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+
+-- Table for Email Projects
+CREATE TABLE IF NOT EXISTS email_projects (
+    project_id INT AUTO_INCREMENT PRIMARY KEY,
+    project_name VARCHAR(255) NOT NULL,
+    cc VARCHAR(255),
+    subject VARCHAR(255) NOT NULL,
+    message TEXT,
+    attachments TEXT, -- JSON or comma-separated file locations
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Table for Sent Email History
+CREATE TABLE IF NOT EXISTS sent_email_history (
+    email_id INT AUTO_INCREMENT PRIMARY KEY,
+    sent_datetime DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    to_email VARCHAR(255) NOT NULL,
+    cc VARCHAR(255),
+    project_id INT,
+    subject VARCHAR(255),
+    attachments TEXT, -- JSON or comma-separated file locations
+    FOREIGN KEY (project_id) REFERENCES email_projects(project_id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

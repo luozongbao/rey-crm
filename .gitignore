@@ -25,3 +25,10 @@ logs/*
 Thumbs.db
 
 markdown/
+
+# Upload files
+uploads/
+uploads/*
+
+# Ignore test script
+test_*

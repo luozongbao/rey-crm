@@ -57,6 +57,11 @@ if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) !== 'login.ph
                                 Follow-ups
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="/email_projects.php" class="nav-link <?php echo in_array(basename($_SERVER['PHP_SELF']), ['email_projects.php', 'email_project_form.php', 'send_email.php', 'email_history.php']) ? 'active' : ''; ?>">
+                                Email Projects
+                            </a>
+                        </li>
                         <?php if (isAdmin()): ?>
                         <li class="nav-item">
                             <a href="/settings.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'settings.php' ? 'active' : ''; ?>">

@@ -888,4 +888,78 @@ function redirectTo($path) {
     }
 }
 
+/**
+ * Check if a path is absolute
+ */
+function is_absolute_path($path) {
+    // On Unix systems, absolute paths start with /
+    // On Windows, absolute paths start with C:\ or similar
+    return (isset($path[0]) && $path[0] === '/') || 
+           (isset($path[1]) && $path[1] === ':');
+}
+
+/**
+ * Parse CC email addresses supporting both comma and semicolon separators
+ * @param string $cc_string The CC string with emails
+ * @return array Array of valid email addresses
+ */
+function parse_cc_emails($cc_string) {
+    if (empty($cc_string)) {
+        return [];
+    }
+    
+    // Split by both comma and semicolon
+    $emails = preg_split('/[,;]/', $cc_string);
+    $valid_emails = [];
+    
+    foreach ($emails as $email) {
+        $email = trim($email);
+        if (!empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $valid_emails[] = $email;
+        }
+    }
+    
+    return $valid_emails;
+}
+
+/**
+ * Validate CC email string and return validation results
+ * @param string $cc_string The CC string with emails
+ * @return array ['valid' => bool, 'emails' => array, 'invalid' => array, 'message' => string]
+ */
+function validate_cc_emails($cc_string) {
+    if (empty($cc_string)) {
+        return ['valid' => true, 'emails' => [], 'invalid' => [], 'message' => ''];
+    }
+    
+    // Split by both comma and semicolon
+    $emails = preg_split('/[,;]/', $cc_string);
+    $valid_emails = [];
+    $invalid_emails = [];
+    
+    foreach ($emails as $email) {
+        $email = trim($email);
+        if (!empty($email)) {
+            if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $valid_emails[] = $email;
+            } else {
+                $invalid_emails[] = $email;
+            }
+        }
+    }
+    
+    $result = [
+        'valid' => empty($invalid_emails),
+        'emails' => $valid_emails,
+        'invalid' => $invalid_emails,
+        'message' => ''
+    ];
+    
+    if (!empty($invalid_emails)) {
+        $result['message'] = 'Invalid email address' . (count($invalid_emails) > 1 ? 'es' : '') . ': ' . implode(', ', $invalid_emails);
+    }
+    
+    return $result;
+}
+
 ?>
