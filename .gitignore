@@ -29,3 +29,6 @@ markdown/
 # Upload files
 uploads/
 uploads/*
+
+# Ignore test script
+test_*

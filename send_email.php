@@ -109,11 +109,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {
             
             // Add CC if specified
             if (!empty($project['cc'])) {
-                $cc_emails = array_map('trim', explode(',', $project['cc']));
+                $cc_emails = parse_cc_emails($project['cc']);
                 foreach ($cc_emails as $cc_email) {
-                    if (filter_var($cc_email, FILTER_VALIDATE_EMAIL)) {
-                        $mail->addCC($cc_email);
-                    }
+                    $mail->addCC($cc_email);
                 }
             }
             

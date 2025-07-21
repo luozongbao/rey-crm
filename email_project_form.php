@@ -71,6 +71,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = "Subject is required.";
     }
     
+    // Validate CC emails if provided
+    if (!empty($cc)) {
+        $cc_validation = validate_cc_emails($cc);
+        if (!$cc_validation['valid']) {
+            $errors[] = $cc_validation['message'];
+        }
+    }
+    
     if (empty($errors)) {
         try {
             if ($is_edit) {
@@ -156,8 +164,8 @@ include 'includes/header.php';
                            name="cc" 
                            class="form-control" 
                            value="<?php echo htmlspecialchars($project['cc'] ?? $_POST['cc'] ?? ''); ?>" 
-                           placeholder="Enter multiple emails separated by commas">
-                    <small class="form-text">Enter multiple email addresses separated by commas</small>
+                           placeholder="Enter multiple emails separated by commas or semicolons">
+                    <small class="form-text">Enter multiple email addresses separated by commas (,) or semicolons (;)</small>
                 </div>
 
                 <div class="form-group">
@@ -243,6 +251,72 @@ setInterval(function() {
     const textarea = document.getElementById('message');
     textarea.value = editor.innerHTML;
 }, 1000);
+
+// CC email validation
+document.getElementById('cc').addEventListener('blur', function() {
+    validateCCEmails(this);
+});
+
+document.getElementById('cc').addEventListener('input', function() {
+    // Clear any existing validation styles when user starts typing
+    this.classList.remove('is-invalid', 'is-valid');
+    const feedback = document.getElementById('cc-feedback');
+    if (feedback) {
+        feedback.remove();
+    }
+});
+
+function validateCCEmails(input) {
+    const ccValue = input.value.trim();
+    
+    // Remove existing feedback
+    const existingFeedback = document.getElementById('cc-feedback');
+    if (existingFeedback) {
+        existingFeedback.remove();
+    }
+    
+    if (ccValue === '') {
+        input.classList.remove('is-invalid', 'is-valid');
+        return;
+    }
+    
+    // Split by both comma and semicolon
+    const emails = ccValue.split(/[,;]/).map(email => email.trim()).filter(email => email !== '');
+    const validEmails = [];
+    const invalidEmails = [];
+    
+    emails.forEach(email => {
+        if (isValidEmail(email)) {
+            validEmails.push(email);
+        } else {
+            invalidEmails.push(email);
+        }
+    });
+    
+    // Create feedback element
+    const feedback = document.createElement('div');
+    feedback.id = 'cc-feedback';
+    feedback.className = 'form-feedback';
+    
+    if (invalidEmails.length > 0) {
+        input.classList.add('is-invalid');
+        input.classList.remove('is-valid');
+        feedback.className += ' invalid-feedback';
+        feedback.textContent = `Invalid email${invalidEmails.length > 1 ? 's' : ''}: ${invalidEmails.join(', ')}`;
+    } else if (validEmails.length > 0) {
+        input.classList.add('is-valid');
+        input.classList.remove('is-invalid');
+        feedback.className += ' valid-feedback';
+        feedback.textContent = `${validEmails.length} valid email${validEmails.length > 1 ? 's' : ''} found`;
+    }
+    
+    input.parentNode.appendChild(feedback);
+}
+
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
 </script>
 
 <style>
@@ -268,6 +342,31 @@ setInterval(function() {
 
 .wysiwyg-toolbar button:hover {
     background: #e9ecef;
+}
+
+/* CC validation styles */
+.form-control.is-valid {
+    border-color: #28a745;
+}
+
+.form-control.is-invalid {
+    border-color: #dc3545;
+}
+
+.valid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #28a745;
+}
+
+.invalid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #dc3545;
 }
 
 .wysiwyg-editor {
