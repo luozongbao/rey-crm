@@ -888,4 +888,14 @@ function redirectTo($path) {
     }
 }
 
+/**
+ * Check if a path is absolute
+ */
+function is_absolute_path($path) {
+    // On Unix systems, absolute paths start with /
+    // On Windows, absolute paths start with C:\ or similar
+    return (isset($path[0]) && $path[0] === '/') || 
+           (isset($path[1]) && $path[1] === ':');
+}
+
 ?>

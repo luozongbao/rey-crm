@@ -73,9 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {
             // Create PHPMailer instance
             $mail = new PHPMailer(true);
             
-            // Enable SMTP debugging (remove in production)
-            $mail->SMTPDebug = 0; // Set to 2 for detailed debug output
-            $mail->Debugoutput = 'html';
+            // Disable SMTP debugging for production
+            $mail->SMTPDebug = 0;
             
             // Server settings
             $mail->isSMTP();
@@ -125,14 +124,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {
             $mail->AltBody = strip_tags($project['message']);
             
             // Add attachments if any
+            $attachment_status = [];
             if (!empty($project['attachments'])) {
                 $attachments = json_decode($project['attachments'], true);
                 if (is_array($attachments)) {
                     foreach ($attachments as $attachment) {
-                        if (file_exists($attachment)) {
-                            $mail->addAttachment($attachment, basename($attachment));
+                        // Convert relative path to absolute path
+                        $attachment_path = $attachment;
+                        if (!is_absolute_path($attachment)) {
+                            $attachment_path = __DIR__ . '/' . $attachment;
+                        }
+                        
+                        if (file_exists($attachment_path)) {
+                            $mail->addAttachment($attachment_path, basename($attachment));
+                            $attachment_status[] = "✓ Added: " . basename($attachment);
+                            error_log("Added attachment: " . $attachment_path);
+                        } else {
+                            $attachment_status[] = "✗ Missing: " . basename($attachment);
+                            error_log("Attachment file not found: " . $attachment_path);
                         }
                     }
+                } else {
+                    $attachment_status[] = "✗ Invalid attachment data format";
+                    error_log("Invalid attachment JSON: " . $project['attachments']);
                 }
             }
             
@@ -154,6 +168,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {
             ]);
             
             $success_message = 'Email sent successfully!';
+            
+            // Add attachment info if there were attachments
+            if (!empty($attachment_status)) {
+                $successful_attachments = array_filter($attachment_status, function($status) {
+                    return strpos($status, '✓') === 0;
+                });
+                $failed_attachments = array_filter($attachment_status, function($status) {
+                    return strpos($status, '✗') === 0;
+                });
+                
+                if (count($successful_attachments) > 0) {
+                    $success_message .= ' (' . count($successful_attachments) . ' attachment' . 
+                                      (count($successful_attachments) > 1 ? 's' : '') . ' included)';
+                }
+                
+                if (count($failed_attachments) > 0) {
+                    $success_message .= '<br><small style="color: #856404;">Note: ' . 
+                                      count($failed_attachments) . ' attachment' . 
+                                      (count($failed_attachments) > 1 ? 's were' : ' was') . 
+                                      ' not found and could not be attached.</small>';
+                }
+            }
             
         } catch (Exception $e) {
             error_log("Email sending failed: " . $e->getMessage());
@@ -183,7 +219,7 @@ include 'includes/header.php';
 
     <?php if (isset($success_message)): ?>
         <div class="alert alert-success">
-            <?php echo htmlspecialchars($success_message); ?>
+            <?php echo $success_message; ?>
             <div style="margin-top: 10px;">
                 <a href="email_projects.php" class="btn btn-sm btn-secondary">Back to Projects</a>
                 <a href="email_history.php" class="btn btn-sm btn-primary">View Email History</a>
@@ -286,9 +322,16 @@ include 'includes/header.php';
                                     <div class="preview-content">
                                         <ul class="attachment-list">
                                             <?php foreach ($attachments as $attachment): ?>
+                                                <?php
+                                                // Convert relative path to absolute path for file checking
+                                                $attachment_path = $attachment;
+                                                if (!is_absolute_path($attachment)) {
+                                                    $attachment_path = __DIR__ . '/' . $attachment;
+                                                }
+                                                ?>
                                                 <li>
                                                     <?php echo htmlspecialchars(basename($attachment)); ?>
-                                                    <small>(<?php echo file_exists($attachment) ? number_format(filesize($attachment)/1024, 1) . ' KB' : 'File not found'; ?>)</small>
+                                                    <small>(<?php echo file_exists($attachment_path) ? number_format(filesize($attachment_path)/1024, 1) . ' KB' : 'File not found'; ?>)</small>
                                                 </li>
                                             <?php endforeach; ?>
                                         </ul>
