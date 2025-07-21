@@ -50,11 +50,63 @@ try {
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {
     $to_email = trim($_POST['to_email'] ?? '');
+    $email_subject = trim($_POST['email_subject'] ?? '');
+    $email_cc = trim($_POST['email_cc'] ?? '');
+    $email_message = $_POST['email_message'] ?? '';
+    
+    // Handle attachments
+    $final_attachments = [];
+    
+    // Include selected existing attachments
+    if (!empty($_POST['keep_attachments'])) {
+        foreach ($_POST['keep_attachments'] as $attachment) {
+            $final_attachments[] = $attachment;
+        }
+    }
+    
+    // Handle new file uploads
+    if (!empty($_FILES['additional_attachments']['name'][0])) {
+        $upload_dir = 'uploads/email_attachments/';
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0755, true);
+        }
+        
+        for ($i = 0; $i < count($_FILES['additional_attachments']['name']); $i++) {
+            if ($_FILES['additional_attachments']['error'][$i] === UPLOAD_ERR_OK) {
+                $file_name = $_FILES['additional_attachments']['name'][$i];
+                $file_tmp = $_FILES['additional_attachments']['tmp_name'][$i];
+                $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                
+                // Generate unique filename
+                $unique_name = uniqid() . '_' . $file_name;
+                $upload_path = $upload_dir . $unique_name;
+                
+                if (move_uploaded_file($file_tmp, $upload_path)) {
+                    $final_attachments[] = $upload_path;
+                    error_log("New attachment uploaded: " . $upload_path);
+                } else {
+                    error_log("Failed to upload attachment: " . $file_name);
+                }
+            }
+        }
+    }
     
     // Validation
     $errors = [];
     if (empty($to_email)) {
         $errors[] = "Please select a recipient.";
+    }
+    if (empty($email_subject)) {
+        $errors[] = "Subject is required.";
+    }
+    if (empty($email_message)) {
+        $errors[] = "Message is required.";
+    }
+    if (!empty($email_cc)) {
+        $cc_validation = validate_cc_emails($email_cc);
+        if (!$cc_validation['valid']) {
+            $errors[] = "CC: " . $cc_validation['message'];
+        }
     }
     if (!$project) {
         $errors[] = "Email project not found.";
@@ -113,8 +165,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {
             }
             
             // Add CC if specified
-            if (!empty($project['cc'])) {
-                $cc_emails = parse_cc_emails($project['cc']);
+            if (!empty($email_cc)) {
+                $cc_emails = parse_cc_emails($email_cc);
                 foreach ($cc_emails as $cc_email) {
                     $mail->addCC($cc_email);
                 }
@@ -122,34 +174,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {
             
             // Content
             $mail->isHTML(true);
-            $mail->Subject = $project['subject'];
-            $mail->Body = $project['message'];
-            $mail->AltBody = strip_tags($project['message']);
+            $mail->Subject = $email_subject;
+            $mail->Body = $email_message;
+            $mail->AltBody = strip_tags($email_message);
             
             // Add attachments if any
             $attachment_status = [];
-            if (!empty($project['attachments'])) {
-                $attachments = json_decode($project['attachments'], true);
-                if (is_array($attachments)) {
-                    foreach ($attachments as $attachment) {
-                        // Convert relative path to absolute path
-                        $attachment_path = $attachment;
-                        if (!is_absolute_path($attachment)) {
-                            $attachment_path = __DIR__ . '/' . $attachment;
-                        }
-                        
-                        if (file_exists($attachment_path)) {
-                            $mail->addAttachment($attachment_path, basename($attachment));
-                            $attachment_status[] = "✓ Added: " . basename($attachment);
-                            error_log("Added attachment: " . $attachment_path);
-                        } else {
-                            $attachment_status[] = "✗ Missing: " . basename($attachment);
-                            error_log("Attachment file not found: " . $attachment_path);
-                        }
+            if (!empty($final_attachments)) {
+                foreach ($final_attachments as $attachment) {
+                    // Convert relative path to absolute path
+                    $attachment_path = $attachment;
+                    if (!is_absolute_path($attachment)) {
+                        $attachment_path = __DIR__ . '/' . $attachment;
                     }
-                } else {
-                    $attachment_status[] = "✗ Invalid attachment data format";
-                    error_log("Invalid attachment JSON: " . $project['attachments']);
+                    
+                    if (file_exists($attachment_path)) {
+                        $mail->addAttachment($attachment_path, basename($attachment));
+                        $attachment_status[] = "✓ Added: " . basename($attachment);
+                        error_log("Added attachment: " . $attachment_path);
+                    } else {
+                        $attachment_status[] = "✗ Missing: " . basename($attachment);
+                        error_log("Attachment file not found: " . $attachment_path);
+                    }
                 }
             }
             
@@ -164,10 +210,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {
             ");
             $stmt->execute([
                 $to_email,
-                $project['cc'],
+                $email_cc,
                 $project_id,
-                $project['subject'],
-                $project['attachments']
+                $email_subject,
+                json_encode($final_attachments)
             ]);
             
             $success_message = 'Email sent successfully!';
@@ -337,24 +383,39 @@ include 'includes/header.php';
                     </div>
 
                     <div class="email-preview">
-                        <h4>Email Preview</h4>
+                        <h4>Email Content <small>(You can edit before sending)</small></h4>
                         
                         <div class="preview-field">
-                            <label>Subject:</label>
-                            <div class="preview-content"><?php echo htmlspecialchars($project['subject']); ?></div>
+                            <label for="email_subject">Subject: <span class="required">*</span></label>
+                            <input type="text" id="email_subject" name="email_subject" class="form-control" 
+                                   value="<?php echo htmlspecialchars($project['subject']); ?>" required>
                         </div>
 
-                        <?php if (!empty($project['cc'])): ?>
-                            <div class="preview-field">
-                                <label>CC:</label>
-                                <div class="preview-content"><?php echo htmlspecialchars($project['cc']); ?></div>
-                            </div>
-                        <?php endif; ?>
+                        <div class="preview-field">
+                            <label for="email_cc">CC (optional):</label>
+                            <input type="text" id="email_cc" name="email_cc" class="form-control" 
+                                   value="<?php echo htmlspecialchars($project['cc'] ?? ''); ?>" 
+                                   placeholder="Enter multiple emails separated by commas or semicolons">
+                            <small class="form-text">Enter multiple email addresses separated by commas (,) or semicolons (;)</small>
+                        </div>
 
                         <div class="preview-field">
-                            <label>Message:</label>
-                            <div class="preview-content message-preview">
-                                <?php echo $project['message']; ?>
+                            <label for="email_message">Message: <span class="required">*</span></label>
+                            <div class="wysiwyg-container">
+                                <div class="wysiwyg-toolbar">
+                                    <button type="button" onclick="execCommand('bold')" title="Bold"><b>B</b></button>
+                                    <button type="button" onclick="execCommand('italic')" title="Italic"><i>I</i></button>
+                                    <button type="button" onclick="execCommand('underline')" title="Underline"><u>U</u></button>
+                                    <button type="button" onclick="execCommand('insertOrderedList')" title="Numbered List">1.</button>
+                                    <button type="button" onclick="execCommand('insertUnorderedList')" title="Bulleted List">•</button>
+                                    <button type="button" onclick="execCommand('createLink')" title="Insert Link">🔗</button>
+                                </div>
+                                <div id="message-editor" class="wysiwyg-editor" contenteditable="true">
+                                    <?php echo $project['message']; ?>
+                                </div>
+                                <textarea id="email_message" name="email_message" style="display: none;" required>
+                                    <?php echo htmlspecialchars($project['message']); ?>
+                                </textarea>
                             </div>
                         </div>
 
@@ -362,27 +423,37 @@ include 'includes/header.php';
                             <?php $attachments = json_decode($project['attachments'], true); ?>
                             <?php if (!empty($attachments)): ?>
                                 <div class="preview-field">
-                                    <label>Attachments:</label>
-                                    <div class="preview-content">
-                                        <ul class="attachment-list">
-                                            <?php foreach ($attachments as $attachment): ?>
-                                                <?php
-                                                // Convert relative path to absolute path for file checking
-                                                $attachment_path = $attachment;
-                                                if (!is_absolute_path($attachment)) {
-                                                    $attachment_path = __DIR__ . '/' . $attachment;
-                                                }
-                                                ?>
-                                                <li>
+                                    <label>Current Attachments:</label>
+                                    <div class="current-attachments">
+                                        <?php foreach ($attachments as $index => $attachment): ?>
+                                            <?php
+                                            // Convert relative path to absolute path for file checking
+                                            $attachment_path = $attachment;
+                                            if (!is_absolute_path($attachment)) {
+                                                $attachment_path = __DIR__ . '/' . $attachment;
+                                            }
+                                            ?>
+                                            <div class="attachment-item">
+                                                <input type="checkbox" id="keep_attachment_<?php echo $index; ?>" 
+                                                       name="keep_attachments[]" value="<?php echo htmlspecialchars($attachment); ?>" checked>
+                                                <label for="keep_attachment_<?php echo $index; ?>">
                                                     <?php echo htmlspecialchars(basename($attachment)); ?>
                                                     <small>(<?php echo file_exists($attachment_path) ? number_format(filesize($attachment_path)/1024, 1) . ' KB' : 'File not found'; ?>)</small>
-                                                </li>
-                                            <?php endforeach; ?>
-                                        </ul>
+                                                </label>
+                                            </div>
+                                        <?php endforeach; ?>
                                     </div>
+                                    <small class="form-text">Uncheck attachments you don't want to include</small>
                                 </div>
                             <?php endif; ?>
                         <?php endif; ?>
+                        
+                        <div class="preview-field">
+                            <label for="additional_attachments">Add More Attachments (optional):</label>
+                            <input type="file" id="additional_attachments" name="additional_attachments[]" 
+                                   class="form-control" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.gif">
+                            <small class="form-text">You can select multiple files. Max 50MB per file.</small>
+                        </div>
                     </div>
 
                     <div class="form-actions">
@@ -405,6 +476,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectedName = document.getElementById('selected-name');
     const selectedEmails = document.getElementById('selected-emails');
     const selectedType = document.getElementById('selected-type');
+    const ccInput = document.getElementById('email_cc');
 
     function updateRecipientInfo() {
         const selectedOption = toEmailSelect.selectedOptions[0];
@@ -433,10 +505,98 @@ document.addEventListener('DOMContentLoaded', function() {
         selectedType.textContent = type === 'customer' ? 'Company Contact' : 'Person Contact';
     }
 
+    // CC email validation
+    if (ccInput) {
+        ccInput.addEventListener('blur', function() {
+            validateCCField(this);
+        });
+
+        ccInput.addEventListener('input', function() {
+            // Clear any existing validation styles when user starts typing
+            this.classList.remove('is-invalid', 'is-valid');
+            const feedback = document.getElementById('cc-feedback');
+            if (feedback) {
+                feedback.remove();
+            }
+        });
+    }
+
+    function validateCCField(input) {
+        const ccValue = input.value.trim();
+        
+        // Remove existing feedback
+        const existingFeedback = document.getElementById('cc-feedback');
+        if (existingFeedback) {
+            existingFeedback.remove();
+        }
+        
+        if (ccValue === '') {
+            input.classList.remove('is-invalid', 'is-valid');
+            return;
+        }
+        
+        // Split by both comma and semicolon
+        const emails = ccValue.split(/[,;]/).map(email => email.trim()).filter(email => email !== '');
+        const validEmails = [];
+        const invalidEmails = [];
+        
+        emails.forEach(email => {
+            if (isValidEmail(email)) {
+                validEmails.push(email);
+            } else {
+                invalidEmails.push(email);
+            }
+        });
+        
+        // Create feedback element
+        const feedback = document.createElement('div');
+        feedback.id = 'cc-feedback';
+        feedback.className = 'form-feedback';
+        
+        if (invalidEmails.length > 0) {
+            input.classList.add('is-invalid');
+            input.classList.remove('is-valid');
+            feedback.className += ' invalid-feedback';
+            feedback.textContent = `Invalid email${invalidEmails.length > 1 ? 's' : ''}: ${invalidEmails.join(', ')}`;
+        } else if (validEmails.length > 0) {
+            input.classList.add('is-valid');
+            input.classList.remove('is-invalid');
+            feedback.className += ' valid-feedback';
+            feedback.textContent = `${validEmails.length} valid email${validEmails.length > 1 ? 's' : ''} found`;
+        }
+        
+        input.parentNode.appendChild(feedback);
+    }
+
+    function isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+
     toEmailSelect.addEventListener('change', updateRecipientInfo);
     
     // Initial check
     updateRecipientInfo();
+});
+
+// WYSIWYG Editor functionality
+function execCommand(command) {
+    document.execCommand(command, false, null);
+    if (command === 'createLink') {
+        const url = prompt('Enter URL:');
+        if (url) {
+            document.execCommand('createLink', false, url);
+        }
+    }
+}
+
+// Sync editor content with hidden textarea on form submit
+document.querySelector('#send-email-form').addEventListener('submit', function() {
+    const editor = document.getElementById('message-editor');
+    const textarea = document.getElementById('email_message');
+    if (editor && textarea) {
+        textarea.value = editor.innerHTML;
+    }
 });
 </script>
 
@@ -541,6 +701,109 @@ document.addEventListener('DOMContentLoaded', function() {
     font-size: 0.85em;
     margin-right: 5px;
     margin-bottom: 3px;
+}
+
+/* WYSIWYG Editor Styles */
+.wysiwyg-container {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.wysiwyg-toolbar {
+    background: #f8f9fa;
+    border-bottom: 1px solid #ddd;
+    padding: 8px;
+}
+
+.wysiwyg-toolbar button {
+    background: none;
+    border: 1px solid #ddd;
+    margin-right: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.wysiwyg-toolbar button:hover {
+    background: #e9ecef;
+}
+
+.wysiwyg-editor {
+    min-height: 150px;
+    padding: 10px;
+    background: white;
+    border-radius: 0 0 4px 4px;
+    outline: none;
+}
+
+.wysiwyg-editor:focus {
+    border: 2px solid #007bff;
+    margin: -1px;
+}
+
+/* Attachment Styles */
+.current-attachments {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.attachment-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.attachment-item input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+.attachment-item label {
+    margin: 0;
+    cursor: pointer;
+    flex: 1;
+}
+
+.attachment-item small {
+    color: #6c757d;
+    margin-left: 10px;
+}
+
+/* Form validation styles */
+.form-control.is-valid {
+    border-color: #28a745;
+}
+
+.form-control.is-invalid {
+    border-color: #dc3545;
+}
+
+.valid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #28a745;
+}
+
+.invalid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #dc3545;
+}
+
+.form-text {
+    font-size: 0.875em;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+.required {
+    color: #dc3545;
 }
 
 @media (max-width: 768px) {
