@@ -661,6 +661,38 @@ function requireAdmin() {
 }
 
 /**
+ * Get SMTP settings from database
+ */
+function getSMTPSettings() {
+    global $pdo;
+    try {
+        $stmt = $pdo->query("SELECT setting_name, value FROM settings WHERE setting_name LIKE 'smtp_%'");
+        $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        
+        return [
+            'smtp_host' => $settings['smtp_host'] ?? '',
+            'smtp_port' => intval($settings['smtp_port'] ?? 587),
+            'smtp_username' => $settings['smtp_username'] ?? '',
+            'smtp_password' => $settings['smtp_password'] ?? '',
+            'smtp_encryption' => $settings['smtp_encryption'] ?? 'tls',
+            'smtp_from_email' => $settings['smtp_from_email'] ?? '',
+            'smtp_from_name' => $settings['smtp_from_name'] ?? ''
+        ];
+    } catch (PDOException $e) {
+        logError("Failed to get SMTP settings: " . $e->getMessage());
+        return [
+            'smtp_host' => '',
+            'smtp_port' => 587,
+            'smtp_username' => '',
+            'smtp_password' => '',
+            'smtp_encryption' => 'tls',
+            'smtp_from_email' => '',
+            'smtp_from_name' => ''
+        ];
+    }
+}
+
+/**
  * Send an email using PHPMailer
  * 
  * @param string|array $to Recipient email address(es)
@@ -681,16 +713,7 @@ function sendEmail($to, $subject, $body, $altBody = '', $attachments = [], $cc =
         }
         
         // Get SMTP settings from database
-        global $pdo;
-        $smtp_settings = [];
-        $smtp_fields = ['smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'smtp_from_email', 'smtp_from_name', 'smtp_encryption'];
-        
-        foreach ($smtp_fields as $field) {
-            $stmt = $pdo->prepare("SELECT value FROM settings WHERE setting_name = ?");
-            $stmt->execute([$field]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            $smtp_settings[$field] = ($result) ? $result['value'] : '';
-        }
+        $smtp_settings = getSMTPSettings();
         
         // Check if required SMTP settings are configured
         if (empty($smtp_settings['smtp_host']) || empty($smtp_settings['smtp_port'])) {
@@ -960,6 +983,79 @@ function validate_cc_emails($cc_string) {
     }
     
     return $result;
+}
+
+/**
+ * Send password reset email to user
+ * Centralized function used by both forgot password and user management
+ * @param string $email User's email address
+ * @param string $username User's username (optional for personalization)
+ * @param int $user_id User ID (optional, will be looked up if not provided)
+ * @return array ['success' => bool, 'message' => string]
+ */
+function sendPasswordResetEmail($email, $username = null, $user_id = null) {
+    global $pdo;
+    
+    try {
+        // If user_id not provided, look up the user
+        if (!$user_id) {
+            $stmt = $pdo->prepare("SELECT user_id, username FROM users WHERE email = ?");
+            $stmt->execute([$email]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$user) {
+                return ['success' => false, 'message' => 'User not found.'];
+            }
+            
+            $user_id = $user['user_id'];
+            $username = $username ?: $user['username'];
+        }
+        
+        // Generate a unique token
+        $token = bin2hex(random_bytes(32));
+        
+        // Get token expiry time from config (default 24 hours)
+        $token_expiry_hours = defined('PASSWORD_RESET_EXPIRY_HOURS') ? PASSWORD_RESET_EXPIRY_HOURS : 24;
+        $expiry_date = date('Y-m-d H:i:s', strtotime("+{$token_expiry_hours} hours"));
+        
+        // Delete any existing tokens for the user
+        $stmt = $pdo->prepare("DELETE FROM password_reset_tokens WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+        
+        // Store the token in the database
+        $stmt = $pdo->prepare("INSERT INTO password_reset_tokens (user_id, token, expiry_date) VALUES (?, ?, ?)");
+        $stmt->execute([$user_id, $token, $expiry_date]);
+        
+        // Generate reset link
+        $reset_link = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . 
+                     "://{$_SERVER['HTTP_HOST']}/reset_password.php?token=" . urlencode($token);
+        
+        // Prepare email content
+        $subject = "Reset Your Rey CRM Password";
+        $body = "<html><body>
+                <h2>Password Reset Request</h2>
+                <p>Hello " . htmlspecialchars($username) . ",</p>
+                <p>We received a request to reset your password for your Rey CRM account. Click the link below to set a new password:</p>
+                <p><a href='{$reset_link}'>Reset Your Password</a></p>
+                <p>If you did not request this password reset, please ignore this email. The link will expire in {$token_expiry_hours} hours.</p>
+                <p>Thank you,<br>Rey CRM Team</p>
+                </body></html>";
+        $alt_body = "Hello {$username},\n\nWe received a request to reset your password for your Rey CRM account. Click the link below to set a new password:\n\n{$reset_link}\n\nIf you did not request this password reset, please ignore this email. The link will expire in {$token_expiry_hours} hours.\n\nThank you,\nRey CRM Team";
+        
+        // Send the email
+        $email_result = sendEmail($email, $subject, $body, $alt_body);
+        
+        if ($email_result['success']) {
+            return ['success' => true, 'message' => 'Password reset email sent successfully.'];
+        } else {
+            logError("Failed to send password reset email: " . $email_result['message']);
+            return ['success' => false, 'message' => 'Failed to send reset email: ' . $email_result['message']];
+        }
+        
+    } catch (Exception $e) {
+        logError("Password reset email failed: " . $e->getMessage());
+        return ['success' => false, 'message' => 'An error occurred while sending the reset email.'];
+    }
 }
 
 ?>

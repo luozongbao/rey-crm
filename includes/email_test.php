@@ -23,15 +23,7 @@ if (!filter_var($test_email, FILTER_VALIDATE_EMAIL)) {
 
 // Get SMTP settings from database
 try {
-    $smtp_settings = [];
-    $smtp_fields = ['smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'smtp_from_email', 'smtp_from_name', 'smtp_encryption'];
-    
-    foreach ($smtp_fields as $field) {
-        $stmt = $pdo->prepare("SELECT value FROM settings WHERE setting_name = ?");
-        $stmt->execute([$field]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        $smtp_settings[$field] = ($result) ? $result['value'] : '';
-    }
+    $smtp_settings = getSMTPSettings();
     
     // Check if required SMTP settings are configured
     if (empty($smtp_settings['smtp_host']) || empty($smtp_settings['smtp_port']) || 

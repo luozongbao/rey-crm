@@ -2278,3 +2278,77 @@ body.dark-mode .data-table td {
 body.dark-mode .data-table tr:hover {
   background-color: var(--header-dark);
 }
+
+/* User form specific styles */
+.user-form .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.user-form .form-note {
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    display: block;
+    font-style: italic;
+}
+
+.password-reset-section {
+    border-top: 1px solid #e0e0e0;
+    padding-top: 2rem;
+    margin-top: 2rem;
+    margin-bottom: 0;
+}
+
+.password-reset-section h3 {
+    color: #495057;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+}
+
+.delete-user-section {
+    border-top: 1px solid #e0e0e0;
+    padding-top: 2rem;
+    margin-top: 2rem;
+    text-align: left;
+    clear: both;
+}
+
+.delete-user-section h3 {
+    color: #dc3545;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+}
+
+.delete-warning {
+    color: #6c757d;
+    margin-bottom: 1.5rem;
+    font-style: italic;
+}
+
+.delete-user-btn {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+    margin-top: 0.5rem;
+}
+
+.delete-user-btn:hover {
+    background-color: #c82333 !important;
+    border-color: #bd2130 !important;
+}
+
+/* Dark mode support for user form */
+body.dark-mode .user-form .form-note {
+    color: #adb5bd;
+}
+
+body.dark-mode .password-reset-section {
+    border-top-color: var(--border-dark);
+}
+
+body.dark-mode .delete-user-section {
+    border-top-color: var(--border-dark);
+}
+
+body.dark-mode .password-reset-section h3 {
+    color: var(--text-dark);
+}

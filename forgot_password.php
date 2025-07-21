@@ -29,44 +29,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user = $stmt->fetch();
             
             if ($user) {
-                // Generate a unique token
-                $token = bin2hex(random_bytes(32));
+                // Use centralized function to send password reset email
+                $reset_result = sendPasswordResetEmail($email, $user['username'], $user['user_id']);
                 
-                // Get token expiry time from config (default 24 hours)
-                $token_expiry_hours = defined('PASSWORD_RESET_EXPIRY_HOURS') ? PASSWORD_RESET_EXPIRY_HOURS : 24;
-                $expiry_date = date('Y-m-d H:i:s', strtotime("+{$token_expiry_hours} hours"));
-                
-                // Delete any existing tokens for the user
-                $stmt = $pdo->prepare("DELETE FROM password_reset_tokens WHERE user_id = ?");
-                $stmt->execute([$user['user_id']]);
-                
-                // Store the token in the database
-                $stmt = $pdo->prepare("INSERT INTO password_reset_tokens (user_id, token, expiry_date) VALUES (?, ?, ?)");
-                $stmt->execute([$user['user_id'], $token, $expiry_date]);
-                
-                // Generate reset link
-                $reset_link = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://{$_SERVER['HTTP_HOST']}/reset_password.php?token=" . urlencode($token);
-                
-                // Prepare email content
-                $subject = "Reset Your Rey CRM Password";
-                $body = "<html><body>
-                        <h2>Password Reset Request</h2>
-                        <p>Hello {$user['username']},</p>
-                        <p>We received a request to reset your password for your Rey CRM account. Click the link below to set a new password:</p>
-                        <p><a href='{$reset_link}'>Reset Your Password</a></p>
-                        <p>If you did not request this password reset, please ignore this email. The link will expire in {$token_expiry_hours} hours.</p>
-                        <p>Thank you,<br>Rey CRM Team</p>
-                        </body></html>";
-                $alt_body = "Hello {$user['username']},\n\nWe received a request to reset your password for your Rey CRM account. Click the link below to set a new password:\n\n{$reset_link}\n\nIf you did not request this password reset, please ignore this email. The link will expire in {$token_expiry_hours} hours.\n\nThank you,\nRey CRM Team";
-                
-                // Send the email
-                $email_result = sendEmail($email, $subject, $body, $alt_body);
-                
-                if ($email_result['success']) {
+                if ($reset_result['success']) {
                     $message = "Password reset instructions have been sent to your email.";
                 } else {
-                    $error = "Failed to send reset email: " . $email_result['message'];
-                    logError("Failed to send password reset email: " . $email_result['message']);
+                    $error = "Failed to send reset email: " . $reset_result['message'];
                 }
             } else {
                 // For security reasons, still display success message even if email doesn't exist

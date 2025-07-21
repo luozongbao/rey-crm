@@ -8,6 +8,12 @@ requireAdmin(); // Only admins can access settings
 $message = '';
 $error = '';
 
+// Check for session messages
+if (isset($_SESSION['message'])) {
+    $message = $_SESSION['message'];
+    unset($_SESSION['message']);
+}
+
 // Handle database export
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_db'])) {
     try {
@@ -137,30 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_pagination']))
     }
 }
 
-// Handle user management form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manage_user'])) {
-    $username = trim($_POST['username']);
-    $email = trim($_POST['email']);
-    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-    $role = $_POST['role'];
-    
-    try {
-        if ($_POST['action'] === 'add') {
-            $stmt = $pdo->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)");
-            if ($stmt->execute([$username, $email, $password, $role])) {
-                $message = "User added successfully!";
-            }
-        }
-    } catch (PDOException $e) {
-        if ($e->getCode() == 23000) { // Duplicate entry
-            $error = "Username or email already exists.";
-        } else {
-            $error = "Failed to add user: " . htmlspecialchars($e->getMessage());
-        }
-    }
-}
-
-// Handle delete user action
+// Handle delete user action (legacy - now handled in user_form.php)
 if (isset($_GET['action']) && $_GET['action'] === 'delete_user' && isset($_GET['user_id'])) {
     $user_id = intval($_GET['user_id']);
     
@@ -245,15 +228,7 @@ try {
     $items_per_page = ($stmt && $stmt->rowCount() > 0) ? $stmt->fetch(PDO::FETCH_ASSOC)['value'] : 10;
     
     // Get SMTP settings
-    $smtp_settings = [];
-    $smtp_fields = ['smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'smtp_from_email', 'smtp_from_name', 'smtp_encryption'];
-    
-    foreach ($smtp_fields as $field) {
-        $stmt = $pdo->prepare("SELECT value FROM settings WHERE setting_name = ?");
-        $stmt->execute([$field]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        $smtp_settings[$field] = ($result) ? $result['value'] : '';
-    }
+    $smtp_settings = getSMTPSettings();
     
     // Set defaults if empty
     if (empty($smtp_settings['smtp_port'])) $smtp_settings['smtp_port'] = 587;
@@ -393,36 +368,12 @@ require_once 'includes/header.php';
 
 <div class="settings-section">
     <h3>User Management</h3>
-    <form method="POST" action="" class="user-form">
-        <input type="hidden" name="manage_user" value="1">
-        <div class="form-group">
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required>
-        </div>
-        
-        <div class="form-group">
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required>
-        </div>
-        
-        <div class="form-group">
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
-        </div>
-        
-        <div class="form-group">
-            <label for="role">Role:</label>
-            <select id="role" name="role" required>
-                <option value="user">User</option>
-                <option value="admin">Admin</option>
-            </select>
-        </div>
-        <input type="hidden" name="action" value="add">
-        <button type="submit" class="btn">Add User</button>
-    </form>
+    
+    <div class="form-actions">
+        <a href="user_form.php" class="btn btn-primary">Add New User</a>
+    </div>
 
     <?php if (!empty($users)): ?>
-    <hr class="section-divider">
     <div class="users-list">
         <h4>Current Users</h4>
         <table class="users-table">
@@ -443,10 +394,6 @@ require_once 'includes/header.php';
                     <td>
                         <button class="btn btn-small" 
                                 onclick="editUser(<?php echo $user['user_id']; ?>)">Edit</button>
-                        <?php if ($user['user_id'] != $_SESSION['user_id']): ?>
-                        <button class="btn btn-small btn-danger" 
-                                onclick="deleteUser(<?php echo $user['user_id']; ?>)">Delete</button>
-                        <?php endif; ?>
                     </td>
                 </tr>
                 <?php endforeach; ?>
@@ -691,8 +638,8 @@ function deleteUser(userId) {
 }
 
 function editUser(userId) {
-    // Redirect to a user edit page or show modal
-    window.location.href = "settings.php?action=edit_user&user_id=" + userId;
+    // Redirect to user form page
+    window.location.href = "user_form.php?id=" + userId;
 }
 
 // Email testing functionality

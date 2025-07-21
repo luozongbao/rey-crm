@@ -114,13 +114,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {
     
     if (empty($errors)) {
         try {
-            // Get SMTP settings from the settings table
-            $smtp_settings = [];
-            $stmt = $pdo->prepare("SELECT setting_name, value FROM settings WHERE setting_name LIKE 'smtp_%'");
-            $stmt->execute();
-            while ($row = $stmt->fetch()) {
-                $smtp_settings[$row['setting_name']] = $row['value'];
-            }
+            // Get SMTP settings from the centralized function
+            $smtp_settings = getSMTPSettings();
             
             // Create PHPMailer instance
             $mail = new PHPMailer(true);
