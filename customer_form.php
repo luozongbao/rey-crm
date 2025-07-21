@@ -27,6 +27,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
         'notes' => $_POST['notes'] ?? null
     ];
     
+    // Validate email if provided
+    if (!empty($data['contact_email'])) {
+        $email_validation = validate_cc_emails($data['contact_email']);
+        if (!$email_validation['valid']) {
+            die("Error: " . $email_validation['message']);
+        }
+    }
+    
     global $pdo;
     
     try {
@@ -165,9 +173,11 @@ require_once 'includes/header.php';
             <div class="form-row">
                 <div class="form-group half-width">
                     <label for="contact_email">Contact Email:</label>
-                    <input type="email" id="contact_email" name="contact_email" 
+                    <input type="text" id="contact_email" name="contact_email" 
                            value="<?php echo $customer ? htmlspecialchars($customer['contact_email']) : ''; ?>"
+                           placeholder="Enter multiple emails separated by commas or semicolons"
                            <?php echo $isViewMode ? 'disabled' : ''; ?>>
+                    <small class="form-text">Enter multiple email addresses separated by commas (,) or semicolons (;)</small>
                 </div>
                 <div class="form-group half-width">
                     <label for="website">Website:</label>
@@ -289,4 +299,112 @@ require_once 'includes/header.php';
         </div>
         <?php endif; ?>
     </div>
+
+<script>
+// Email validation for contact_email field
+document.addEventListener('DOMContentLoaded', function() {
+    const contactEmailInput = document.getElementById('contact_email');
+    
+    if (contactEmailInput && !contactEmailInput.disabled) {
+        contactEmailInput.addEventListener('blur', function() {
+            validateEmailField(this);
+        });
+
+        contactEmailInput.addEventListener('input', function() {
+            // Clear any existing validation styles when user starts typing
+            this.classList.remove('is-invalid', 'is-valid');
+            const feedback = document.getElementById('contact-email-feedback');
+            if (feedback) {
+                feedback.remove();
+            }
+        });
+    }
+});
+
+function validateEmailField(input) {
+    const emailValue = input.value.trim();
+    
+    // Remove existing feedback
+    const existingFeedback = document.getElementById('contact-email-feedback');
+    if (existingFeedback) {
+        existingFeedback.remove();
+    }
+    
+    if (emailValue === '') {
+        input.classList.remove('is-invalid', 'is-valid');
+        return;
+    }
+    
+    // Split by both comma and semicolon
+    const emails = emailValue.split(/[,;]/).map(email => email.trim()).filter(email => email !== '');
+    const validEmails = [];
+    const invalidEmails = [];
+    
+    emails.forEach(email => {
+        if (isValidEmail(email)) {
+            validEmails.push(email);
+        } else {
+            invalidEmails.push(email);
+        }
+    });
+    
+    // Create feedback element
+    const feedback = document.createElement('div');
+    feedback.id = 'contact-email-feedback';
+    feedback.className = 'form-feedback';
+    
+    if (invalidEmails.length > 0) {
+        input.classList.add('is-invalid');
+        input.classList.remove('is-valid');
+        feedback.className += ' invalid-feedback';
+        feedback.textContent = `Invalid email${invalidEmails.length > 1 ? 's' : ''}: ${invalidEmails.join(', ')}`;
+    } else if (validEmails.length > 0) {
+        input.classList.add('is-valid');
+        input.classList.remove('is-invalid');
+        feedback.className += ' valid-feedback';
+        feedback.textContent = `${validEmails.length} valid email${validEmails.length > 1 ? 's' : ''} found`;
+    }
+    
+    input.parentNode.appendChild(feedback);
+}
+
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+</script>
+
+<style>
+/* Email validation styles */
+.form-control.is-valid {
+    border-color: #28a745;
+}
+
+.form-control.is-invalid {
+    border-color: #dc3545;
+}
+
+.valid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #28a745;
+}
+
+.invalid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #dc3545;
+}
+
+.form-text {
+    font-size: 0.875em;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+</style>
+
 <?php require_once 'includes/footer.php'; ?>
