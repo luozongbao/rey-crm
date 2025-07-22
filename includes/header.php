@@ -16,6 +16,7 @@ if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) !== 'login.ph
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rey CRM</title>
     <link rel="stylesheet" href="/assets/css/style.css">
+    <script src="/assets/js/timezone.js?v=2.0" defer></script>
 </head>
 <body>
     <header class="main-header">

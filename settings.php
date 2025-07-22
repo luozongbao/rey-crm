@@ -202,8 +202,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_smtp'])) {
             
             if ($stmt->rowCount() > 0) {
                 // Update existing setting
-                $stmt = $pdo->prepare("UPDATE settings SET value = ?, updated_at = NOW() WHERE setting_name = ?");
-                $stmt->execute([$value, $setting_name]);
+                $stmt = $pdo->prepare("UPDATE settings SET value = ?, updated_at = ? WHERE setting_name = ?");
+                $stmt->execute([$value, getCurrentUTCDateTime(), $setting_name]);
             } else {
                 // Insert new setting
                 $stmt = $pdo->prepare("INSERT INTO settings (setting_name, value) VALUES (?, ?)");

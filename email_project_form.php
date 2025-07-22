@@ -83,8 +83,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             if ($is_edit) {
                 // Update existing project
-                $stmt = $pdo->prepare("UPDATE email_projects SET project_name = ?, cc = ?, subject = ?, message = ?, attachments = ?, updated_at = NOW() WHERE project_id = ?");
-                $stmt->execute([$project_name, $cc, $subject, $message, $attachments, $project_id]);
+                $stmt = $pdo->prepare("UPDATE email_projects SET project_name = ?, cc = ?, subject = ?, message = ?, attachments = ?, updated_at = ? WHERE project_id = ?");
+                $stmt->execute([$project_name, $cc, $subject, $message, $attachments, getCurrentUTCDateTime(), $project_id]);
                 $success_message = 'Email project updated successfully';
             } else {
                 // Create new project

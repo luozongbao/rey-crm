@@ -64,11 +64,11 @@ function getUpcomingFollowups($limit = 5) {
                               FROM action_history ah
                               JOIN customers c ON ah.customer_id = c.customer_id
                               LEFT JOIN contact_persons cp ON ah.contact_id = cp.contact_id
-                              WHERE ah.follow_up_datetime >= NOW()
+                              WHERE ah.follow_up_datetime >= ?
                               ORDER BY ah.follow_up_datetime ASC
                               LIMIT :limit");
         $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
-        $stmt->execute();
+        $stmt->execute([getCurrentUTCDateTime()]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         error_log("Error getting upcoming followups: " . $e->getMessage());
@@ -178,8 +178,8 @@ function getContactStats() {
 function updateLastContactedDate($customer_id) {
     global $pdo;
     try {
-        $stmt = $pdo->prepare("UPDATE customers SET last_contacted_date = CURRENT_TIMESTAMP WHERE customer_id = ?");
-        return $stmt->execute([$customer_id]);
+        $stmt = $pdo->prepare("UPDATE customers SET last_contacted_date = ? WHERE customer_id = ?");
+        return $stmt->execute([getCurrentUTCDateTime(), $customer_id]);
     } catch (PDOException $e) {
         // Log the error but don't stop execution
         error_log("Error updating last contacted date: " . $e->getMessage());
@@ -846,13 +846,14 @@ function cleanupExpiredTokens() {
         $pdo->beginTransaction();
         
         // Count how many expired tokens we have
-        $countStmt = $pdo->query("SELECT COUNT(*) FROM password_reset_tokens WHERE expiry_date < NOW()");
+        $countStmt = $pdo->prepare("SELECT COUNT(*) FROM password_reset_tokens WHERE expiry_date < ?");
+        $countStmt->execute([getCurrentUTCDateTime()]);
         $expired = $countStmt->fetchColumn();
         
         if ($expired > 0) {
             // Delete expired tokens
-            $stmt = $pdo->prepare("DELETE FROM password_reset_tokens WHERE expiry_date < NOW()");
-            $stmt->execute();
+            $stmt = $pdo->prepare("DELETE FROM password_reset_tokens WHERE expiry_date < ?");
+            $stmt->execute([getCurrentUTCDateTime()]);
             $deleted = $stmt->rowCount();
             
             // Log the cleanup
@@ -1080,6 +1081,156 @@ function sendPasswordResetEmail($email, $username = null, $user_id = null) {
         logError("Password reset email failed: " . $e->getMessage());
         return ['success' => false, 'message' => 'An error occurred while sending the reset email.'];
     }
+}
+
+/**
+ * Get user's preferred timezone from session, cookie, or default
+ * @return string Timezone identifier
+ */
+function getUserTimezone() {
+    // Try to get timezone from session first
+    if (isset($_SESSION['user_timezone'])) {
+        return $_SESSION['user_timezone'];
+    }
+    
+    // Try to get timezone from cookie
+    if (isset($_COOKIE['user_timezone'])) {
+        $timezone = $_COOKIE['user_timezone'];
+        // Validate timezone
+        if (in_array($timezone, timezone_identifiers_list())) {
+            $_SESSION['user_timezone'] = $timezone; // Cache in session
+            return $timezone;
+        }
+    }
+    
+    // Default timezone - can be configured
+    return getDefaultTimezone();
+}
+
+/**
+ * Get default system timezone - can be configured in settings
+ * @return string Default timezone identifier
+ */
+function getDefaultTimezone() {
+    // Try to get from database settings first
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare("SELECT value FROM settings WHERE setting_name = 'default_timezone' LIMIT 1");
+        $stmt->execute();
+        $result = $stmt->fetch();
+        if ($result && in_array($result['value'], timezone_identifiers_list())) {
+            return $result['value'];
+        }
+    } catch (Exception $e) {
+        // Fall through to default
+    }
+    
+    // Fallback to Asia/Bangkok for existing installations
+    return 'Asia/Bangkok';
+}
+
+/**
+ * Set user's timezone preference
+ * @param string $timezone Timezone identifier
+ * @return bool Success status
+ */
+function setUserTimezone($timezone) {
+    // Validate timezone
+    if (!in_array($timezone, timezone_identifiers_list())) {
+        return false;
+    }
+    
+    // Set in session
+    $_SESSION['user_timezone'] = $timezone;
+    
+    // Set cookie for 30 days
+    setcookie('user_timezone', $timezone, time() + (30 * 24 * 60 * 60), '/');
+    
+    return true;
+}
+
+/**
+ * Get current UTC datetime for database storage
+ * @return string UTC datetime in 'Y-m-d H:i:s' format
+ */
+function getCurrentUTCDateTime() {
+    return gmdate('Y-m-d H:i:s');
+}
+
+/**
+ * Convert local datetime to UTC for database storage
+ * @param string $localDateTime Local datetime string
+ * @param string $timezone Source timezone (if null, uses user's timezone)
+ * @return string UTC datetime in 'Y-m-d H:i:s' format
+ */
+function convertToUTC($localDateTime, $timezone = null) {
+    if (empty($localDateTime)) {
+        return null;
+    }
+    
+    // Use user's timezone if not specified
+    if ($timezone === null) {
+        $timezone = getUserTimezone();
+    }
+    
+    try {
+        // Create DateTime object with source timezone
+        $dt = new DateTime($localDateTime, new DateTimeZone($timezone));
+        
+        // Convert to UTC
+        $dt->setTimezone(new DateTimeZone('UTC'));
+        
+        return $dt->format('Y-m-d H:i:s');
+    } catch (Exception $e) {
+        // Fallback: assume input is already UTC or use current UTC time
+        return getCurrentUTCDateTime();
+    }
+}
+
+/**
+ * Format datetime for display with timezone conversion
+ * @param string $datetime Database datetime string (UTC)
+ * @param string $format Display format (default: 'Y-m-d H:i:s')
+ * @param string $timezone Target timezone (if null, uses user's timezone)
+ * @return string Formatted datetime string
+ */
+function formatDateTime($datetime, $format = 'Y-m-d H:i:s', $timezone = null) {
+    if (empty($datetime) || $datetime === '0000-00-00 00:00:00') {
+        return '-';
+    }
+    
+    // Use user's timezone if not specified
+    if ($timezone === null) {
+        $timezone = getUserTimezone();
+    }
+    
+    try {
+        // Create DateTime object from database datetime (assumed to be UTC)
+        $dt = new DateTime($datetime, new DateTimeZone('UTC'));
+        
+        // Convert to target timezone
+        $dt->setTimezone(new DateTimeZone($timezone));
+        
+        return $dt->format($format);
+    } catch (Exception $e) {
+        // Fallback to original datetime if conversion fails
+        return $datetime;
+    }
+}
+
+/**
+ * Format datetime for compact display (used in tables)
+ * @param string $datetime Database datetime string (UTC)
+ * @param string $timezone Target timezone (if null, uses user's timezone)
+ * @return string Formatted datetime string (e.g., "07/22/25 9:16 AM")
+ */
+function formatDateTimeCompact($datetime, $timezone = null) {
+    // Use user's timezone if not specified
+    if ($timezone === null) {
+        $timezone = getUserTimezone();
+    }
+    
+    return formatDateTime($datetime, 'm/d/y g:i A', $timezone);
 }
 
 ?>

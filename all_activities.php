@@ -136,7 +136,7 @@ require_once 'includes/header.php';
                     </td>
                     <td><span class="status-badge status-<?= strtolower(str_replace(' ', '-', $activity['customer_status'])) ?>"><?= htmlspecialchars($activity['customer_status']) ?></span></td>
                     <td><?= htmlspecialchars($activity['action']) ?></td>
-                    <td class="datetime"><?= $activity['action_datetime'] ?></td>
+                    <td class="datetime"><?= formatDateTimeCompact($activity['action_datetime']) ?></td>
                     <td><?= htmlspecialchars($activity['response']) ?></td>
                 </tr>
                 <?php endforeach; ?>

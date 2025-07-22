@@ -89,7 +89,7 @@ include 'includes/header.php';
                                     </td>
                                     <td><?php echo htmlspecialchars($project['subject']); ?></td>
                                     <td><?php echo htmlspecialchars($project['cc'] ?: '-'); ?></td>
-                                    <td><?php echo date('M j, Y', strtotime($project['created_at'])); ?></td>
+                                    <td><?php echo formatDateTimeCompact($project['created_at']); ?></td>
                                     <td class="actions">
                                         <a href="email_project_form.php?id=<?php echo $project['project_id']; ?>" 
                                            class="btn btn-sm btn-secondary" title="Edit">

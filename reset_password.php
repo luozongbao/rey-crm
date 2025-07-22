@@ -48,9 +48,9 @@ if (!empty($token)) {
                 SELECT t.id, t.user_id, u.username, u.email 
                 FROM password_reset_tokens t
                 JOIN users u ON t.user_id = u.user_id
-                WHERE t.token = ? AND t.used = 0 AND t.expiry_date > NOW()
+                WHERE t.token = ? AND t.used = 0 AND t.expiry_date > ?
             ");
-            $stmt->execute([$token]);
+            $stmt->execute([$token, getCurrentUTCDateTime()]);
             $token_data = $stmt->fetch();
             
             if ($token_data) {

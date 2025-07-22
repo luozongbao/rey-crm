@@ -29,8 +29,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             if ($user && password_verify($password, $user['password'])) {
                 // Update last login time
-                $updateStmt = $pdo->prepare("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE user_id = ?");
-                $updateStmt->execute([$user['user_id']]);
+                $updateStmt = $pdo->prepare("UPDATE users SET last_login = ? WHERE user_id = ?");
+                $updateStmt->execute([getCurrentUTCDateTime(), $user['user_id']]);
                 
                 // Set session variables
                 $_SESSION['user_id'] = $user['user_id'];

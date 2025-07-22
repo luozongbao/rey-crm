@@ -141,7 +141,7 @@ require_once 'includes/header.php';
                         </span>
                     </td>
                     <td><?= htmlspecialchars($followup['action']) ?></td>
-                    <td class="datetime"><?= $followup['follow_up_datetime'] ?></td>
+                    <td class="datetime"><?= formatDateTimeCompact($followup['follow_up_datetime']) ?></td>
                     <td><?= htmlspecialchars($followup['next_step']) ?></td>
                 </tr>
                 <?php endforeach; ?>

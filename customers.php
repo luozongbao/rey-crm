@@ -191,7 +191,7 @@ require_once 'includes/header.php';
                             echo htmlspecialchars($customer['province'] . ', ' . $customer['country']);
                         }
                     ?></td>
-                    <td><?php echo $customer['last_contact'] ? date('Y-m-d H:i', strtotime($customer['last_contact'])) : 'Never'; ?></td>
+                    <td><?php echo $customer['last_contact'] ? formatDateTimeCompact($customer['last_contact']) : 'Never'; ?></td>
                     <td><span class="status-badge status-<?php echo str_replace(' ', '', strtolower($customer['status'])); ?>">
                         <?php echo htmlspecialchars($customer['status']); ?>
                     </span></td>

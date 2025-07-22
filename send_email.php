@@ -205,9 +205,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {
             $stmt = $pdo->prepare("
                 INSERT INTO sent_email_history 
                 (sent_datetime, to_email, cc, project_id, subject, attachments) 
-                VALUES (NOW(), ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([
+                getCurrentUTCDateTime(),  // Use UTC timestamp instead of NOW()
                 $to_email,
                 $email_cc,
                 $project_id,

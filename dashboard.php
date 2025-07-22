@@ -163,7 +163,7 @@ require_once 'includes/header.php';
                         <tr>
                             <td><?php echo htmlspecialchars($followup['company_name']); ?></td>
                             <td><?php echo htmlspecialchars($followup['contact_name'] ?? 'N/A'); ?></td>
-                            <td><?php echo date('Y-m-d H:i', strtotime($followup['follow_up_datetime'])); ?></td>
+                            <td><?php echo formatDateTime($followup['follow_up_datetime']); ?></td>
                             <td><?php echo htmlspecialchars($followup['next_step']); ?></td>
                         </tr>
                         <?php endforeach; ?>
@@ -180,7 +180,7 @@ require_once 'includes/header.php';
                     <?php foreach ($recentActivities as $activity): ?>
                     <div class="timeline-item">
                         <div class="timeline-date">
-                            <?php echo date('Y-m-d H:i', strtotime($activity['action_datetime'])); ?>
+                            <?php echo formatDateTime($activity['action_datetime']); ?>
                         </div>
                         <div class="timeline-content">
                             <h3><?php echo htmlspecialchars($activity['company_name']); ?></h3>

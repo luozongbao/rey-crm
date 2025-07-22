@@ -136,7 +136,7 @@ include 'includes/header.php';
                                 <tr>
                                     <td class="datetime-col">
                                         <div class="datetime-compact">
-                                            <?php echo date('m/d/y g:i A', strtotime($email['sent_datetime'])); ?>
+                                            <?php echo formatDateTimeCompact($email['sent_datetime']); ?>
                                         </div>
                                     </td>
                                     <td>
