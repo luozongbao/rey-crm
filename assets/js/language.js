@@ -10,8 +10,8 @@ function switchLanguage(langCode) {
     // Set language preference in cookie
     document.cookie = `language=${langCode}; path=/; max-age=${30 * 24 * 60 * 60}`;
     
-    // Reload page to apply new language
-    window.location.reload();
+    // Redirect with language parameter to ensure immediate effect
+    window.location.href = window.location.pathname + '?lang=' + langCode;
 }
 
 /**

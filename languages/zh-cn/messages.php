@@ -1,18 +1,37 @@
 <?php
 return [
-    // Application name
-    'rey_crm' => 'Rey CRM',
+    // Applicatio    // Dashboard
+    'crm_dashboard' => 'CRM 仪表板',
+    'total_customers' => '客户总数',
+    'contact_status' => '联系状态',
+    'contacted' => '已联系',
+    'not_contacted' => '未联系',
+    'recent_activities' => '最近活动',
+    'upcoming_followups' => '即将到来的跟进',
+    'location_stats' => '地区统计',
+    'last_contacted_customer' => '最后联系的客户',
+    'customer_locations' => '客户分布',
+    'no_contact_history' => '未找到联系记录',
+    'customers_in_location' => '{location}地区有{count}个客户',
+    'view_all_followups' => '查看所有跟进',
+    'view_all_activities' => '查看所有活动',
+    'contact' => '联系人',
+    'next_step' => '下一步', 'rey_crm' => 'Rey CRM',
     'rey_crm_dashboard' => 'Rey CRM 仪表板',
     
     // Navigation
     'dashboard' => '仪表板',
     'customers' => '客户管理',
     'all_activities' => '所有活动',
+    'followups' => '跟进事项',
     'email_projects' => '邮件项目',
     'settings' => '设置',
     'profile' => '个人资料',
     'logout' => '退出登录',
     'open_menu' => '打开菜单',
+    'my_profile' => '我的资料',
+    'toggle_dark_mode' => '切换暗色模式',
+    'select_language' => '选择语言',
     
     // Login page
     'login' => '登录',

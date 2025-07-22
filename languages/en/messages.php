@@ -8,11 +8,15 @@ return [
     'dashboard' => 'Dashboard',
     'customers' => 'Customers',
     'all_activities' => 'All Activities',
+    'followups' => 'Follow-ups',
     'email_projects' => 'Email Projects',
     'settings' => 'Settings',
     'profile' => 'Profile',
     'logout' => 'Logout',
     'open_menu' => 'Open menu',
+    'my_profile' => 'My Profile',
+    'toggle_dark_mode' => 'Toggle dark mode',
+    'select_language' => 'Select Language',
     
     // Login page
     'login' => 'Login',
@@ -36,6 +40,13 @@ return [
     'upcoming_followups' => 'Upcoming Follow-ups',
     'location_stats' => 'Location Statistics',
     'last_contacted_customer' => 'Last Contacted Customer',
+    'customer_locations' => 'Customer Locations',
+    'no_contact_history' => 'No contact history found',
+    'customers_in_location' => '{count} customers in {location}',
+    'view_all_followups' => 'View All Follow-ups',
+    'view_all_activities' => 'View All Activities',
+    'contact' => 'Contact',
+    'next_step' => 'Next Step',
     
     // Customer management
     'add_customer' => 'Add Customer',

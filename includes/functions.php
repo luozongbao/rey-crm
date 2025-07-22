@@ -1246,16 +1246,24 @@ function initLanguage() {
     }
     
     // Get language from various sources (priority order)
-    $lang = $_GET['lang'] ?? $_SESSION['language'] ?? $_COOKIE['language'] ?? getDefaultLanguage();
+    // 1. GET parameter (highest priority - for manual switching)
+    // 2. COOKIE (persistent preference)
+    // 3. SESSION (current session)
+    // 4. Default language (fallback)
+    $lang = $_GET['lang'] ?? $_COOKIE['language'] ?? $_SESSION['language'] ?? getDefaultLanguage();
     
     // Validate language
     if (!isLanguageAvailable($lang)) {
         $lang = getDefaultLanguage();
     }
     
-    // Store in session and cookie
+    // Store in session
     $_SESSION['language'] = $lang;
-    setcookie('language', $lang, time() + (86400 * 30), '/'); // 30 days
+    
+    // Only set cookie if headers haven't been sent
+    if (!headers_sent()) {
+        setcookie('language', $lang, time() + (86400 * 30), '/'); // 30 days
+    }
     
     return $lang;
 }
@@ -1265,10 +1273,23 @@ function initLanguage() {
  */
 function getAvailableLanguages() {
     static $available_languages = null;
-    static $default_language = null;
     
     if ($available_languages === null) {
-        require __DIR__ . '/../languages/config.php';
+        $config_file = __DIR__ . '/../languages/config.php';
+        if (file_exists($config_file)) {
+            include $config_file;
+            // $available_languages is now set from the config file
+        } else {
+            // Fallback if config file doesn't exist
+            $available_languages = [
+                'en' => [
+                    'name' => 'English',
+                    'native_name' => 'English',
+                    'flag' => '🇺🇸',
+                    'direction' => 'ltr'
+                ]
+            ];
+        }
     }
     
     return $available_languages;
@@ -1281,7 +1302,14 @@ function getDefaultLanguage() {
     static $default_language = null;
     
     if ($default_language === null) {
-        require __DIR__ . '/../languages/config.php';
+        $config_file = __DIR__ . '/../languages/config.php';
+        if (file_exists($config_file)) {
+            include $config_file;
+            // $default_language is now set from the config file
+        } else {
+            // Fallback if config file doesn't exist
+            $default_language = 'en';
+        }
     }
     
     return $default_language;
@@ -1335,10 +1363,14 @@ function loadLanguageMessages($lang) {
  */
 function __($key, $params = []) {
     static $messages = null;
+    static $last_language = null;
     
-    if ($messages === null) {
-        $lang = $_SESSION['language'] ?? getDefaultLanguage();
-        $messages = loadLanguageMessages($lang);
+    $current_lang = $_SESSION['language'] ?? getDefaultLanguage();
+    
+    // Reload messages if language changed or not loaded yet
+    if ($messages === null || $last_language !== $current_lang) {
+        $messages = loadLanguageMessages($current_lang);
+        $last_language = $current_lang;
     }
     
     $text = $messages[$key] ?? $key;
