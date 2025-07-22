@@ -1233,4 +1233,192 @@ function formatDateTimeCompact($datetime, $timezone = null) {
     return formatDateTime($datetime, 'm/d/y g:i A', $timezone);
 }
 
+// ============================================================================
+// LANGUAGE FUNCTIONS (Multilanguage Support)
+// ============================================================================
+
+/**
+ * Initialize language system
+ */
+function initLanguage() {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    // Get language from various sources (priority order)
+    $lang = $_GET['lang'] ?? $_SESSION['language'] ?? $_COOKIE['language'] ?? getDefaultLanguage();
+    
+    // Validate language
+    if (!isLanguageAvailable($lang)) {
+        $lang = getDefaultLanguage();
+    }
+    
+    // Store in session and cookie
+    $_SESSION['language'] = $lang;
+    setcookie('language', $lang, time() + (86400 * 30), '/'); // 30 days
+    
+    return $lang;
+}
+
+/**
+ * Get available languages
+ */
+function getAvailableLanguages() {
+    static $available_languages = null;
+    static $default_language = null;
+    
+    if ($available_languages === null) {
+        require __DIR__ . '/../languages/config.php';
+    }
+    
+    return $available_languages;
+}
+
+/**
+ * Get default language
+ */
+function getDefaultLanguage() {
+    static $default_language = null;
+    
+    if ($default_language === null) {
+        require __DIR__ . '/../languages/config.php';
+    }
+    
+    return $default_language;
+}
+
+/**
+ * Check if language is available
+ */
+function isLanguageAvailable($lang) {
+    $available = getAvailableLanguages();
+    return isset($available[$lang]);
+}
+
+/**
+ * Load language messages
+ */
+function loadLanguageMessages($lang) {
+    static $loaded_messages = [];
+    
+    // Return cached messages if already loaded
+    if (isset($loaded_messages[$lang])) {
+        return $loaded_messages[$lang];
+    }
+    
+    $file = __DIR__ . "/../languages/{$lang}/messages.php";
+    if (file_exists($file)) {
+        $loaded_messages[$lang] = include $file;
+        return $loaded_messages[$lang];
+    }
+    
+    // Fallback to default language
+    $default = getDefaultLanguage();
+    if ($lang !== $default) {
+        $fallbackFile = __DIR__ . "/../languages/{$default}/messages.php";
+        if (file_exists($fallbackFile)) {
+            $loaded_messages[$lang] = include $fallbackFile;
+            return $loaded_messages[$lang];
+        }
+    }
+    
+    // Return empty array if no messages found
+    $loaded_messages[$lang] = [];
+    return $loaded_messages[$lang];
+}
+
+/**
+ * Translate function
+ * @param string $key Translation key
+ * @param array $params Parameters to replace in translation (e.g., ['{name}' => 'John'])
+ * @return string Translated text or original key if not found
+ */
+function __($key, $params = []) {
+    static $messages = null;
+    
+    if ($messages === null) {
+        $lang = $_SESSION['language'] ?? getDefaultLanguage();
+        $messages = loadLanguageMessages($lang);
+    }
+    
+    $text = $messages[$key] ?? $key;
+    
+    // Replace parameters
+    if (!empty($params)) {
+        foreach ($params as $param => $value) {
+            $text = str_replace($param, $value, $text);
+        }
+    }
+    
+    return $text;
+}
+
+/**
+ * Get current language
+ */
+function getCurrentLanguage() {
+    return $_SESSION['language'] ?? getDefaultLanguage();
+}
+
+/**
+ * Get current language info
+ */
+function getCurrentLanguageInfo() {
+    $lang = getCurrentLanguage();
+    $available = getAvailableLanguages();
+    return $available[$lang] ?? $available[getDefaultLanguage()];
+}
+
+/**
+ * Switch to a different language
+ * @param string $lang Language code
+ * @return bool Success status
+ */
+function switchLanguage($lang) {
+    if (!isLanguageAvailable($lang)) {
+        return false;
+    }
+    
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    $_SESSION['language'] = $lang;
+    setcookie('language', $lang, time() + (86400 * 30), '/'); // 30 days
+    
+    return true;
+}
+
+/**
+ * Get language-aware date format
+ */
+function getDateFormat($lang = null) {
+    if ($lang === null) {
+        $lang = getCurrentLanguage();
+    }
+    
+    switch ($lang) {
+        case 'zh-cn':
+            return 'Y年n月j日';
+        default:
+            return 'M j, Y';
+    }
+}
+
+/**
+ * Get language-aware datetime format
+ */
+function getDateTimeFormat($lang = null) {
+    if ($lang === null) {
+        $lang = getCurrentLanguage();
+    }
+    
+    switch ($lang) {
+        case 'zh-cn':
+            return 'Y年n月j日 H:i';
+        default:
+            return 'M j, Y g:i A';
+    }
+}
+
 ?>
