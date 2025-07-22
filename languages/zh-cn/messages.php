@@ -109,6 +109,16 @@ return [
     'info' => '信息',
     'loading' => '加载中...',
     'no_data' => '暂无数据',
+    
+    // Language preferences
+    'preferred_language' => '首选语言',
+    'preferred_language_help' => '这将是您登录时的默认语言',
+    'update_profile' => '更新资料',
+    'manage_account_settings' => '管理您的账户设置并更改密码',
+    'account_information' => '账户信息',
+    'email_address' => '邮箱地址',
+    'role' => '角色',
+    'username_readonly' => '用户名不能更改',
     'please_wait' => '请稍候...',
     'confirmation' => '确认',
     'are_you_sure' => '您确定吗？',

@@ -1238,19 +1238,33 @@ function formatDateTimeCompact($datetime, $timezone = null) {
 // ============================================================================
 
 /**
- * Initialize language system
+ * Initialize language system with user preference integration
  */
 function initLanguage() {
+    global $pdo;
+    
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
     
     // Get language from various sources (priority order)
     // 1. GET parameter (highest priority - for manual switching)
-    // 2. COOKIE (persistent preference)
-    // 3. SESSION (current session)
-    // 4. Default language (fallback)
-    $lang = $_GET['lang'] ?? $_COOKIE['language'] ?? $_SESSION['language'] ?? getDefaultLanguage();
+    // 2. User database preference (if logged in)
+    // 3. COOKIE (persistent preference)
+    // 4. SESSION (current session)
+    // 5. Default language (fallback)
+    
+    $lang = $_GET['lang'] ?? null;
+    
+    // If no GET parameter, try user preference from database
+    if (!$lang && isset($_SESSION['user_id'])) {
+        $lang = getUserLanguagePreference($_SESSION['user_id']);
+    }
+    
+    // Fall back to cookie/session/default
+    if (!$lang) {
+        $lang = $_COOKIE['language'] ?? $_SESSION['language'] ?? getDefaultLanguage();
+    }
     
     // Validate language
     if (!isLanguageAvailable($lang)) {
@@ -1263,6 +1277,11 @@ function initLanguage() {
     // Only set cookie if headers haven't been sent
     if (!headers_sent()) {
         setcookie('language', $lang, time() + (86400 * 30), '/'); // 30 days
+    }
+    
+    // Update user preference if language was changed via GET parameter
+    if (isset($_GET['lang']) && isset($_SESSION['user_id'])) {
+        updateUserLanguagePreference($_SESSION['user_id'], $lang);
     }
     
     return $lang;
@@ -1450,6 +1469,144 @@ function getDateTimeFormat($lang = null) {
             return 'Y年n月j日 H:i';
         default:
             return 'M j, Y g:i A';
+    }
+}
+
+// ============================================================================
+// USER LANGUAGE PREFERENCE FUNCTIONS (Phase 3)
+// ============================================================================
+
+/**
+ * Get user's language preference from database
+ * @param int $user_id User ID
+ * @return string|null Language code or null if not found
+ */
+function getUserLanguagePreference($user_id) {
+    global $pdo;
+    
+    try {
+        $stmt = $pdo->prepare("SELECT preferred_language FROM users WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+        $result = $stmt->fetchColumn();
+        
+        // Return the preference if it's a valid language
+        if ($result && isLanguageAvailable($result)) {
+            return $result;
+        }
+        
+        return null;
+    } catch (PDOException $e) {
+        logError("Error getting user language preference: " . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * Update user's language preference in database
+ * @param int $user_id User ID
+ * @param string $lang Language code
+ * @return bool Success status
+ */
+function updateUserLanguagePreference($user_id, $lang) {
+    global $pdo;
+    
+    // Validate language before saving
+    if (!isLanguageAvailable($lang)) {
+        return false;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("UPDATE users SET preferred_language = ? WHERE user_id = ?");
+        $result = $stmt->execute([$lang, $user_id]);
+        
+        if ($result) {
+            logError("User language preference updated: User $user_id changed to $lang");
+        }
+        
+        return $result;
+    } catch (PDOException $e) {
+        logError("Error updating user language preference: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Get system default language from database settings
+ * @return string Default language code
+ */
+function getSystemDefaultLanguage() {
+    global $pdo;
+    
+    try {
+        $stmt = $pdo->prepare("SELECT value FROM settings WHERE setting_name = 'default_language'");
+        $stmt->execute();
+        $result = $stmt->fetchColumn();
+        
+        if ($result && isLanguageAvailable($result)) {
+            return $result;
+        }
+        
+        // Fallback to hardcoded default
+        return getDefaultLanguage();
+    } catch (PDOException $e) {
+        logError("Error getting system default language: " . $e->getMessage());
+        return getDefaultLanguage();
+    }
+}
+
+/**
+ * Get available languages from database settings
+ * @return array Available language codes
+ */
+function getSystemAvailableLanguages() {
+    global $pdo;
+    
+    try {
+        $stmt = $pdo->prepare("SELECT value FROM settings WHERE setting_name = 'available_languages'");
+        $stmt->execute();
+        $result = $stmt->fetchColumn();
+        
+        if ($result) {
+            $languages = explode(',', $result);
+            // Filter out invalid languages
+            $validLanguages = [];
+            foreach ($languages as $lang) {
+                $lang = trim($lang);
+                if (isLanguageAvailable($lang)) {
+                    $validLanguages[] = $lang;
+                }
+            }
+            return $validLanguages;
+        }
+        
+        // Fallback to all available languages
+        return array_keys(getAvailableLanguages());
+    } catch (PDOException $e) {
+        logError("Error getting system available languages: " . $e->getMessage());
+        return array_keys(getAvailableLanguages());
+    }
+}
+
+/**
+ * Get language usage statistics
+ * @return array Language usage counts
+ */
+function getLanguageUsageStats() {
+    global $pdo;
+    
+    try {
+        $stmt = $pdo->query("
+            SELECT preferred_language, COUNT(*) as user_count 
+            FROM users 
+            WHERE preferred_language IS NOT NULL 
+            GROUP BY preferred_language 
+            ORDER BY user_count DESC
+        ");
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logError("Error getting language usage statistics: " . $e->getMessage());
+        return [];
     }
 }
 

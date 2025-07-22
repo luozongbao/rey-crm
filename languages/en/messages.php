@@ -101,6 +101,16 @@ return [
     'info' => 'Information',
     'loading' => 'Loading...',
     'no_data' => 'No data available',
+    
+    // Language preferences
+    'preferred_language' => 'Preferred Language',
+    'preferred_language_help' => 'This will be your default language when you log in',
+    'update_profile' => 'Update Profile',
+    'manage_account_settings' => 'Manage your account settings and change your password',
+    'account_information' => 'Account Information',
+    'email_address' => 'Email Address',
+    'role' => 'Role',
+    'username_readonly' => 'Username cannot be changed',
     'please_wait' => 'Please wait...',
     'confirmation' => 'Confirmation',
     'are_you_sure' => 'Are you sure?',
