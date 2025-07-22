@@ -56,8 +56,8 @@ require_once 'includes/header.php';
 ?>
     <div class="container">
         <div class="header">
-            <h1>Customer List</h1>
-            <a href="customer_form.php?action=add" class="btn">Add New Customer</a>
+            <h1><?php echo __('customer_list'); ?></h1>
+            <a href="customer_form.php?action=add" class="btn"><?php echo __('add_new_customer'); ?></a>
         </div>
 
         <script>
@@ -93,10 +93,10 @@ require_once 'includes/header.php';
                 <!-- Search Section -->
                 <div class="search-section">
                     <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" 
-                        placeholder="Search by company name or phone" class="search-input">
+                        placeholder="<?php echo __('search_placeholder'); ?>" class="search-input">
                     
                     <select name="location" class="location-select">
-                        <option value="">All Locations</option>
+                        <option value=""><?php echo __('all_locations'); ?></option>
                         <?php foreach ($locations as $loc): ?>
                         <option value="<?php echo htmlspecialchars($loc); ?>" 
                                 <?php echo $location === $loc ? 'selected' : ''; ?>>
@@ -105,23 +105,23 @@ require_once 'includes/header.php';
                         <?php endforeach; ?>
                     </select>
                     
-                    <button type="submit" name="apply_filter" class="btn apply-btn">Search</button>
-                    <a href="customers.php" class="btn reset-btn">Reset</a>
+                    <button type="submit" name="apply_filter" class="btn apply-btn"><?php echo __('search'); ?></button>
+                    <a href="customers.php" class="btn reset-btn"><?php echo __('reset'); ?></a>
                 </div>
                 
                 <!-- Sort Section -->
                 <div class="sort-section">
-                    <label class="sort-label">Sort by:</label>
+                    <label class="sort-label"><?php echo __('sort_by'); ?>:</label>
                     <select name="sort" class="sort-select">
-                        <option value="company_name" <?php echo $sort == 'company_name' ? 'selected' : ''; ?>>Name</option>
-                        <option value="address" <?php echo $sort == 'address' ? 'selected' : ''; ?>>Address</option>
-                        <option value="status" <?php echo $sort == 'status' ? 'selected' : ''; ?>>Status</option>
-                        <option value="created_at" <?php echo $sort == 'created_at' ? 'selected' : ''; ?>>Created</option>
+                        <option value="company_name" <?php echo $sort == 'company_name' ? 'selected' : ''; ?>><?php echo __('name'); ?></option>
+                        <option value="address" <?php echo $sort == 'address' ? 'selected' : ''; ?>><?php echo __('address'); ?></option>
+                        <option value="status" <?php echo $sort == 'status' ? 'selected' : ''; ?>><?php echo __('status'); ?></option>
+                        <option value="created_at" <?php echo $sort == 'created_at' ? 'selected' : ''; ?>><?php echo __('created_at'); ?></option>
                     </select>
                     
                     <select name="order" class="sort-select">
-                        <option value="asc" <?php echo $order == 'asc' ? 'selected' : ''; ?>>A-Z</option>
-                        <option value="desc" <?php echo $order == 'desc' ? 'selected' : ''; ?>>Z-A</option>
+                        <option value="asc" <?php echo $order == 'asc' ? 'selected' : ''; ?>><?php echo __('asc'); ?></option>
+                        <option value="desc" <?php echo $order == 'desc' ? 'selected' : ''; ?>><?php echo __('desc'); ?></option>
                     </select>
                 </div>
             </form>
@@ -132,8 +132,8 @@ require_once 'includes/header.php';
             <?php if ($totalPages > 1): ?>
             <div class="pagination">
                 <?php if ($page > 1): ?>
-                    <a href="?<?php echo buildQueryString(['page' => 1]); ?>" class="btn">First</a>
-                    <a href="?<?php echo buildQueryString(['page' => $page - 1]); ?>" class="btn">Previous</a>
+                    <a href="?<?php echo buildQueryString(['page' => 1]); ?>" class="btn"><?php echo __('first'); ?></a>
+                    <a href="?<?php echo buildQueryString(['page' => $page - 1]); ?>" class="btn"><?php echo __('previous'); ?></a>
                 <?php endif; ?>
                 
                 <?php 
@@ -150,8 +150,8 @@ require_once 'includes/header.php';
                 <?php endfor; ?>
                 
                 <?php if ($page < $totalPages): ?>
-                    <a href="?<?php echo buildQueryString(['page' => $page + 1]); ?>" class="btn">Next</a>
-                    <a href="?<?php echo buildQueryString(['page' => $totalPages]); ?>" class="btn">Last</a>
+                    <a href="?<?php echo buildQueryString(['page' => $page + 1]); ?>" class="btn"><?php echo __('next'); ?></a>
+                    <a href="?<?php echo buildQueryString(['page' => $totalPages]); ?>" class="btn"><?php echo __('last'); ?></a>
                 <?php endif; ?>
             </div>
             <?php endif; ?>
@@ -161,7 +161,7 @@ require_once 'includes/header.php';
                 // Calculate the current record range
                 $startRecord = ($page - 1) * $perPage + 1;
                 $endRecord = min($page * $perPage, $totalCustomers);
-                echo "Showing $startRecord - $endRecord of $totalCustomers records";
+                echo sprintf(__('showing_records'), $startRecord, $endRecord, $totalCustomers);
                 ?>
             </div>
         </div>
@@ -169,11 +169,11 @@ require_once 'includes/header.php';
         <table class="compact-table">
             <thead>
                 <tr>
-                    <th>Company Name</th>
-                    <th>Location</th>
-                    <th>Last Contact</th>
-                    <th>Status</th>
-                    <th>Actions</th>
+                    <th><?php echo __('company_name'); ?></th>
+                    <th><?php echo __('location'); ?></th>
+                    <th><?php echo __('last_contact'); ?></th>
+                    <th><?php echo __('status'); ?></th>
+                    <th><?php echo __('actions'); ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -182,7 +182,7 @@ require_once 'includes/header.php';
                     <td><?php echo htmlspecialchars($customer['company_name']); ?></td>
                     <td><?php 
                         if (empty($customer['province']) && empty($customer['country'])) {
-                            echo 'N/A';
+                            echo __('not_available');
                         } elseif (empty($customer['province'])) {
                             echo htmlspecialchars($customer['country']);
                         } elseif (empty($customer['country'])) {
@@ -191,13 +191,13 @@ require_once 'includes/header.php';
                             echo htmlspecialchars($customer['province'] . ', ' . $customer['country']);
                         }
                     ?></td>
-                    <td><?php echo $customer['last_contact'] ? formatDateTimeCompact($customer['last_contact']) : 'Never'; ?></td>
+                    <td><?php echo $customer['last_contact'] ? formatDateTimeCompact($customer['last_contact']) : __('never'); ?></td>
                     <td><span class="status-badge status-<?php echo str_replace(' ', '', strtolower($customer['status'])); ?>">
-                        <?php echo htmlspecialchars($customer['status']); ?>
+                        <?php echo htmlspecialchars(__($customer['status'])); ?>
                     </span></td>
                     <td>
-                        <a href="customer_form.php?action=view&id=<?php echo $customer['customer_id']; ?>" class="btn">View</a>
-                        <a href="customer_form.php?action=edit&id=<?php echo $customer['customer_id']; ?>" class="btn">Edit</a>
+                        <a href="customer_form.php?action=view&id=<?php echo $customer['customer_id']; ?>" class="btn"><?php echo __('view'); ?></a>
+                        <a href="customer_form.php?action=edit&id=<?php echo $customer['customer_id']; ?>" class="btn"><?php echo __('edit'); ?></a>
                     </td>
                 </tr>
                 <?php endforeach; ?>
@@ -209,8 +209,8 @@ require_once 'includes/header.php';
             <?php if ($totalPages > 1): ?>
             <div class="pagination">
                 <?php if ($page > 1): ?>
-                    <a href="?<?php echo buildQueryString(['page' => 1]); ?>" class="btn">First</a>
-                    <a href="?<?php echo buildQueryString(['page' => $page - 1]); ?>" class="btn">Previous</a>
+                    <a href="?<?php echo buildQueryString(['page' => 1]); ?>" class="btn"><?php echo __('first'); ?></a>
+                    <a href="?<?php echo buildQueryString(['page' => $page - 1]); ?>" class="btn"><?php echo __('previous'); ?></a>
                 <?php endif; ?>
                 
                 <?php 
@@ -227,8 +227,8 @@ require_once 'includes/header.php';
                 <?php endfor; ?>
                 
                 <?php if ($page < $totalPages): ?>
-                    <a href="?<?php echo buildQueryString(['page' => $page + 1]); ?>" class="btn">Next</a>
-                    <a href="?<?php echo buildQueryString(['page' => $totalPages]); ?>" class="btn">Last</a>
+                    <a href="?<?php echo buildQueryString(['page' => $page + 1]); ?>" class="btn"><?php echo __('next'); ?></a>
+                    <a href="?<?php echo buildQueryString(['page' => $totalPages]); ?>" class="btn"><?php echo __('last'); ?></a>
                 <?php endif; ?>
             </div>
             <?php endif; ?>
@@ -238,7 +238,7 @@ require_once 'includes/header.php';
                 // Calculate the current record range
                 $startRecord = ($page - 1) * $perPage + 1;
                 $endRecord = min($page * $perPage, $totalCustomers);
-                echo "Showing $startRecord - $endRecord of $totalCustomers records";
+                echo sprintf(__('showing_records'), $startRecord, $endRecord, $totalCustomers);
                 ?>
             </div>
         </div>

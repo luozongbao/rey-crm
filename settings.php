@@ -5,6 +5,7 @@ session_start();
 
 requireAdmin(); // Only admins can access settings
 
+$page_title = __('settings');
 $message = '';
 $error = '';
 
@@ -63,10 +64,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_db'])) {
             unlink($gzip_file);
             exit;
         } else {
-            throw new Exception("Database backup failed");
+            throw new Exception(__('database_backup_failed'));
         }
     } catch (Exception $e) {
-        $error = "Export failed: " . htmlspecialchars($e->getMessage());
+        $error = __('export_failed') . ': ' . htmlspecialchars($e->getMessage());
     }
 }
 
@@ -74,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_db'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_db'])) {
     try {
         if (!isset($_FILES['import_file']) || $_FILES['import_file']['error'] !== UPLOAD_ERR_OK) {
-            throw new Exception("No file uploaded or upload failed");
+            throw new Exception(__('no_file_uploaded'));
         }
 
         $file = $_FILES['import_file'];
@@ -84,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_db'])) {
         // Validate file type
         $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
         if (!in_array($ext, ['sql', 'gz'])) {
-            throw new Exception("Invalid file type. Only .sql and .gz files are allowed");
+            throw new Exception(__('invalid_file_type_sql'));
         }
 
         // Create a temporary file for processing
@@ -120,12 +121,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_db'])) {
         unlink($import_file);
 
         if ($return_var === 0) {
-            $message = "Database imported successfully!";
+            $message = __('database_imported_successfully');
         } else {
-            throw new Exception("Database import failed");
+            throw new Exception(__('database_import_failed'));
         }
     } catch (Exception $e) {
-        $error = "Import failed: " . htmlspecialchars($e->getMessage());
+        $error = __('import_failed') . ': ' . htmlspecialchars($e->getMessage());
     }
 }
 
@@ -136,9 +137,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_pagination']))
         try {
             $stmt = $pdo->prepare("UPDATE settings SET value = ? WHERE setting_name = 'items_per_page'");
             $stmt->execute([$items_per_page]);
-            $message = "Pagination settings updated successfully!";
+            $message = __('pagination_settings_updated');
         } catch (PDOException $e) {
-            $error = "Failed to update settings: " . htmlspecialchars($e->getMessage());
+            $error = __('failed_to_update_settings') . ': ' . htmlspecialchars($e->getMessage());
         }
     }
 }
@@ -213,11 +214,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_smtp'])) {
         
         // Commit transaction
         $pdo->commit();
-        $message = "SMTP settings updated successfully!";
+        $message = __('smtp_settings_updated_successfully');
     } catch (PDOException $e) {
         // Rollback on error
         $pdo->rollBack();
-        $error = "Failed to update SMTP settings: " . htmlspecialchars($e->getMessage());
+        $error = __('failed_to_update_smtp_settings') . ': ' . htmlspecialchars($e->getMessage());
     }
 }
 
@@ -242,7 +243,7 @@ try {
     $stmt = $pdo->query("SELECT user_id, username, email, role FROM users ORDER BY username");
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    $error = "Failed to fetch settings: " . htmlspecialchars($e->getMessage());
+    $error = __('failed_to_fetch_settings') . ': ' . htmlspecialchars($e->getMessage());
 }
 
 require_once 'includes/header.php';
@@ -250,8 +251,8 @@ require_once 'includes/header.php';
 
 <div class="container">
     <div class="header">
-        <h1>System Settings</h1>
-        <p>Manage system settings and user accounts.</p>
+        <h1><?= __('system_settings') ?></h1>
+        <p><?= __('manage_system_settings_users') ?></p>
     </div>
 
 
@@ -265,16 +266,16 @@ require_once 'includes/header.php';
 
 <div class="settings-row" style="display: flex; gap: 2rem; flex-wrap: wrap; margin-bottom: 20px;">
     <div class="settings-section" style="flex:1 1 320px; min-width:300px;">
-        <h3>Pagination Settings</h3>
+        <h3><?= __('pagination_settings') ?></h3>
         <form method="POST" action="">
             <div class="form-group">
-                <label for="items_per_page">Items per page:</label>
+                <label for="items_per_page"><?= __('items_per_page') ?>:</label>
                 <input type="number" id="items_per_page" name="items_per_page" 
                        value="<?php echo htmlspecialchars(
                            $items_per_page); ?>" 
                        min="1" max="100" required>
             </div>
-            <button type="submit" name="update_pagination" class="btn">Update Pagination</button>
+            <button type="submit" name="update_pagination" class="btn"><?= __('update_pagination') ?></button>
         </form>
     </div>
 
@@ -282,18 +283,18 @@ require_once 'includes/header.php';
 </div>
 
 <div class="settings-section">
-    <h3>Email Settings</h3>
+    <h3><?= __('email_settings') ?></h3>
     <form method="POST" action="">
         <div class="form-row">
             <div class="form-group half-width">
-                <label for="smtp_host">SMTP Host:</label>
+                <label for="smtp_host"><?= __('smtp_host') ?>:</label>
                 <input type="text" id="smtp_host" name="smtp_host" 
                        value="<?php echo htmlspecialchars($smtp_settings['smtp_host']); ?>" 
                        placeholder="e.g., smtp.gmail.com" required>
             </div>
             
             <div class="form-group half-width">
-                <label for="smtp_port">SMTP Port:</label>
+                <label for="smtp_port"><?= __('smtp_port') ?>:</label>
                 <input type="number" id="smtp_port" name="smtp_port" 
                        value="<?php echo htmlspecialchars($smtp_settings['smtp_port']); ?>" 
                        placeholder="e.g., 587" required>
@@ -302,30 +303,30 @@ require_once 'includes/header.php';
         
         <div class="form-row">
             <div class="form-group half-width">
-                <label for="smtp_username">SMTP Username:</label>
+                <label for="smtp_username"><?= __('smtp_username') ?>:</label>
                 <input type="text" id="smtp_username" name="smtp_username" 
                        value="<?php echo htmlspecialchars($smtp_settings['smtp_username']); ?>" 
-                       placeholder="Email address or username" required>
+                       placeholder="<?= __('email_address_or_username') ?>" required>
             </div>
             
             <div class="form-group half-width">
-                <label for="smtp_password">SMTP Password:</label>
+                <label for="smtp_password"><?= __('smtp_password') ?>:</label>
                 <input type="password" id="smtp_password" name="smtp_password" 
-                       placeholder="<?php echo !empty($smtp_settings['smtp_password']) ? 'Leave blank to keep current password' : 'Enter SMTP password'; ?>">
-                <small>Leave blank to keep existing password</small>
+                       placeholder="<?php echo !empty($smtp_settings['smtp_password']) ? __('leave_blank_to_keep_password') : __('enter_smtp_password'); ?>">
+                <small><?= __('leave_blank_keep_existing') ?></small>
             </div>
         </div>
         
         <div class="form-row">
             <div class="form-group half-width">
-                <label for="smtp_from_email">From Email:</label>
+                <label for="smtp_from_email"><?= __('from_email') ?>:</label>
                 <input type="email" id="smtp_from_email" name="smtp_from_email" 
                        value="<?php echo htmlspecialchars($smtp_settings['smtp_from_email']); ?>" 
                        placeholder="noreply@yourcompany.com" required>
             </div>
             
             <div class="form-group half-width">
-                <label for="smtp_from_name">From Name:</label>
+                <label for="smtp_from_name"><?= __('from_name') ?>:</label>
                 <input type="text" id="smtp_from_name" name="smtp_from_name" 
                        value="<?php echo htmlspecialchars($smtp_settings['smtp_from_name']); ?>" 
                        placeholder="Rey CRM" required>
@@ -333,17 +334,17 @@ require_once 'includes/header.php';
         </div>
         
         <div class="form-group">
-            <label for="smtp_encryption">Encryption:</label>
+            <label for="smtp_encryption"><?= __('encryption') ?>:</label>
             <select id="smtp_encryption" name="smtp_encryption" required>
                 <option value="tls" <?php echo $smtp_settings['smtp_encryption'] === 'tls' ? 'selected' : ''; ?>>TLS</option>
                 <option value="ssl" <?php echo $smtp_settings['smtp_encryption'] === 'ssl' ? 'selected' : ''; ?>>SSL</option>
-                <option value="none" <?php echo $smtp_settings['smtp_encryption'] === 'none' ? 'selected' : ''; ?>>None</option>
+                <option value="none" <?php echo $smtp_settings['smtp_encryption'] === 'none' ? 'selected' : ''; ?>><?= __('none') ?></option>
             </select>
         </div>
         
         <div class="form-actions">
-            <button type="submit" name="update_smtp" class="btn">Update SMTP Settings</button>
-            <button type="button" id="test-email-btn" class="btn ghost">Test Email Settings</button>
+            <button type="submit" name="update_smtp" class="btn"><?= __('update_smtp_settings') ?></button>
+            <button type="button" id="test-email-btn" class="btn ghost"><?= __('test_email_settings') ?></button>
         </div>
     </form>
     
@@ -351,14 +352,14 @@ require_once 'includes/header.php';
     <div id="test-email-modal" class="modal">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
-            <h4>Send Test Email</h4>
+            <h4><?= __('send_test_email') ?></h4>
             <form id="test-email-form">
                 <div class="form-group">
-                    <label for="test-email">Recipient Email:</label>
+                    <label for="test-email"><?= __('recipient_email') ?>:</label>
                     <input type="email" id="test-email" name="test_email" required>
                 </div>
                 <div class="form-actions">
-                    <button type="submit" class="btn">Send Test Email</button>
+                    <button type="submit" class="btn"><?= __('send_test_email') ?></button>
                     <div id="test-email-result"></div>
                 </div>
             </form>
@@ -367,22 +368,22 @@ require_once 'includes/header.php';
 </div>
 
 <div class="settings-section">
-    <h3>User Management</h3>
+    <h3><?= __('user_management') ?></h3>
     
     <div class="form-actions">
-        <a href="user_form.php" class="btn btn-primary">Add New User</a>
+        <a href="user_form.php" class="btn btn-primary"><?= __('add_new_user') ?></a>
     </div>
 
     <?php if (!empty($users)): ?>
     <div class="users-list">
-        <h4>Current Users</h4>
+        <h4><?= __('current_users') ?></h4>
         <table class="users-table">
             <thead>
                 <tr>
-                    <th>Username</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Actions</th>
+                    <th><?= __('username') ?></th>
+                    <th><?= __('email') ?></th>
+                    <th><?= __('role') ?></th>
+                    <th><?= __('actions') ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -393,7 +394,7 @@ require_once 'includes/header.php';
                     <td><?php echo htmlspecialchars($user['role']); ?></td>
                     <td>
                         <button class="btn btn-small" 
-                                onclick="editUser(<?php echo $user['user_id']; ?>)">Edit</button>
+                                onclick="editUser(<?php echo $user['user_id']; ?>)"><?= __('edit') ?></button>
                     </td>
                 </tr>
                 <?php endforeach; ?>
@@ -404,24 +405,24 @@ require_once 'includes/header.php';
 </div>
 
 <div class="settings-section">
-    <h3>Database Management</h3>
+    <h3><?= __('database_management') ?></h3>
     <div class="form-row">
         <div class="form-group half-width">
             <form method="post" action="">
-                <h4>Export Database</h4>
-                <p class="form-text">Export the complete database as a compressed file.</p>
-                <button type="submit" name="export_db" class="btn">Export Database</button>
+                <h4><?= __('export_database') ?></h4>
+                <p class="form-text"><?= __('export_complete_database_compressed') ?></p>
+                <button type="submit" name="export_db" class="btn"><?= __('export_database') ?></button>
             </form>
         </div>
         
         <div class="form-group half-width">
             <form method="post" action="" enctype="multipart/form-data">
-                <h4>Import Database</h4>
-                <p class="form-text">Import a previously exported database file.</p>
+                <h4><?= __('import_database') ?></h4>
+                <p class="form-text"><?= __('import_previously_exported_database') ?></p>
                 <div class="form-group">
                     <input type="file" id="import_file" name="import_file" accept=".sql,.gz" required>
                 </div>
-                <button type="submit" name="import_db" class="btn" onclick="return confirm('Warning: This will overwrite the current database. Are you sure you want to continue?');">Import Database</button>
+                <button type="submit" name="import_db" class="btn" onclick="return confirm('<?= __('warning_overwrite_database') ?>');"><?= __('import_database') ?></button>
             </form>
         </div>
     </div>
@@ -627,11 +628,11 @@ input[type="file"]:hover {
 function deleteUser(userId) {
     // Don't allow deleting the current user
     if (userId == <?php echo $_SESSION['user_id']; ?>) {
-        alert("You cannot delete your own account.");
+        alert("<?= __('cannot_delete_own_account') ?>");
         return;
     }
     
-    if (confirm("Are you sure you want to delete this user?")) {
+    if (confirm("<?= __('are_you_sure_delete_user') ?>")) {
         // Redirect to a user delete handler
         window.location.href = "settings.php?action=delete_user&user_id=" + userId;
     }
@@ -677,7 +678,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const testEmail = document.getElementById('test-email').value;
         testEmailResult.className = '';
-        testEmailResult.textContent = 'Sending test email...';
+        testEmailResult.textContent = '<?= __('sending_test_email') ?>...';
         testEmailResult.style.display = 'block';
         
         // Send AJAX request to test email
@@ -691,24 +692,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     const response = JSON.parse(xhr.responseText);
                     if (response.success) {
                         testEmailResult.className = 'success';
-                        testEmailResult.textContent = 'Test email sent successfully!';
+                        testEmailResult.textContent = '<?= __('test_email_sent_successfully') ?>';
                     } else {
                         testEmailResult.className = 'error';
-                        testEmailResult.textContent = 'Error: ' + response.message;
+                        testEmailResult.textContent = '<?= __('error') ?>: ' + response.message;
                     }
                 } catch (e) {
                     testEmailResult.className = 'error';
-                    testEmailResult.textContent = 'Error: Invalid response from server';
+                    testEmailResult.textContent = '<?= __('error_invalid_server_response') ?>';
                 }
             } else {
                 testEmailResult.className = 'error';
-                testEmailResult.textContent = 'Error: Server returned status ' + xhr.status;
+                testEmailResult.textContent = '<?= __('error_server_status') ?>: ' + xhr.status;
             }
         };
         
         xhr.onerror = function() {
             testEmailResult.className = 'error';
-            testEmailResult.textContent = 'Error: Network error occurred';
+            testEmailResult.textContent = '<?= __('error_network_occurred') ?>';
         };
         
         xhr.send('test_email=' + encodeURIComponent(testEmail));

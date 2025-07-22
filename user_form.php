@@ -4,7 +4,7 @@ session_start();
 
 requireAdmin(); // Only admins can manage users
 
-$page_title = 'User Management';
+$page_title = __('user_management');
 $current_page = 'settings';
 
 $message = '';
@@ -28,11 +28,11 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if (!$user) {
-            $error = "User not found.";
+            $error = __('user_not_found');
             $is_edit = false;
         }
     } catch (PDOException $e) {
-        $error = "Error retrieving user: " . htmlspecialchars($e->getMessage());
+        $error = __('error_retrieving_user') . ': ' . htmlspecialchars($e->getMessage());
         $is_edit = false;
     }
 }
@@ -44,14 +44,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $stmt = $pdo->prepare("DELETE FROM users WHERE user_id = ?");
             if ($stmt->execute([$user_id])) {
-                $_SESSION['message'] = "User deleted successfully!";
+                $_SESSION['message'] = __('user_deleted_successfully');
                 header('Location: settings.php');
                 exit;
             } else {
-                $error = "Failed to delete user.";
+                $error = __('failed_to_delete_user');
             }
         } catch (PDOException $e) {
-            $error = "Error deleting user: " . htmlspecialchars($e->getMessage());
+            $error = __('error_deleting_user') . ': ' . htmlspecialchars($e->getMessage());
         }
     } elseif (isset($_POST['send_reset'])) {
         // Handle send password reset using centralized function
@@ -60,12 +60,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!empty($reset_email)) {
             $reset_result = sendPasswordResetEmail($reset_email, $user['username'], $user_id);
             if ($reset_result['success']) {
-                $message = "Password reset email sent to " . htmlspecialchars($reset_email);
+                $message = __('password_reset_email_sent_to') . ' ' . htmlspecialchars($reset_email);
             } else {
                 $error = $reset_result['message'];
             }
         } else {
-            $error = "Email address is required.";
+            $error = __('email_address_is_required');
         }
     } elseif (isset($_POST['save_user'])) {
         // Handle save user (add or edit)
@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($is_current_user && $email !== $user['email']) {
             $current_password = $_POST['current_password'] ?? '';
             if (empty($current_password)) {
-                $error = "Current password is required to change email address.";
+                $error = __('current_password_required_for_email_change');
             } else {
                 // Verify current password
                 $stmt = $pdo->prepare("SELECT password FROM users WHERE user_id = ?");
@@ -85,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stored_password = $stmt->fetchColumn();
                 
                 if (!password_verify($current_password, $stored_password)) {
-                    $error = "Current password is incorrect.";
+                    $error = __('current_password_incorrect');
                 }
             }
         }
@@ -104,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     
                     if ($success) {
-                        $message = "User updated successfully!";
+                        $message = __('user_updated_successfully');
                         // Refresh user data
                         $stmt = $pdo->prepare("SELECT user_id, username, email, role FROM users WHERE user_id = ?");
                         $stmt->execute([$user_id]);
@@ -115,13 +115,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $_SESSION['username'] = $user['username'];
                         }
                     } else {
-                        $error = "Failed to update user.";
+                        $error = __('failed_to_update_user');
                     }
                 } catch (PDOException $e) {
                     if ($e->getCode() == 23000) { // Duplicate entry
-                        $error = "Username or email already exists.";
+                        $error = __('username_or_email_already_exists');
                     } else {
-                        $error = "Failed to update user: " . htmlspecialchars($e->getMessage());
+                        $error = __('failed_to_update_user') . ': ' . htmlspecialchars($e->getMessage());
                     }
                 }
             } else {
@@ -131,17 +131,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 try {
                     $stmt = $pdo->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)");
                     if ($stmt->execute([$username, $email, $password, $role])) {
-                        $_SESSION['message'] = "User added successfully!";
+                        $_SESSION['message'] = __('user_added_successfully');
                         header('Location: settings.php');
                         exit;
                     } else {
-                        $error = "Failed to add user.";
+                        $error = __('failed_to_add_user');
                     }
                 } catch (PDOException $e) {
                     if ($e->getCode() == 23000) { // Duplicate entry
-                        $error = "Username or email already exists.";
+                        $error = __('username_or_email_already_exists');
                     } else {
-                        $error = "Failed to add user: " . htmlspecialchars($e->getMessage());
+                        $error = __('failed_to_add_user') . ': ' . htmlspecialchars($e->getMessage());
                     }
                 }
             }
@@ -154,8 +154,8 @@ include 'includes/header.php';
 
 <div class="container">
     <div class="header">
-        <h1><?php echo $is_edit ? 'Edit User' : 'Add User'; ?></h1>
-        <a href="settings.php" class="btn btn-secondary">Back to Settings</a>
+        <h1><?php echo $is_edit ? __('edit_user') : __('add_user'); ?></h1>
+        <a href="settings.php" class="btn btn-secondary"><?php echo __('back_to_settings'); ?></a>
     </div>
 
     <?php if ($message): ?>
@@ -174,7 +174,7 @@ include 'includes/header.php';
         <div class="card-body">
             <form method="POST" action="" class="user-form">
                 <div class="form-group">
-                    <label for="username">Username:</label>
+                    <label for="username"><?php echo __('username'); ?>:</label>
                     <input type="text" 
                            id="username" 
                            name="username" 
@@ -183,7 +183,7 @@ include 'includes/header.php';
                 </div>
                 
                 <div class="form-group">
-                    <label for="email">Email:</label>
+                    <label for="email"><?php echo __('email'); ?>:</label>
                     <input type="email" 
                            id="email" 
                            name="email" 
@@ -193,35 +193,35 @@ include 'includes/header.php';
                 
                 <?php if (!$is_edit): ?>
                 <div class="form-group">
-                    <label for="password">Password:</label>
+                    <label for="password"><?php echo __('password'); ?>:</label>
                     <input type="password" id="password" name="password" required>
                 </div>
                 <?php endif; ?>
                 
                 <?php if ($is_current_user && $is_edit): ?>
                 <div class="form-group">
-                    <label for="current_password">Current Password (required for email changes):</label>
+                    <label for="current_password"><?php echo __('current_password_required_for_email_changes'); ?>:</label>
                     <input type="password" 
                            id="current_password" 
                            name="current_password" 
-                           placeholder="Enter current password to change email">
-                    <small class="form-note">Only required if you change your email address</small>
+                           placeholder="<?php echo __('enter_current_password_to_change_email'); ?>">
+                    <small class="form-note"><?php echo __('only_required_if_you_change_email'); ?></small>
                 </div>
                 <?php endif; ?>
                 
                 <?php if (!$is_current_user): ?>
                 <div class="form-group">
-                    <label for="role">Role:</label>
+                    <label for="role"><?php echo __('role'); ?>:</label>
                     <select id="role" name="role" required>
-                        <option value="user" <?php echo ($is_edit && $user['role'] === 'user') ? 'selected' : ''; ?>>User</option>
-                        <option value="admin" <?php echo ($is_edit && $user['role'] === 'admin') ? 'selected' : ''; ?>>Admin</option>
+                        <option value="user" <?php echo ($is_edit && $user['role'] === 'user') ? 'selected' : ''; ?>><?php echo __('user'); ?></option>
+                        <option value="admin" <?php echo ($is_edit && $user['role'] === 'admin') ? 'selected' : ''; ?>><?php echo __('admin'); ?></option>
                     </select>
                 </div>
                 <?php endif; ?>
                 
                 <div class="form-actions">
                     <button type="submit" name="save_user" class="btn btn-primary">
-                        <?php echo $is_edit ? 'Update User' : 'Add User'; ?>
+                        <?php echo $is_edit ? __('update_user') : __('add_user'); ?>
                     </button>
                 </div>
             </form>
@@ -230,12 +230,12 @@ include 'includes/header.php';
                 <!-- Password Reset Section -->
                 <div class="section-divider"></div>
                 <div class="password-reset-section">
-                    <h3>Password Reset</h3>
-                    <p>Send a password reset link to <?php echo htmlspecialchars($user['email']); ?></p>
+                    <h3><?php echo __('password_reset'); ?></h3>
+                    <p><?php echo __('send_password_reset_link_to'); ?> <?php echo htmlspecialchars($user['email']); ?></p>
                     <form method="POST" action="" class="reset-form">
                         <input type="hidden" name="reset_email" value="<?php echo htmlspecialchars($user['email']); ?>">
                         <button type="submit" name="send_reset" class="btn btn-warning">
-                            Send Password Reset Link
+                            <?php echo __('send_password_reset_link'); ?>
                         </button>
                     </form>
                 </div>
@@ -244,11 +244,11 @@ include 'includes/header.php';
                 <?php if (!$is_current_user): ?>
                 <div class="section-divider"></div>
                 <div class="delete-user-section">
-                    <h3>Delete User</h3>
-                    <p class="delete-warning">This action cannot be undone. All user data will be permanently removed.</p>
-                    <form method="POST" action="" onsubmit="return confirm('Are you sure you want to delete this user? This action cannot be undone.');">
+                    <h3><?php echo __('delete_user'); ?></h3>
+                    <p class="delete-warning"><?php echo __('delete_user_warning'); ?></p>
+                    <form method="POST" action="" onsubmit="return confirm('<?php echo __('confirm_delete_user'); ?>');">
                         <button type="submit" name="delete_user" class="btn btn-danger delete-user-btn">
-                            Delete User
+                            <?php echo __('delete_user'); ?>
                         </button>
                     </form>
                 </div>
@@ -317,7 +317,6 @@ include 'includes/header.php';
 }
 
 .delete-user-section {
-    position: absolute;
     bottom: 2rem;
     left: 2rem;
 }

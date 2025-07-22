@@ -39,16 +39,16 @@ require_once 'includes/header.php';
 ?>
     <div class="container">
         <div class="header">
-            <h1>All Activities</h1>
+            <h1><?= __('all_activities') ?></h1>
         </div>
 
         <!-- Filter Form -->
         <form method="get" class="filter-form">
             <div class="form-row">
                 <div class="form-group">
-                    <label for="customer_id">Customer:</label>
+                    <label for="customer_id"><?= __('customer') ?>:</label>
                     <select name="customer_id" id="customer_id">
-                        <option value="">All Customers</option>
+                        <option value=""><?= __('all_customers') ?></option>
                         <?php foreach ($customers as $customer): ?>
                         <option value="<?= $customer['customer_id'] ?>" 
                             <?= $customer_id == $customer['customer_id'] ? 'selected' : '' ?>>
@@ -59,53 +59,53 @@ require_once 'includes/header.php';
                 </div>
 
                 <div class="form-group">
-                    <label for="customer_status">Customer Status:</label>
+                    <label for="customer_status"><?= __('customer_status') ?>:</label>
                     <select name="customer_status" id="customer_status">
-                        <option value="">All Status</option>
-                        <option value="All Except Not Qualified" <?= $customer_status == 'All Except Not Qualified' ? 'selected' : '' ?>>All Except Not Qualified</option>
+                        <option value=""><?= __('all_status') ?></option>
+                        <option value="All Except Not Qualified" <?= $customer_status == 'All Except Not Qualified' ? 'selected' : '' ?>><?= __('all_except_not_qualified') ?></option>
                         <?php foreach ($customerStatusOptions as $statusOption): ?>
                         <option value="<?= htmlspecialchars($statusOption) ?>" 
                             <?= $customer_status == $statusOption ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($statusOption) ?>
+                            <?= htmlspecialchars(__($statusOption)) ?>
                         </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label for="date_from">From:</label>
+                    <label for="date_from"><?= __('from') ?>:</label>
                     <input type="date" name="date_from" id="date_from" 
                            value="<?= htmlspecialchars($date_from) ?>" onchange="validateDates()">
                 </div>
 
                 <div class="form-group">
-                    <label for="date_to">To:</label>
+                    <label for="date_to"><?= __('to') ?>:</label>
                     <input type="date" name="date_to" id="date_to" 
                            value="<?= htmlspecialchars($date_to) ?>" onchange="validateDates()">
                 </div>
 
                 <div class="btn-group">
-                    <button type="submit" class="btn">Apply Filters</button>
-                    <a href="all_activities.php" class="btn ghost">Reset</a>
+                    <button type="submit" class="btn"><?= __('apply_filters') ?></button>
+                    <a href="all_activities.php" class="btn ghost"><?= __('reset') ?></a>
                 </div>
             </div>
 
             <!-- <div class="sort-section"> -->
             <div class="form-row">
                 <div class="form-group">
-                    <label>Sort By:</label>
+                    <label><?= __('sort_by') ?>:</label>
                     <select name="sort" onchange="this.form.submit()">
-                        <option value="action_datetime" <?= $sort == 'action_datetime' ? 'selected' : '' ?>>Activity Date</option>
-                        <option value="company_name" <?= $sort == 'company_name' ? 'selected' : '' ?>>Customer Name</option>
-                        <option value="customer_status" <?= $sort == 'customer_status' ? 'selected' : '' ?>>Customer Status</option>
+                        <option value="action_datetime" <?= $sort == 'action_datetime' ? 'selected' : '' ?>><?= __('activity_date') ?></option>
+                        <option value="company_name" <?= $sort == 'company_name' ? 'selected' : '' ?>><?= __('customer_name') ?></option>
+                        <option value="customer_status" <?= $sort == 'customer_status' ? 'selected' : '' ?>><?= __('customer_status') ?></option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label>Order:</label>
+                    <label><?= __('order') ?>:</label>
                     <select name="order" onchange="this.form.submit()">
-                        <option value="desc" <?= $order == 'desc' ? 'selected' : '' ?>>Newest First</option>
-                        <option value="asc" <?= $order == 'asc' ? 'selected' : '' ?>>Oldest First</option>
+                        <option value="desc" <?= $order == 'desc' ? 'selected' : '' ?>><?= __('newest_first') ?></option>
+                        <option value="asc" <?= $order == 'asc' ? 'selected' : '' ?>><?= __('oldest_first') ?></option>
                     </select>
                 </div>
             </div>
@@ -116,11 +116,11 @@ require_once 'includes/header.php';
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>Customer</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                    <th class="datetime">Date/Time</th>
-                    <th>Response</th>
+                    <th><?= __('customer') ?></th>
+                    <th><?= __('status') ?></th>
+                    <th><?= __('action') ?></th>
+                    <th class="datetime"><?= __('date_time') ?></th>
+                    <th><?= __('response') ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -134,7 +134,7 @@ require_once 'includes/header.php';
                             <?php endif; ?>
                         </a>
                     </td>
-                    <td><span class="status-badge status-<?= strtolower(str_replace(' ', '-', $activity['customer_status'])) ?>"><?= htmlspecialchars($activity['customer_status']) ?></span></td>
+                    <td><span class="status-badge status-<?= strtolower(str_replace(' ', '-', $activity['customer_status'])) ?>"><?= htmlspecialchars(__($activity['customer_status'])) ?></span></td>
                     <td><?= htmlspecialchars($activity['action']) ?></td>
                     <td class="datetime"><?= formatDateTimeCompact($activity['action_datetime']) ?></td>
                     <td><?= htmlspecialchars($activity['response']) ?></td>
@@ -153,7 +153,7 @@ require_once 'includes/header.php';
             const dateTo = new Date(dateToInput.value);
             
             if (dateFrom > dateTo) {
-                alert('Error: "From" date cannot be later than "To" date');
+                alert('<?= __("date_validation_error") ?>');
                 // Reset to valid values
                 if (this === dateFromInput) {
                     dateFromInput.value = dateToInput.value;

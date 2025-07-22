@@ -2,7 +2,7 @@
 require_once 'includes/config.php';
 require_once 'includes/functions.php';
 
-$page_title = 'Email Projects';
+$page_title = __('email_projects');
 $current_page = 'email_projects';
 
 // Handle delete action
@@ -13,11 +13,11 @@ if (isset($_POST['delete_id'])) {
         $stmt = $pdo->prepare("DELETE FROM email_projects WHERE project_id = ?");
         $stmt->execute([$project_id]);
         
-        header('Location: email_projects.php?message=' . urlencode('Email project deleted successfully'));
+        header('Location: email_projects.php?message=' . urlencode(__('email_project_deleted_successfully')));
         exit;
     } catch (PDOException $e) {
         error_log("Error deleting email project: " . $e->getMessage());
-        $error = "Error deleting email project.";
+        $error = __('error_deleting_email_project');
     }
 }
 
@@ -28,7 +28,7 @@ try {
     $email_projects = $stmt->fetchAll();
 } catch (PDOException $e) {
     error_log("Error fetching email projects: " . $e->getMessage());
-    $error = "Error fetching email projects.";
+    $error = __('error_fetching_email_projects');
 }
 
 include 'includes/header.php';
@@ -36,15 +36,15 @@ include 'includes/header.php';
 
 <div class="container">
     <div class="header">
-        <h1>Email Projects</h1>
+        <h1><?= __('email_projects') ?></h1>
         <div class="header-actions">
             <a href="email_project_form.php" class="btn btn-primary">
                 <span class="btn-icon">+</span>
-                Create Project
+                <?= __('create_project') ?>
             </a>
             <a href="email_history.php" class="btn btn-secondary">
                 <span class="btn-icon">📧</span>
-                Email History
+                <?= __('email_history') ?>
             </a>
         </div>
     </div>
@@ -65,20 +65,20 @@ include 'includes/header.php';
         <div class="card-body">
             <?php if (empty($email_projects)): ?>
                 <div class="empty-state">
-                    <h3>No Email Projects Found</h3>
-                    <p>Create your first email project template to get started.</p>
-                    <a href="email_project_form.php" class="btn btn-primary">Create Project</a>
+                    <h3><?= __('no_email_projects_found') ?></h3>
+                    <p><?= __('create_first_email_project') ?></p>
+                    <a href="email_project_form.php" class="btn btn-primary"><?= __('create_project') ?></a>
                 </div>
             <?php else: ?>
                 <div class="table-responsive">
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Project Name</th>
-                                <th>Subject</th>
-                                <th>CC</th>
-                                <th>Created</th>
-                                <th>Actions</th>
+                                <th><?= __('project_name') ?></th>
+                                <th><?= __('subject') ?></th>
+                                <th><?= __('cc') ?></th>
+                                <th><?= __('created') ?></th>
+                                <th><?= __('actions') ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -92,18 +92,18 @@ include 'includes/header.php';
                                     <td><?php echo formatDateTimeCompact($project['created_at']); ?></td>
                                     <td class="actions">
                                         <a href="email_project_form.php?id=<?php echo $project['project_id']; ?>" 
-                                           class="btn btn-sm btn-secondary" title="Edit">
-                                            Edit
+                                           class="btn btn-sm btn-secondary" title="<?= __('edit') ?>">
+                                            <?= __('edit') ?>
                                         </a>
                                         <a href="send_email.php?project_id=<?php echo $project['project_id']; ?>" 
-                                           class="btn btn-sm btn-primary" title="Send Email">
-                                            Send
+                                           class="btn btn-sm btn-primary" title="<?= __('send_email') ?>">
+                                            <?= __('send') ?>
                                         </a>
                                         <form method="POST" style="display: inline;" 
-                                              onsubmit="return confirm('Are you sure you want to delete this email project?')">
+                                              onsubmit="return confirm('<?= __('confirm_delete_email_project') ?>')">
                                             <input type="hidden" name="delete_id" value="<?php echo $project['project_id']; ?>">
-                                            <button type="submit" class="btn btn-sm btn-danger" title="Delete">
-                                                Delete
+                                            <button type="submit" class="btn btn-sm btn-danger" title="<?= __('delete') ?>">
+                                                <?= __('delete') ?>
                                             </button>
                                         </form>
                                     </td>
