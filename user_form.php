@@ -317,9 +317,9 @@ include 'includes/header.php';
 }
 
 .delete-user-section {
-    margin-top: 2rem;
-    padding-top: 2rem;
-    border-top: 1px solid #eee;
+    position: absolute;
+    bottom: 2rem;
+    left: 2rem;
 }
 
 .delete-user-btn {
@@ -333,24 +333,9 @@ include 'includes/header.php';
     border-color: #bd2130;
 }
 
-.delete-user-section h3 {
-    margin-bottom: 0.5rem;
-    color: #dc3545;
-    font-weight: 600;
-}
-
-.delete-warning {
-    margin-bottom: 1rem;
-    color: #666;
-    font-size: 0.9rem;
-    padding: 0.75rem;
-    background-color: #fff3cd;
-    border: 1px solid #ffeaa7;
-    border-radius: 4px;
-}
-
 .card {
     position: relative;
+    min-height: 500px;
 }
 
 /* Dark mode styles */
@@ -369,16 +354,6 @@ body.dark-mode .user-form select:focus {
 
 body.dark-mode .password-reset-section h3,
 body.dark-mode .password-reset-section p {
-    color: var(--text-dark-secondary);
-}
-
-body.dark-mode .delete-user-section h3 {
-    color: #ff6b6b;
-}
-
-body.dark-mode .delete-warning {
-    background-color: rgba(255, 193, 7, 0.1);
-    border-color: rgba(255, 193, 7, 0.3);
     color: var(--text-dark-secondary);
 }
 

@@ -805,13 +805,17 @@ function sendEmail($to, $subject, $body, $altBody = '', $attachments = [], $cc =
         if (!empty($attachments)) {
             foreach ($attachments as $attachment) {
                 if (file_exists($attachment)) {
-                    $mail->addAttachment($attachment);
+                    // Extract original filename for display
+                    $originalName = getOriginalFileName($attachment);
+                    $mail->addAttachment($attachment, $originalName);
                 }
             }
         }
         
         // Content
         $mail->isHTML(true);
+        $mail->CharSet = 'UTF-8';  // Ensure UTF-8 encoding for Asian languages
+        $mail->Encoding = 'base64'; // Use base64 encoding for better compatibility
         $mail->Subject = $subject;
         $mail->Body = $body;
         $mail->AltBody = !empty($altBody) ? $altBody : strip_tags(str_replace('<br>', "\n", $body));
@@ -983,6 +987,26 @@ function validate_cc_emails($cc_string) {
     }
     
     return $result;
+}
+
+/**
+ * Extract original filename from stored filename format
+ * Stored format: {unique_id}_{original_name}
+ * @param string $storedFileName The stored filename with unique prefix
+ * @return string The original filename without unique prefix
+ */
+function getOriginalFileName($storedFileName) {
+    // Extract just the filename without path
+    $filename = basename($storedFileName);
+    
+    // Match pattern: {unique_id}_{original_name}
+    // Unique ID is typically a hex string (letters and numbers)
+    if (preg_match('/^[a-f0-9]+_(.+)$/', $filename, $matches)) {
+        return $matches[1];
+    }
+    
+    // If pattern doesn't match, return the original filename as fallback
+    return $filename;
 }
 
 /**

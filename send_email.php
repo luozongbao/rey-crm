@@ -169,6 +169,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {
             
             // Content
             $mail->isHTML(true);
+            $mail->CharSet = 'UTF-8';  // Ensure UTF-8 encoding for Asian languages
+            $mail->Encoding = 'base64'; // Use base64 encoding for better compatibility
             $mail->Subject = $email_subject;
             $mail->Body = $email_message;
             $mail->AltBody = strip_tags($email_message);
@@ -184,9 +186,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {
                     }
                     
                     if (file_exists($attachment_path)) {
-                        $mail->addAttachment($attachment_path, basename($attachment));
-                        $attachment_status[] = "✓ Added: " . basename($attachment);
-                        error_log("Added attachment: " . $attachment_path);
+                        // Extract original filename for display to email recipient
+                        $originalName = getOriginalFileName($attachment);
+                        $mail->addAttachment($attachment_path, $originalName);
+                        $attachment_status[] = "✓ Added: " . $originalName;
+                        error_log("Added attachment: " . $attachment_path . " as " . $originalName);
                     } else {
                         $attachment_status[] = "✗ Missing: " . basename($attachment);
                         error_log("Attachment file not found: " . $attachment_path);
