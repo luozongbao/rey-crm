@@ -27,6 +27,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
         'notes' => $_POST['notes'] ?? null
     ];
     
+    // Add assignment field if user can assign and field is present
+    if (isset($_POST['assigned_user_id']) && canAssignCustomer($customer_id)) {
+        $data['assigned_user_id'] = $_POST['assigned_user_id'];
+    }
+    
     // Validate email if provided
     if (!empty($data['contact_email'])) {
         $email_validation = validate_cc_emails($data['contact_email']);
@@ -42,45 +47,43 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
             // Start transaction
             $pdo->beginTransaction();
             
-            // Insert customer
-            $stmt = $pdo->prepare("INSERT INTO customers 
-                                  (company_name, address, country, province, company_type, contact_phone, contact_email, website, status, notes) 
-                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute(array_values($data));
-            $customer_id = $pdo->lastInsertId();
-            
-            // Create main contact
-            $mainContact = [
-                'customer_id' => $customer_id,
-                'name' => 'Company Main Contact',
-                'title' => 'Primary Contact',
-                'role' => 'Main Contact',
-                'contact_number' => $_POST['contact_phone'] ?? null,
-                'contact_email' => $_POST['contact_email'] ?? null,
-                'notes' => 'Automatically created as main contact'
-            ];
-            
-            $stmt = $pdo->prepare("INSERT INTO contact_persons 
-                                  (customer_id, name, title, role, contact_number, contact_email, notes) 
-                                  VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute(array_values($mainContact));
-            
-            // Commit transaction
-            $pdo->commit();
-            
-            header("Location: customers.php?restore=1");
-            exit;
+            // Use the addCustomer function which handles assignment
+            if (addCustomer($data)) {
+                $customer_id = $pdo->lastInsertId();
+                
+                // Create main contact
+                $mainContact = [
+                    'customer_id' => $customer_id,
+                    'name' => 'Company Main Contact',
+                    'title' => 'Primary Contact',
+                    'role' => 'Main Contact',
+                    'contact_number' => $_POST['contact_phone'] ?? null,
+                    'contact_email' => $_POST['contact_email'] ?? null,
+                    'notes' => 'Automatically created as main contact'
+                ];
+                
+                $stmt = $pdo->prepare("INSERT INTO contact_persons 
+                                      (customer_id, name, title, role, contact_number, contact_email, notes) 
+                                      VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute(array_values($mainContact));
+                
+                // Commit transaction
+                $pdo->commit();
+                
+                header("Location: customers.php?restore=1");
+                exit;
+            } else {
+                $pdo->rollBack();
+                die("Error adding customer");
+            }
         } else {
-            $stmt = $pdo->prepare("UPDATE customers SET 
-                                  company_name = ?, address = ?, country = ?, province = ?, 
-                                  company_type = ?, contact_phone = ?, contact_email = ?, 
-                                  website = ?, status = ?, notes = ? 
-                                  WHERE customer_id = ?");
-            $data[] = $customer_id;
-            $stmt->execute(array_values($data));
-            
-            header("Location: customers.php?restore=1");
-            exit;
+            // Use the updateCustomer function which handles assignment
+            if (updateCustomer($customer_id, $data)) {
+                header("Location: customers.php?restore=1");
+                exit;
+            } else {
+                die("Error updating customer");
+            }
         }
     } catch (PDOException $e) {
         if ($action == 'add' && isset($pdo)) {
@@ -141,6 +144,34 @@ require_once 'includes/header.php';
                         <?php endforeach; ?>
                     </select>
                 </div>
+                
+                <?php if (canAssignCustomer($customer_id)): ?>
+                <div class="form-group">
+                    <label for="assigned_user_id"><?php echo __('assigned_to'); ?>:</label>
+                    <select id="assigned_user_id" name="assigned_user_id" <?php echo $isViewMode ? 'disabled' : ''; ?>>
+                        <?php
+                        $users = getAllUsers();
+                        foreach ($users as $user):
+                            $selected = '';
+                            if ($customer) {
+                                $selected = ($customer['assigned_user_id'] == $user['user_id']) ? 'selected' : '';
+                            } else {
+                                // For new customers, default to current user
+                                $selected = ($_SESSION['user_id'] == $user['user_id']) ? 'selected' : '';
+                            }
+                        ?>
+                            <option value="<?php echo $user['user_id']; ?>" <?php echo $selected; ?>>
+                                <?php echo htmlspecialchars($user['username']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <?php elseif ($customer): ?>
+                <div class="form-group">
+                    <label><?php echo __('assigned_to'); ?>:</label>
+                    <p class="read-only"><?php echo htmlspecialchars($customer['assigned_to_username'] ?? __('unassigned')); ?></p>
+                </div>
+                <?php endif; ?>
             </div>
 
             <!-- Row 2: Province and Country -->

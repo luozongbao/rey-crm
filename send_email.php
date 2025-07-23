@@ -30,17 +30,33 @@ if ($project_id) {
     }
 }
 
+// Get show only mine filter parameter
+$showOnlyMine = !isset($_GET['show_only_mine']) || $_GET['show_only_mine'] == '1';
+
 // Get customers and contacts for recipient selection
 try {
-    $stmt = $pdo->prepare("
-        SELECT c.customer_id, c.company_name, c.contact_email as customer_email,
-               cp.contact_id, cp.name as contact_name, cp.contact_email
-        FROM customers c
-        LEFT JOIN contact_persons cp ON c.customer_id = cp.customer_id
-        WHERE c.contact_email IS NOT NULL OR cp.contact_email IS NOT NULL
-        ORDER BY c.company_name, cp.name
-    ");
-    $stmt->execute();
+    if ($showOnlyMine && !isAdmin()) {
+        $stmt = $pdo->prepare("
+            SELECT c.customer_id, c.company_name, c.contact_email as customer_email,
+                   cp.contact_id, cp.name as contact_name, cp.contact_email
+            FROM customers c
+            LEFT JOIN contact_persons cp ON c.customer_id = cp.customer_id
+            WHERE (c.contact_email IS NOT NULL OR cp.contact_email IS NOT NULL)
+            AND c.assigned_user_id = ?
+            ORDER BY c.company_name, cp.name
+        ");
+        $stmt->execute([$_SESSION['user_id']]);
+    } else {
+        $stmt = $pdo->prepare("
+            SELECT c.customer_id, c.company_name, c.contact_email as customer_email,
+                   cp.contact_id, cp.name as contact_name, cp.contact_email
+            FROM customers c
+            LEFT JOIN contact_persons cp ON c.customer_id = cp.customer_id
+            WHERE c.contact_email IS NOT NULL OR cp.contact_email IS NOT NULL
+            ORDER BY c.company_name, cp.name
+        ");
+        $stmt->execute();
+    }
     $recipients = $stmt->fetchAll();
 } catch (PDOException $e) {
     error_log("Error fetching recipients: " . $e->getMessage());
@@ -299,6 +315,23 @@ include 'includes/header.php';
     <?php endif; ?>
 
     <?php if ($project && !isset($success_message)): ?>
+        <!-- Filter Section -->
+        <div class="card" style="margin-bottom: 20px;">
+            <div class="card-body">
+                <form method="GET" class="form">
+                    <input type="hidden" name="project_id" value="<?php echo $project_id; ?>">
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="show_only_mine" value="1" 
+                                   <?php echo $showOnlyMine ? 'checked' : ''; ?>
+                                   onchange="this.form.submit()">
+                            <?php echo __('show_only_my_customers'); ?>
+                        </label>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
         <div class="card">
             <div class="card-header">
                 <h3>Project: <?php echo htmlspecialchars($project['project_name']); ?></h3>

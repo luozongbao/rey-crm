@@ -25,6 +25,7 @@ if (isset($_GET['restore']) && isset($_SESSION['last_page_state'])) {
     $sort = isset($_GET['sort']) ? trim($_GET['sort']) : 'created_at';
     $order = isset($_GET['order']) ? trim($_GET['order']) : 'desc';
     $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+    $showOnlyMine = !isset($_GET['show_only_mine']) || $_GET['show_only_mine'] == '1';
 }
 
 $perPage = getItemsPerPage();
@@ -36,7 +37,8 @@ if (!isset($_GET['restore'])) {
         'location' => $location,
         'sort' => $sort,
         'order' => $order,
-        'page' => $page
+        'page' => $page,
+        'show_only_mine' => $showOnlyMine
     ];
 }
 
@@ -44,7 +46,7 @@ if (!isset($_GET['restore'])) {
 $locations = getAllLocations();
 
 // Get paginated and sorted customers
-$result = getPaginatedCustomers($page, $perPage, $search, $location, $sort, $order);
+$result = getPaginatedCustomers($page, $perPage, $search, $location, $sort, $order, $showOnlyMine);
 $customers = $result['data'];
 $totalCustomers = $result['total'];
 $totalPages = $result['pages'];
@@ -123,6 +125,16 @@ require_once 'includes/header.php';
                         <option value="asc" <?php echo $order == 'asc' ? 'selected' : ''; ?>><?php echo __('asc'); ?></option>
                         <option value="desc" <?php echo $order == 'desc' ? 'selected' : ''; ?>><?php echo __('desc'); ?></option>
                     </select>
+                </div>
+                
+                <!-- Filter Section -->
+                <div class="filter-section">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="show_only_mine" value="1" 
+                               <?php echo $showOnlyMine ? 'checked' : ''; ?>
+                               onchange="this.form.submit()">
+                        <?php echo __('show_only_my_customers'); ?>
+                    </label>
                 </div>
             </form>
         </div>

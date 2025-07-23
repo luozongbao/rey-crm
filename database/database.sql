@@ -21,6 +21,8 @@ CREATE TABLE IF NOT EXISTS customers (
                  ) DEFAULT 'Prospect',
     notes TEXT,
     last_contacted_date TIMESTAMP NULL,
+    assigned_user_id INT NULL,
+    created_by_user_id INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -81,6 +83,12 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     last_login TIMESTAMP NULL
 );
+
+-- Add foreign key constraints for customer assignment
+ALTER TABLE customers ADD CONSTRAINT fk_customers_assigned_user 
+    FOREIGN KEY (assigned_user_id) REFERENCES users(user_id) ON DELETE SET NULL;
+ALTER TABLE customers ADD CONSTRAINT fk_customers_created_by 
+    FOREIGN KEY (created_by_user_id) REFERENCES users(user_id) ON DELETE SET NULL;
 
 
 CREATE TABLE IF NOT EXISTS password_reset_tokens (

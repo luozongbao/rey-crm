@@ -460,5 +460,14 @@ return [
     'records' => 'records',
     'error_fetching_email_history' => 'Error fetching email history',
     'back_to_projects' => 'Back to Projects',
+    
+    // Customer Assignment
+    'assigned_to' => 'Assigned To',
+    'show_only_my_customers' => 'Show Only My Customers',
+    'assign_customer' => 'Assign Customer',
+    'customer_assigned_successfully' => 'Customer assigned successfully',
+    'assigned_to_user' => 'Assigned to',
+    'my_customers' => 'My Customers',
+    'all_customers' => 'All Customers',
 ];
 ?>

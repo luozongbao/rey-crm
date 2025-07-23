@@ -28,13 +28,16 @@ function getAllCustomers() {
 
 function getCustomerById($id) {
     global $pdo;
-    $stmt = $pdo->prepare("SELECT *, 
+    $stmt = $pdo->prepare("SELECT c.*, 
                           CONCAT_WS(', ', 
-                              address,
-                              NULLIF(province, ''),
-                              NULLIF(country, '')
-                          ) as full_address 
-                          FROM customers WHERE customer_id = ?");
+                              c.address,
+                              NULLIF(c.province, ''),
+                              NULLIF(c.country, '')
+                          ) as full_address,
+                          u.username as assigned_to_username
+                          FROM customers c
+                          LEFT JOIN users u ON c.assigned_user_id = u.user_id
+                          WHERE c.customer_id = ?");
     $stmt->execute([$id]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
@@ -280,7 +283,7 @@ function getCustomerCount($conditions = [], $params = []) {
     return $stmt->fetchColumn();
 }
 
-function getPaginatedCustomers($page = 1, $perPage = 10, $search = '', $location = '', $sort = 'created_at', $order = 'desc') {
+function getPaginatedCustomers($page = 1, $perPage = 10, $search = '', $location = '', $sort = 'created_at', $order = 'desc', $showOnlyMine = true) {
     global $pdo;
     
     // Validate sort/order
@@ -303,13 +306,21 @@ function getPaginatedCustomers($page = 1, $perPage = 10, $search = '', $location
                 c.address,
                 NULLIF(c.province, ''),
                 NULLIF(c.country, '')
-            ) as full_address
-             FROM customers c";
+            ) as full_address,
+             u.username as assigned_to_username
+             FROM customers c
+             LEFT JOIN users u ON c.assigned_user_id = u.user_id";
     
     $countQuery = "SELECT COUNT(*) FROM customers c";
     
     $conditions = [];
     $params = [];
+    
+    // Add user assignment filter
+    if ($showOnlyMine && !isAdmin()) {
+        $conditions[] = "c.assigned_user_id = :current_user_id";
+        $params[':current_user_id'] = $_SESSION['user_id'];
+    }
     
     if (!empty($search)) {
         $searchPattern = "%$search%";
@@ -388,29 +399,13 @@ function addCustomer($data) {
     global $pdo;
     $stmt = $pdo->prepare("INSERT INTO customers 
                           (company_name, address, country, province, company_type, contact_phone, 
-                           contact_email, website, status, notes) 
-                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    return $stmt->execute([
-        $data['company_name'],
-        $data['address'],
-        $data['country'],
-        $data['province'],
-        $data['company_type'],
-        $data['contact_phone'],
-        $data['contact_email'],
-        $data['website'],
-        $data['status'],
-        $data['notes']
-    ]);
-}
-
-function updateCustomer($id, $data) {
-    global $pdo;
-    $stmt = $pdo->prepare("UPDATE customers SET 
-                          company_name = ?, address = ?, country = ?, province = ?,
-                          company_type = ?, contact_phone = ?, contact_email = ?, 
-                          website = ?, status = ?, notes = ? 
-                          WHERE customer_id = ?");
+                           contact_email, website, status, notes, assigned_user_id, created_by_user_id) 
+                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    
+    // Set assignment fields - assign to current user by default
+    $assigned_user_id = $data['assigned_user_id'] ?? $_SESSION['user_id'];
+    $created_by_user_id = $_SESSION['user_id'];
+    
     return $stmt->execute([
         $data['company_name'],
         $data['address'],
@@ -422,8 +417,57 @@ function updateCustomer($id, $data) {
         $data['website'],
         $data['status'],
         $data['notes'],
-        $id
+        $assigned_user_id,
+        $created_by_user_id
     ]);
+}
+
+function updateCustomer($id, $data) {
+    global $pdo;
+    
+    // Check if assigned_user_id is provided and user has permission to assign
+    $updateAssignment = isset($data['assigned_user_id']) && canAssignCustomer($id);
+    
+    if ($updateAssignment) {
+        $stmt = $pdo->prepare("UPDATE customers SET 
+                              company_name = ?, address = ?, country = ?, province = ?,
+                              company_type = ?, contact_phone = ?, contact_email = ?, 
+                              website = ?, status = ?, notes = ?, assigned_user_id = ?
+                              WHERE customer_id = ?");
+        return $stmt->execute([
+            $data['company_name'],
+            $data['address'],
+            $data['country'],
+            $data['province'],
+            $data['company_type'],
+            $data['contact_phone'],
+            $data['contact_email'],
+            $data['website'],
+            $data['status'],
+            $data['notes'],
+            $data['assigned_user_id'],
+            $id
+        ]);
+    } else {
+        $stmt = $pdo->prepare("UPDATE customers SET 
+                              company_name = ?, address = ?, country = ?, province = ?,
+                              company_type = ?, contact_phone = ?, contact_email = ?, 
+                              website = ?, status = ?, notes = ? 
+                              WHERE customer_id = ?");
+        return $stmt->execute([
+            $data['company_name'],
+            $data['address'],
+            $data['country'],
+            $data['province'],
+            $data['company_type'],
+            $data['contact_phone'],
+            $data['contact_email'],
+            $data['website'],
+            $data['status'],
+            $data['notes'],
+            $id
+        ]);
+    }
 }
 
 function getCustomerStatusCounts() {
@@ -507,7 +551,7 @@ function getSortedCustomers($search = '', $location = '', $sort = 'created_at', 
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '', $sort = 'follow_up_datetime', $order = 'asc', $customer_status = '') {
+function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '', $sort = 'follow_up_datetime', $order = 'asc', $customer_status = '', $showOnlyMine = true) {
     global $pdo;
     
     $query = "SELECT ah.*, c.company_name, c.status as customer_status, c.province, c.customer_id
@@ -516,6 +560,12 @@ function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '',
               WHERE 1=1";
     
     $params = [];
+    
+    // Add user assignment filter
+    if ($showOnlyMine && !isAdmin()) {
+        $query .= " AND c.assigned_user_id = :current_user_id";
+        $params[':current_user_id'] = $_SESSION['user_id'];
+    }
     
     if (!empty($customer_id)) {
         $query .= " AND ah.customer_id = :customer_id";
@@ -562,7 +612,7 @@ function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '',
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-function getFilteredActivities($customer_id = '', $date_from = '', $date_to = '', $sort = 'action_datetime', $order = 'desc', $customer_status = '') {
+function getFilteredActivities($customer_id = '', $date_from = '', $date_to = '', $sort = 'action_datetime', $order = 'desc', $customer_status = '', $showOnlyMine = true) {
     global $pdo;
     
     $query = "SELECT ah.*, c.company_name, c.status as customer_status, c.province, c.customer_id
@@ -571,6 +621,12 @@ function getFilteredActivities($customer_id = '', $date_from = '', $date_to = ''
               WHERE 1=1";
     
     $params = [];
+    
+    // Add user assignment filter
+    if ($showOnlyMine && !isAdmin()) {
+        $query .= " AND c.assigned_user_id = :current_user_id";
+        $params[':current_user_id'] = $_SESSION['user_id'];
+    }
     
     if (!empty($customer_id)) {
         $query .= " AND ah.customer_id = :customer_id";
@@ -1607,6 +1663,75 @@ function getLanguageUsageStats() {
     } catch (PDOException $e) {
         logError("Error getting language usage statistics: " . $e->getMessage());
         return [];
+    }
+}
+
+/**
+ * Get all users for assignment dropdown
+ */
+function getAllUsers() {
+    global $pdo;
+    try {
+        $stmt = $pdo->query("SELECT user_id, username FROM users ORDER BY username");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logError("Error getting all users: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Check if current user can assign customers (admin or creator)
+ */
+function canAssignCustomer($customer_id = null) {
+    if (isAdmin()) {
+        return true;
+    }
+    
+    if ($customer_id) {
+        $customer = getCustomerById($customer_id);
+        return $customer && $customer['created_by_user_id'] == $_SESSION['user_id'];
+    }
+    
+    return false;
+}
+
+/**
+ * Get customers assigned to current user or all customers (for admin)
+ */
+function getMyCustomers($showOnlyMine = true) {
+    global $pdo;
+    
+    if (!$showOnlyMine || isAdmin()) {
+        return getAllCustomers();
+    }
+    
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM customers WHERE assigned_user_id = ? ORDER BY company_name");
+        $stmt->execute([$_SESSION['user_id']]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logError("Error getting my customers: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Update customer assignment
+ */
+function assignCustomerToUser($customer_id, $user_id) {
+    global $pdo;
+    
+    if (!canAssignCustomer($customer_id)) {
+        return false;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("UPDATE customers SET assigned_user_id = ? WHERE customer_id = ?");
+        return $stmt->execute([$user_id, $customer_id]);
+    } catch (PDOException $e) {
+        logError("Error assigning customer to user: " . $e->getMessage());
+        return false;
     }
 }
 

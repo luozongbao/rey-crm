@@ -468,5 +468,14 @@ return [
     'records' => '条记录',
     'error_fetching_email_history' => '获取邮件历史时出错',
     'back_to_projects' => '返回项目',
+    
+    // Customer Assignment
+    'assigned_to' => '分配给',
+    'show_only_my_customers' => '仅显示我的客户',
+    'assign_customer' => '分配客户',
+    'customer_assigned_successfully' => '客户分配成功',
+    'assigned_to_user' => '分配给',
+    'my_customers' => '我的客户',
+    'all_customers' => '所有客户',
 ];
 ?>
