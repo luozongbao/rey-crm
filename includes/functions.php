@@ -232,7 +232,7 @@ function getAllLocations($showOnlyMine = false) {
                     END as location
                     FROM customers";
         
-        if ($showOnlyMine && !isAdmin()) {
+        if ($showOnlyMine) {
             $sql .= " WHERE assigned_user_id = ?";
             $stmt = $pdo->prepare($sql . " ORDER BY CASE WHEN location = 'N/A' THEN 1 ELSE 0 END, location");
             $stmt->execute([$_SESSION['user_id']]);
@@ -325,7 +325,7 @@ function getPaginatedCustomers($page = 1, $perPage = 10, $search = '', $location
     $params = [];
     
     // Add user assignment filter
-    if ($showOnlyMine && !isAdmin()) {
+    if ($showOnlyMine) {
         $conditions[] = "c.assigned_user_id = :current_user_id";
         $params[':current_user_id'] = $_SESSION['user_id'];
     }
@@ -570,7 +570,7 @@ function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '',
     $params = [];
     
     // Add user assignment filter
-    if ($showOnlyMine && !isAdmin()) {
+    if ($showOnlyMine) {
         $query .= " AND c.assigned_user_id = :current_user_id";
         $params[':current_user_id'] = $_SESSION['user_id'];
     }
@@ -631,7 +631,7 @@ function getFilteredActivities($customer_id = '', $date_from = '', $date_to = ''
     $params = [];
     
     // Add user assignment filter
-    if ($showOnlyMine && !isAdmin()) {
+    if ($showOnlyMine) {
         $query .= " AND c.assigned_user_id = :current_user_id";
         $params[':current_user_id'] = $_SESSION['user_id'];
     }
@@ -1710,7 +1710,7 @@ function canAssignCustomer($customer_id = null) {
 function getMyCustomers($showOnlyMine = true) {
     global $pdo;
     
-    if (!$showOnlyMine || isAdmin()) {
+    if (!$showOnlyMine) {
         return getAllCustomers();
     }
     
