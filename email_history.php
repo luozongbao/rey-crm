@@ -2,7 +2,7 @@
 require_once 'includes/config.php';
 require_once 'includes/functions.php';
 
-$page_title = 'Email History';
+$page_title = __('email_history');
 $current_page = 'email_history';
 
 // Pagination settings
@@ -49,7 +49,7 @@ try {
 
 } catch (PDOException $e) {
     error_log("Error fetching email history: " . $e->getMessage());
-    $error = "Error fetching email history.";
+    $error = __('error_fetching_email_history');
     $email_history = [];
     $total_pages = 0;
 }
@@ -59,9 +59,9 @@ include 'includes/header.php';
 
 <div class="container">
     <div class="header">
-        <h1>Email History</h1>
+        <h1><?php echo __('email_history'); ?></h1>
         <a href="email_projects.php" class="btn btn-secondary">
-            Back to Projects
+            <?php echo __('back_to_projects'); ?>
         </a>
     </div>
 
@@ -80,13 +80,13 @@ include 'includes/header.php';
                         <input type="text" 
                                name="search" 
                                class="form-control" 
-                               placeholder="Search by recipient, CC, project name, or subject..." 
+                               placeholder="<?php echo __('search_by_recipient_cc_project_subject'); ?>" 
                                value="<?php echo htmlspecialchars($search); ?>">
                     </div>
                     <div class="form-group">
-                        <button type="submit" class="btn btn-primary">Search</button>
+                        <button type="submit" class="btn btn-primary"><?php echo __('search'); ?></button>
                         <?php if (!empty($search)): ?>
-                            <a href="email_history.php" class="btn btn-secondary">Clear</a>
+                            <a href="email_history.php" class="btn btn-secondary"><?php echo __('clear'); ?></a>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -98,9 +98,9 @@ include 'includes/header.php';
     <div class="results-info">
         <p>
             <?php if (!empty($search)): ?>
-                Found <?php echo $total_count; ?> result<?php echo $total_count !== 1 ? 's' : ''; ?> for "<?php echo htmlspecialchars($search); ?>"
+                <?php echo __('found'); ?> <?php echo $total_count; ?> <?php echo __('result'); ?><?php echo $total_count !== 1 ? __('s') : ''; ?> <?php echo __('for'); ?> "<?php echo htmlspecialchars($search); ?>"
             <?php else: ?>
-                Showing <?php echo $total_count; ?> total email<?php echo $total_count !== 1 ? 's' : ''; ?>
+                <?php echo __('showing'); ?> <?php echo $total_count; ?> <?php echo __('total'); ?> <?php echo __('email'); ?><?php echo $total_count !== 1 ? __('s') : ''; ?>
             <?php endif; ?>
         </p>
     </div>
@@ -110,25 +110,25 @@ include 'includes/header.php';
             <?php if (empty($email_history)): ?>
                 <div class="empty-state">
                     <?php if (!empty($search)): ?>
-                        <h3>No Results Found</h3>
-                        <p>No emails found matching your search criteria.</p>
-                        <a href="email_history.php" class="btn btn-secondary">Clear Search</a>
+                        <h3><?php echo __('no_results_found'); ?></h3>
+                        <p><?php echo __('no_emails_found_matching_search'); ?></p>
+                        <a href="email_history.php" class="btn btn-secondary"><?php echo __('clear_search'); ?></a>
                     <?php else: ?>
-                        <h3>No Email History</h3>
-                        <p>No emails have been sent yet.</p>
-                        <a href="email_projects.php" class="btn btn-primary">Create Email Project</a>
+                        <h3><?php echo __('no_email_history'); ?></h3>
+                        <p><?php echo __('no_emails_sent_yet'); ?></p>
+                        <a href="email_projects.php" class="btn btn-primary"><?php echo __('create_email_project'); ?></a>
                     <?php endif; ?>
                 </div>
             <?php else: ?>
                 <div class="table-responsive">
                     <table class="data-table">
-                        <thead>
+                                                <thead>
                             <tr>
-                                <th class="datetime-col">Date & Time</th>
-                                <th>To</th>
-                                <th>CC</th>
-                                <th>Project Name</th>
-                                <th>Attachments</th>
+                                <th class="datetime-col"><?php echo __('date_time'); ?></th>
+                                <th><?php echo __('to'); ?></th>
+                                <th><?php echo __('cc'); ?></th>
+                                <th><?php echo __('project_name'); ?></th>
+                                <th class="attachments-col"><?php echo __('attachments'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -159,7 +159,7 @@ include 'includes/header.php';
                                                 <strong><?php echo htmlspecialchars($email['project_name']); ?></strong>
                                             </a>
                                         <?php else: ?>
-                                            <span class="text-muted">Project deleted</span>
+                                            <span class="text-muted"><?php echo __('project_deleted'); ?></span>
                                         <?php endif; ?>
                                     </td>
                                     <td>
@@ -170,7 +170,7 @@ include 'includes/header.php';
                                             ?>
                                                 <div class="attachments">
                                                     <span class="attachment-count">
-                                                        <?php echo count($attachments); ?> file<?php echo count($attachments) > 1 ? 's' : ''; ?>
+                                                        <?php echo count($attachments); ?> <?php echo __('file'); ?><?php echo count($attachments) > 1 ? __('s') : ''; ?>
                                                     </span>
                                                     <div class="attachment-tooltip">
                                                         <ul>
@@ -198,8 +198,8 @@ include 'includes/header.php';
                     <div class="pagination-container">
                         <div class="pagination">
                             <?php if ($page > 1): ?>
-                                <a href="?<?php echo buildQueryString(['page' => 1]); ?>" class="btn">First</a>
-                                <a href="?<?php echo buildQueryString(['page' => $page - 1]); ?>" class="btn">Previous</a>
+                                <a href="?<?php echo buildQueryString(['page' => 1]); ?>" class="btn"><?php echo __('first'); ?></a>
+                                <a href="?<?php echo buildQueryString(['page' => $page - 1]); ?>" class="btn"><?php echo __('previous'); ?></a>
                             <?php endif; ?>
                             
                             <?php 
@@ -216,8 +216,8 @@ include 'includes/header.php';
                             <?php endfor; ?>
                             
                             <?php if ($page < $total_pages): ?>
-                                <a href="?<?php echo buildQueryString(['page' => $page + 1]); ?>" class="btn">Next</a>
-                                <a href="?<?php echo buildQueryString(['page' => $total_pages]); ?>" class="btn">Last</a>
+                                <a href="?<?php echo buildQueryString(['page' => $page + 1]); ?>" class="btn"><?php echo __('next'); ?></a>
+                                <a href="?<?php echo buildQueryString(['page' => $total_pages]); ?>" class="btn"><?php echo __('last'); ?></a>
                             <?php endif; ?>
                         </div>
                         
@@ -226,7 +226,7 @@ include 'includes/header.php';
                             // Calculate the current record range
                             $startRecord = ($page - 1) * $items_per_page + 1;
                             $endRecord = min($page * $items_per_page, $total_count);
-                            echo "Showing $startRecord - $endRecord of $total_count records";
+                            echo __('showing') . " $startRecord - $endRecord " . __('of') . " $total_count " . __('records');
                             ?>
                         </div>
                     </div>

@@ -73,19 +73,19 @@ require_once 'includes/header.php';
                     </select>
                 </div>
 
-                                <div class="form-group">
-                    <label for="from_date"><?= __('from') ?>:</label>
-                    <input type="date" name="from_date" id="from_date" value="<?= htmlspecialchars($from_date) ?>">
+                <div class="form-group">
+                    <label for="date_from"><?= __('from') ?>:</label>
+                    <input type="date" name="date_from" id="date_from" value="<?= htmlspecialchars($date_from) ?>" onchange="validateDates()">
                 </div>
 
                 <div class="form-group">
-                    <label for="to_date"><?= __('to') ?>:</label>
-                    <input type="date" name="to_date" id="to_date" value="<?= htmlspecialchars($to_date) ?>">
+                    <label for="date_to"><?= __('to') ?>:</label>
+                    <input type="date" name="date_to" id="date_to" value="<?= htmlspecialchars($date_to) ?>" onchange="validateDates()">
                 </div>
 
                 <div class="form-group">
-                    <button type="submit"><?= __('apply_filters') ?></button>
-                    <button type="button" onclick="resetFilters()"><?= __('reset') ?></button>
+                    <button type="submit" class="btn"><?= __('apply_filters') ?></button>
+                    <button type="button" class="btn ghost" onclick="resetFilters()"><?= __('reset') ?></button>
                 </div>
             </div>
 
@@ -93,7 +93,7 @@ require_once 'includes/header.php';
             <div class="form-row">
                 <div class="form-group">
                     <label for="sort_by"><?= __('sort_by') ?>:</label>
-                    <select name="sort_by" id="sort_by">
+                    <select name="sort_by" id="sort_by" onchange="this.form.submit()">
                         <option value="followup_date" <?= $sort_by == 'followup_date' ? 'selected' : '' ?>><?= __('followup_date') ?></option>
                         <option value="company_name" <?= $sort_by == 'company_name' ? 'selected' : '' ?>><?= __('customer_name') ?></option>
                         <option value="customer_status" <?= $sort_by == 'customer_status' ? 'selected' : '' ?>><?= __('customer_status') ?></option>
@@ -102,7 +102,7 @@ require_once 'includes/header.php';
 
                 <div class="form-group">
                     <label for="order"><?= __('order') ?>:</label>
-                    <select name="order" id="order">
+                    <select name="order" id="order" onchange="this.form.submit()">
                         <option value="ASC" <?= $order == 'ASC' ? 'selected' : '' ?>><?= __('ascending') ?></option>
                         <option value="DESC" <?= $order == 'DESC' ? 'selected' : '' ?>><?= __('descending') ?></option>
                     </select>
