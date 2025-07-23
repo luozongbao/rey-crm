@@ -190,6 +190,7 @@ return [
     'view_statistics' => 'View Statistics',
     
     // Customer Status Options
+    'customer_status' => 'Customer Status',
     'Prospect' => 'Prospect',
     'Qualified' => 'Qualified',
     'Not Qualified' => 'Not Qualified',

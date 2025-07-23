@@ -11,6 +11,7 @@ if (isset($_GET['restore']) && isset($_SESSION['last_page_state'])) {
     $sort = $state['sort'];
     $order = $state['order'];
     $page = $state['page'];
+    $showOnlyMine = isset($state['show_only_mine']) ? $state['show_only_mine'] : true;
     
     // Clear the restore parameter by redirecting without it
     $params = $_GET;
@@ -25,7 +26,15 @@ if (isset($_GET['restore']) && isset($_SESSION['last_page_state'])) {
     $sort = isset($_GET['sort']) ? trim($_GET['sort']) : 'created_at';
     $order = isset($_GET['order']) ? trim($_GET['order']) : 'desc';
     $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-    $showOnlyMine = !isset($_GET['show_only_mine']) || $_GET['show_only_mine'] == '1';
+    
+    // Handle show_only_mine checkbox logic properly
+    if (count($_GET) > 0) {
+        // This is a form submission - respect the checkbox state
+        $showOnlyMine = isset($_GET['show_only_mine']) && $_GET['show_only_mine'] == '1';
+    } else {
+        // This is a fresh page load - default to checked
+        $showOnlyMine = true;
+    }
 }
 
 $perPage = getItemsPerPage();
@@ -42,8 +51,8 @@ if (!isset($_GET['restore'])) {
     ];
 }
 
-// Get all unique locations for filter dropdown
-$locations = getAllLocations();
+// Get all unique locations for filter dropdown (respecting the filter)
+$locations = getAllLocations($showOnlyMine);
 
 // Get paginated and sorted customers
 $result = getPaginatedCustomers($page, $perPage, $search, $location, $sort, $order, $showOnlyMine);

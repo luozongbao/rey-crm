@@ -7,9 +7,17 @@ requireLogin();
 // Get filter parameters
 $customer_id = $_GET['customer_id'] ?? '';
 $customer_status = $_GET['customer_status'] ?? '';
-$date_from = $_GET['date_from'] ?? date('Y-m-d');
-$date_to = $_GET['date_to'] ?? date('Y-m-d', strtotime('+1 month'));
-$showOnlyMine = !isset($_GET['show_only_mine']) || $_GET['show_only_mine'] == '1';
+$date_from = $_GET['date_from'] ?? date('Y-m-d', strtotime("-1 month"));
+$date_to = $_GET['date_to'] ?? date('Y-m-d');
+
+// Handle show_only_mine checkbox logic properly
+if (count($_GET) > 0) {
+    // This is a form submission - respect the checkbox state
+    $showOnlyMine = isset($_GET['show_only_mine']) && $_GET['show_only_mine'] == '1';
+} else {
+    // This is a fresh page load - default to checked
+    $showOnlyMine = true;
+}
 
 // Validate dates - ensure date_from is not after date_to
 if (strtotime($date_from) > strtotime($date_to)) {
@@ -108,9 +116,6 @@ require_once 'includes/header.php';
                         <option value="DESC" <?= $order == 'DESC' ? 'selected' : '' ?>><?= __('descending') ?></option>
                     </select>
                 </div>
-            </div>
-            
-            <div class="form-row">
                 <div class="form-group">
                     <label class="checkbox-label">
                         <input type="checkbox" name="show_only_mine" value="1" 
@@ -118,8 +123,10 @@ require_once 'includes/header.php';
                                onchange="this.form.submit()">
                         <?= __('show_only_my_customers') ?>
                     </label>
-                </div>
+                </div>                
             </div>
+            
+
         </form>
 
         <!-- Follow-ups Table -->

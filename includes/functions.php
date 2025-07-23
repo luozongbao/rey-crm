@@ -220,19 +220,27 @@ function getFollowupsForExport($start_date, $end_date) {
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-function getAllLocations() {
+function getAllLocations($showOnlyMine = false) {
     global $pdo;
     try {
-        $stmt = $pdo->query("SELECT DISTINCT 
-                        CASE
-                            WHEN NULLIF(TRIM(province), '') IS NULL AND NULLIF(TRIM(country), '') IS NULL THEN 'N/A'
-                            WHEN NULLIF(TRIM(province), '') IS NULL THEN TRIM(country)
-                            WHEN NULLIF(TRIM(country), '') IS NULL THEN TRIM(province)
-                            ELSE CONCAT(TRIM(province), ', ', TRIM(country))
-                        END as location
-                        FROM customers
-                        ORDER BY CASE WHEN location = 'N/A' THEN 1 ELSE 0 END, 
-                        location");
+        $sql = "SELECT DISTINCT 
+                    CASE
+                        WHEN NULLIF(TRIM(province), '') IS NULL AND NULLIF(TRIM(country), '') IS NULL THEN 'N/A'
+                        WHEN NULLIF(TRIM(province), '') IS NULL THEN TRIM(country)
+                        WHEN NULLIF(TRIM(country), '') IS NULL THEN TRIM(province)
+                        ELSE CONCAT(TRIM(province), ', ', TRIM(country))
+                    END as location
+                    FROM customers";
+        
+        if ($showOnlyMine && !isAdmin()) {
+            $sql .= " WHERE assigned_user_id = ?";
+            $stmt = $pdo->prepare($sql . " ORDER BY CASE WHEN location = 'N/A' THEN 1 ELSE 0 END, location");
+            $stmt->execute([$_SESSION['user_id']]);
+        } else {
+            $stmt = $pdo->prepare($sql . " ORDER BY CASE WHEN location = 'N/A' THEN 1 ELSE 0 END, location");
+            $stmt->execute();
+        }
+        
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     } catch (PDOException $e) {
         error_log("Error in getAllLocations: " . $e->getMessage());

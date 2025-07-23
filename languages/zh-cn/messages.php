@@ -198,6 +198,7 @@ return [
     'view_statistics' => '查看统计',
     
     // Customer Status Options
+    'customer_status' => '客户状态',
     'Prospect' => '潜在客户',
     'Qualified' => '合格客户',
     'Not Qualified' => '不合格客户',

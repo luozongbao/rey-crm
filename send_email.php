@@ -10,6 +10,7 @@ use PHPMailer\PHPMailer\Exception;
 $page_title = 'Send Email';
 $current_page = 'send_email';
 
+// Get filter parameters
 $project_id = isset($_GET['project_id']) ? (int)$_GET['project_id'] : null;
 $project = null;
 
@@ -30,8 +31,14 @@ if ($project_id) {
     }
 }
 
-// Get show only mine filter parameter
-$showOnlyMine = !isset($_GET['show_only_mine']) || $_GET['show_only_mine'] == '1';
+// Handle show_only_mine checkbox logic properly
+if (count($_GET) > 0) {
+    // This is a form submission - respect the checkbox state
+    $showOnlyMine = isset($_GET['show_only_mine']) && $_GET['show_only_mine'] == '1';
+} else {
+    // This is a fresh page load - default to checked
+    $showOnlyMine = true;
+}
 
 // Get customers and contacts for recipient selection
 try {
@@ -276,16 +283,11 @@ include 'includes/header.php';
 ?>
 
 <div class="container">
-    <div class="page-header">
-        <div class="page-title-container">
+    <div class="header">
             <h1 class="page-title">Send Email</h1>
-            <p class="page-subtitle">Send email using project template</p>
-        </div>
-        <div class="page-actions">
             <a href="email_projects.php" class="btn btn-secondary">
                 Back to Projects
             </a>
-        </div>
     </div>
 
     <?php if (isset($success_message)): ?>

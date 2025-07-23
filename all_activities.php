@@ -8,7 +8,15 @@ $customer_id = $_GET['customer_id'] ?? '';
 $customer_status = $_GET['customer_status'] ?? '';
 $date_from = $_GET['date_from'] ?? date('Y-m-d', strtotime("-1 month"));
 $date_to = $_GET['date_to'] ?? date('Y-m-d');
-$showOnlyMine = !isset($_GET['show_only_mine']) || $_GET['show_only_mine'] == '1';
+
+// Handle show_only_mine checkbox logic properly
+if (count($_GET) > 0) {
+    // This is a form submission - respect the checkbox state
+    $showOnlyMine = isset($_GET['show_only_mine']) && $_GET['show_only_mine'] == '1';
+} else {
+    // This is a fresh page load - default to checked
+    $showOnlyMine = true;
+}
 
 // Validate dates - ensure date_from is not after date_to
 if (strtotime($date_from) > strtotime($date_to)) {
@@ -109,9 +117,6 @@ require_once 'includes/header.php';
                         <option value="asc" <?= $order == 'asc' ? 'selected' : '' ?>><?= __('oldest_first') ?></option>
                     </select>
                 </div>
-            </div>
-            
-            <div class="form-row">
                 <div class="form-group">
                     <label class="checkbox-label">
                         <input type="checkbox" name="show_only_mine" value="1" 
