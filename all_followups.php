@@ -40,16 +40,16 @@ require_once 'includes/header.php';
 ?>
     <div class="container">
         <div class="header">
-            <h1>All Follow-ups</h1>
+            <h1><?= __('all_followups') ?></h1>
         </div>
 
         <!-- Filter Form -->
         <form method="get" class="filter-form">
             <div class="form-row">
                 <div class="form-group">
-                    <label for="customer_id">Customer:</label>
+                    <label for="customer_id"><?= __('customer') ?>:</label>
                     <select name="customer_id" id="customer_id">
-                        <option value="">All Customers</option>
+                        <option value=""><?= __('all_customers') ?></option>
                         <?php foreach ($customers as $customer): ?>
                         <option value="<?= $customer['customer_id'] ?>" 
                             <?= $customer_id == $customer['customer_id'] ? 'selected' : '' ?>>
@@ -60,68 +60,65 @@ require_once 'includes/header.php';
                 </div>
 
                 <div class="form-group">
-                    <label for="customer_status">Customer Status:</label>
+                    <label for="customer_status"><?= __('customer_status') ?>:</label>
                     <select name="customer_status" id="customer_status">
-                        <option value="">All Status</option>
-                        <option value="All Except Not Qualified" <?= $customer_status == 'All Except Not Qualified' ? 'selected' : '' ?>>All Except Not Qualified</option>
+                        <option value=""><?= __('all_status') ?></option>
+                        <option value="All Except Not Qualified" <?= $customer_status == 'All Except Not Qualified' ? 'selected' : '' ?>><?= __('all_except_not_qualified') ?></option>
                         <?php foreach ($customerStatusOptions as $statusOption): ?>
                         <option value="<?= htmlspecialchars($statusOption) ?>" 
                             <?= $customer_status == $statusOption ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($statusOption) ?>
+                            <?= htmlspecialchars(__($statusOption)) ?>
                         </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label for="date_from">From:</label>
-                    <input type="date" name="date_from" id="date_from" 
-                           value="<?= htmlspecialchars($date_from) ?>" onchange="validateDates()">
+                    <label for="date_from"><?= __('date_from') ?>:</label>
+                    <input type="date" name="date_from" id="date_from" value="<?= htmlspecialchars($date_from) ?>" onchange="validateDates()">
                 </div>
 
                 <div class="form-group">
-                    <label for="date_to">To:</label>
-                    <input type="date" name="date_to" id="date_to" 
-                           value="<?= htmlspecialchars($date_to) ?>" onchange="validateDates()">
+                    <label for="date_to"><?= __('date_to') ?>:</label>
+                    <input type="date" name="date_to" id="date_to" value="<?= htmlspecialchars($date_to) ?>" onchange="validateDates()">
                 </div>
 
-                <div class="btn-group">
-                    <button type="submit" class="btn">Apply Filters</button>
-                    <a href="all_followups.php" class="btn ghost">Reset</a>
+                <div class="form-group">
+                    <button type="submit" class="btn"><?= __('apply_filters') ?></button>
+                    <button type="button" class="btn ghost" onclick="resetFilters()"><?= __('reset') ?></button>
                 </div>
             </div>
 
-            <!-- <div class="sort-section"> -->
+            <!-- Sort Options -->
             <div class="form-row">
                 <div class="form-group">
-                    <label>Sort By:</label>
-                    <select name="sort" onchange="this.form.submit()">
-                        <option value="follow_up_datetime" <?= $sort == 'follow_up_datetime' ? 'selected' : '' ?>>Follow-up Date</option>
-                        <option value="company_name" <?= $sort == 'company_name' ? 'selected' : '' ?>>Customer Name</option>
-                        <option value="customer_status" <?= $sort == 'customer_status' ? 'selected' : '' ?>>Customer Status</option>
+                    <label for="sort_by"><?= __('sort_by') ?>:</label>
+                    <select name="sort_by" id="sort_by" onchange="this.form.submit()">
+                        <option value="followup_date" <?= $sort_by == 'followup_date' ? 'selected' : '' ?>><?= __('followup_date') ?></option>
+                        <option value="company_name" <?= $sort_by == 'company_name' ? 'selected' : '' ?>><?= __('customer_name') ?></option>
+                        <option value="customer_status" <?= $sort_by == 'customer_status' ? 'selected' : '' ?>><?= __('customer_status') ?></option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label>Order:</label>
-                    <select name="order" onchange="this.form.submit()">
-                        <option value="asc" <?= $order == 'asc' ? 'selected' : '' ?>>Ascending</option>
-                        <option value="desc" <?= $order == 'desc' ? 'selected' : '' ?>>Descending</option>
+                    <label for="order"><?= __('order') ?>:</label>
+                    <select name="order" id="order" onchange="this.form.submit()">
+                        <option value="ASC" <?= $order == 'ASC' ? 'selected' : '' ?>><?= __('ascending') ?></option>
+                        <option value="DESC" <?= $order == 'DESC' ? 'selected' : '' ?>><?= __('descending') ?></option>
                     </select>
                 </div>
             </div>
-            <!-- </div> -->
         </form>
 
         <!-- Follow-ups Table -->
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>Customer</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                    <th class="datetime">Follow-up Date</th>
-                    <th>Next Step</th>
+                    <th><?= __('customer') ?></th>
+                    <th><?= __('status') ?></th>
+                    <th><?= __('action') ?></th>
+                    <th class="datetime"><?= __('followup_date') ?></th>
+                    <th><?= __('next_step') ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -137,7 +134,7 @@ require_once 'includes/header.php';
                     </td>
                     <td>
                         <span class="status-badge status-<?= strtolower(str_replace(' ', '-', $followup['customer_status'])) ?>">
-                            <?= htmlspecialchars($followup['customer_status']) ?>
+                            <?= htmlspecialchars(__($followup['customer_status'])) ?>
                         </span>
                     </td>
                     <td><?= htmlspecialchars($followup['action']) ?></td>
@@ -158,7 +155,7 @@ require_once 'includes/header.php';
             const dateTo = new Date(dateToInput.value);
             
             if (dateFrom > dateTo) {
-                alert('Error: "From" date cannot be later than "To" date');
+                alert('<?= __('date_range_error') ?>');
                 // Reset to valid values
                 if (this === dateFromInput) {
                     dateFromInput.value = dateToInput.value;

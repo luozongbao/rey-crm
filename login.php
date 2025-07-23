@@ -1,7 +1,9 @@
 <?php
 require_once 'includes/functions.php';
 
-session_start();
+// Initialize language system
+$current_language = initLanguage();
+$lang_info = getCurrentLanguageInfo();
 
 // If already logged in, redirect to dashboard
 if (isset($_SESSION['user_id'])) {
@@ -20,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     if (empty($username) || empty($password)) {
-        $error = "Please enter both username and password.";
+        $error = __('login_required');
     } else {
         try {
             $stmt = $pdo->prepare("SELECT user_id, username, password, role FROM users WHERE username = ?");
@@ -40,32 +42,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header('Location: dashboard.php');
                 exit;
             } else {
-                $error = "Invalid username or password.";
+                $error = __('invalid_credentials');
             }
         } catch (PDOException $e) {
-            $error = "Login failed. Please try again.";
+            $error = __('login_failed');
             logError($e->getMessage());
         }
     }
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo htmlspecialchars($current_language); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Rey CRM</title>
+    <title><?php echo __('login'); ?> - <?php echo __('rey_crm'); ?></title>
     <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="stylesheet" href="/assets/css/language.css">
+    <script src="/assets/js/language.js" defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body class="auth-page">
+<body class="auth-page" <?php echo $lang_info['direction'] === 'rtl' ? 'class="rtl"' : ''; ?>>
     <div class="auth-container">
         <div class="auth-card">
             <div class="auth-header">
-                <h1 class="auth-title">Welcome to Rey CRM</h1>
-                <p class="auth-subtitle">Sign in to your account</p>
+                <h1 class="auth-title"><?php echo __('login_title'); ?></h1>
+                <p class="auth-subtitle"><?php echo __('login_subtitle'); ?></p>
+                
+                <!-- Language switcher for login page -->
+                <div class="language-switcher" style="margin-top: 1rem; text-align: center;">
+                    <select id="language-select" onchange="switchLanguage(this.value)" title="<?php echo __('select_language'); ?>">
+                        <?php foreach (getAvailableLanguages() as $code => $info): ?>
+                            <option value="<?php echo htmlspecialchars($code); ?>" <?php echo $code === $current_language ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($info['flag'] . ' ' . $info['native_name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
             </div>
 
             <?php if ($error): ?>
@@ -76,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <form method="POST" class="auth-form">
                 <div class="form-group">
-                    <label for="username">Username</label>
+                    <label for="username"><?php echo __('username'); ?></label>
                     <input type="text" 
                            id="username" 
                            name="username" 
@@ -86,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <div class="form-group">
-                    <label for="password">Password</label>
+                    <label for="password"><?php echo __('password'); ?></label>
                     <input type="password" 
                            id="password" 
                            name="password" 
@@ -95,11 +110,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-block">
-                    Sign In
+                    <?php echo __('sign_in'); ?>
                 </button>
                 
                 <div class="auth-links">
-                    <a href="forgot_password.php" class="text-link">Forgot Password?</a>
+                    <a href="forgot_password.php" class="text-link"><?php echo __('forgot_password'); ?></a>
                 </div>
             </form>
         </div>

@@ -34,7 +34,7 @@ if (!empty($token)) {
     if ($_SESSION['token_attempts'] >= $max_attempts && 
         ($current_time - $_SESSION['token_last_attempt']) < $timeout_seconds) {
         $wait_time = $timeout_seconds - ($current_time - $_SESSION['token_last_attempt']);
-        $error = "Too many invalid token attempts. Please try again in " . ceil($wait_time / 60) . " minutes.";
+        $error = __('too_many_invalid_token_attempts') . ' ' . ceil($wait_time / 60) . ' ' . __('minutes');
     } else {
         try {
             // Reset counter if timeout has passed
@@ -66,10 +66,10 @@ if (!empty($token)) {
                 $_SESSION['token_attempts']++;
                 $_SESSION['token_last_attempt'] = $current_time;
                 
-                $error = "Invalid or expired password reset link. Please request a new one.";
+                $error = __('invalid_or_expired_reset_link');
             }
         } catch (PDOException $e) {
-            $error = "An error occurred. Please try again later.";
+            $error = __('error_occurred_try_again_later');
             logError("Token validation failed: " . $e->getMessage());
         }
     }
@@ -82,11 +82,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_token) {
     
     // Validate password
     if (empty($password)) {
-        $error = "Password cannot be empty.";
+        $error = __('password_cannot_be_empty');
     } elseif (strlen($password) < 8) {
-        $error = "Password must be at least 8 characters.";
+        $error = __('password_must_be_at_least_8_characters');
     } elseif ($password !== $confirm_password) {
-        $error = "Passwords do not match.";
+        $error = __('passwords_do_not_match');
     } else {
         try {
             // Begin transaction
@@ -104,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_token) {
             // Commit transaction
             $pdo->commit();
             
-            $message = "Password has been reset successfully. You can now login with your new password.";
+            $message = __('password_reset_successfully');
             
             // Redirect to login page after 3 seconds
             header("refresh:3;url=login.php");
@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_token) {
             // Rollback transaction on error
             $pdo->rollBack();
             
-            $error = "Failed to reset password. Please try again.";
+            $error = __('failed_to_reset_password');
             logError("Password reset failed: " . $e->getMessage());
         }
     }
@@ -123,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_token) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reset Password - Rey CRM</title>
+    <title><?php echo __('reset_password'); ?> - <?php echo __('rey_crm'); ?></title>
     <link rel="stylesheet" href="/assets/css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -133,9 +133,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_token) {
     <div class="auth-container">
         <div class="auth-card">
             <div class="auth-header">
-                <h1 class="auth-title">Reset Password</h1>
+                <h1 class="auth-title"><?php echo __('reset_password'); ?></h1>
                 <p class="auth-subtitle">
-                    <?php echo $valid_token ? "Create a new password for your account" : "Password Reset"; ?>
+                    <?php echo $valid_token ? __('create_new_password_for_account') : __('password_reset'); ?>
                 </p>
             </div>
 
@@ -154,7 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_token) {
             <?php if ($valid_token): ?>
                 <form method="POST" class="auth-form">
                     <div class="form-group">
-                        <label for="password">New Password</label>
+                        <label for="password"><?php echo __('new_password'); ?></label>
                         <input type="password" 
                                id="password" 
                                name="password" 
@@ -162,11 +162,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_token) {
                                required 
                                autofocus
                                minlength="8">
-                        <small class="form-text text-muted">Password must be at least 8 characters</small>
+                        <small class="form-text text-muted"><?php echo __('password_must_be_at_least_8_characters'); ?></small>
                     </div>
 
                     <div class="form-group">
-                        <label for="confirm_password">Confirm Password</label>
+                        <label for="confirm_password"><?php echo __('confirm_password'); ?></label>
                         <input type="password" 
                                id="confirm_password" 
                                name="confirm_password" 
@@ -175,19 +175,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_token) {
                     </div>
 
                     <button type="submit" class="btn btn-primary btn-block">
-                        Reset Password
+                        <?php echo __('reset_password'); ?>
                     </button>
                 </form>
             <?php elseif (!$valid_token && !$message): ?>
                 <div class="auth-links">
-                    <a href="forgot_password.php" class="btn btn-outline">Request New Reset Link</a>
+                    <a href="forgot_password.php" class="btn btn-outline"><?php echo __('request_new_reset_link'); ?></a>
                     <div class="spacer-y-2"></div>
-                    <a href="login.php" class="text-link">Back to Login</a>
+                    <a href="login.php" class="text-link"><?php echo __('back_to_login'); ?></a>
                 </div>
             <?php endif; ?>
             <?php if ($message): ?>
                 <div class="auth-links">
-                    <a href="login.php" class="text-link">Go to Login</a>
+                    <a href="login.php" class="text-link"><?php echo __('go_to_login'); ?></a>
                 </div>
             <?php endif; ?>
         </div>

@@ -2,7 +2,7 @@
 require_once 'includes/config.php';
 require_once 'includes/functions.php';
 
-$page_title = 'Email Project Form';
+$page_title = $is_edit ? __('edit_email_project') : __('create_email_project');
 $current_page = 'email_project_form';
 $is_edit = isset($_GET['id']) && !empty($_GET['id']);
 $project_id = $is_edit ? (int)$_GET['id'] : null;
@@ -16,12 +16,12 @@ if ($is_edit) {
         $project = $stmt->fetch();
         
         if (!$project) {
-            header('Location: email_projects.php?error=' . urlencode('Project not found'));
+            header('Location: email_projects.php?error=' . urlencode(__('project_not_found')));
             exit;
         }
     } catch (PDOException $e) {
         error_log("Error fetching project: " . $e->getMessage());
-        $error = "Error fetching project data.";
+        $error = __('error_fetching_project');
     }
 }
 
@@ -65,10 +65,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validation
     $errors = [];
     if (empty($project_name)) {
-        $errors[] = "Project name is required.";
+        $errors[] = __('project_name_required');
     }
     if (empty($subject)) {
-        $errors[] = "Subject is required.";
+        $errors[] = __('subject_required');
     }
     
     // Validate CC emails if provided
@@ -85,19 +85,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Update existing project
                 $stmt = $pdo->prepare("UPDATE email_projects SET project_name = ?, cc = ?, subject = ?, message = ?, attachments = ?, updated_at = ? WHERE project_id = ?");
                 $stmt->execute([$project_name, $cc, $subject, $message, $attachments, getCurrentUTCDateTime(), $project_id]);
-                $success_message = 'Email project updated successfully';
+                $success_message = __('email_project_updated_successfully');
             } else {
                 // Create new project
                 $stmt = $pdo->prepare("INSERT INTO email_projects (project_name, cc, subject, message, attachments) VALUES (?, ?, ?, ?, ?)");
                 $stmt->execute([$project_name, $cc, $subject, $message, $attachments]);
-                $success_message = 'Email project created successfully';
+                $success_message = __('email_project_created_successfully');
             }
             
             header('Location: email_projects.php?message=' . urlencode($success_message));
             exit;
         } catch (PDOException $e) {
             error_log("Error saving project: " . $e->getMessage());
-            $error = "Error saving project.";
+            $error = __('error_saving_project');
         }
     }
 }
@@ -106,16 +106,11 @@ include 'includes/header.php';
 ?>
 
 <div class="container">
-    <div class="page-header">
-        <div class="page-title-container">
-            <h1 class="page-title"><?php echo $is_edit ? 'Edit Email Project' : 'Create Email Project'; ?></h1>
-            <p class="page-subtitle">Create reusable email templates for your campaigns</p>
-        </div>
-        <div class="page-actions">
+    <div class="header">
+            <h1 class="page-title"><?php echo $is_edit ? __('edit_email_project') : __('create_email_project'); ?></h1>
             <a href="email_projects.php" class="btn btn-secondary">
-                Back to Projects
+                <?= __('back_to_projects') ?>
             </a>
-        </div>
     </div>
 
     <?php if (isset($error)): ?>
@@ -138,7 +133,7 @@ include 'includes/header.php';
         <div class="card-body">
             <form method="POST" enctype="multipart/form-data" class="form">
                 <div class="form-group">
-                    <label for="project_name" class="form-label">Project Name <span class="required">*</span></label>
+                    <label for="project_name" class="form-label"><?= __('project_name') ?> <span class="required">*</span></label>
                     <input type="text" 
                            id="project_name" 
                            name="project_name" 
@@ -148,7 +143,7 @@ include 'includes/header.php';
                 </div>
 
                 <div class="form-group">
-                    <label for="subject" class="form-label">Subject <span class="required">*</span></label>
+                    <label for="subject" class="form-label"><?= __('subject') ?> <span class="required">*</span></label>
                     <input type="text" 
                            id="subject" 
                            name="subject" 
@@ -158,26 +153,26 @@ include 'includes/header.php';
                 </div>
 
                 <div class="form-group">
-                    <label for="cc" class="form-label">CC (optional)</label>
+                    <label for="cc" class="form-label"><?= __('cc_optional') ?></label>
                     <input type="text" 
                            id="cc" 
                            name="cc" 
                            class="form-control" 
                            value="<?php echo htmlspecialchars($project['cc'] ?? $_POST['cc'] ?? ''); ?>" 
-                           placeholder="Enter multiple emails separated by commas or semicolons">
-                    <small class="form-text">Enter multiple email addresses separated by commas (,) or semicolons (;)</small>
+                           placeholder="<?= __('cc_placeholder') ?>">
+                    <small class="form-text"><?= __('cc_help_text') ?></small>
                 </div>
 
                 <div class="form-group">
-                    <label for="message" class="form-label">Message</label>
+                    <label for="message" class="form-label"><?= __('message') ?></label>
                     <div class="wysiwyg-container">
                         <div class="wysiwyg-toolbar">
-                            <button type="button" onclick="execCommand('bold')" title="Bold"><b>B</b></button>
-                            <button type="button" onclick="execCommand('italic')" title="Italic"><i>I</i></button>
-                            <button type="button" onclick="execCommand('underline')" title="Underline"><u>U</u></button>
-                            <button type="button" onclick="execCommand('insertOrderedList')" title="Numbered List">1.</button>
-                            <button type="button" onclick="execCommand('insertUnorderedList')" title="Bullet List">•</button>
-                            <button type="button" onclick="execCommand('createLink')" title="Insert Link">🔗</button>
+                            <button type="button" onclick="execCommand('bold')" title="<?= __('bold') ?>"><b>B</b></button>
+                            <button type="button" onclick="execCommand('italic')" title="<?= __('italic') ?>"><i>I</i></button>
+                            <button type="button" onclick="execCommand('underline')" title="<?= __('underline') ?>"><u>U</u></button>
+                            <button type="button" onclick="execCommand('insertOrderedList')" title="<?= __('numbered_list') ?>">1.</button>
+                            <button type="button" onclick="execCommand('insertUnorderedList')" title="<?= __('bullet_list') ?>">•</button>
+                            <button type="button" onclick="execCommand('createLink')" title="<?= __('insert_link') ?>">🔗</button>
                         </div>
                         <div id="message-editor" 
                              class="wysiwyg-editor" 
@@ -190,26 +185,26 @@ include 'includes/header.php';
                 </div>
 
                 <div class="form-group">
-                    <label for="attachments" class="form-label">Attachments</label>
+                    <label for="attachments" class="form-label"><?= __('attachments') ?></label>
                     <input type="file" 
                            id="attachments" 
                            name="attachments[]" 
                            class="form-control" 
                            multiple
                            accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif">
-                    <small class="form-text">You can select multiple files. Supported formats: PDF, DOC, DOCX, TXT, JPG, JPEG, PNG, GIF</small>
+                    <small class="form-text"><?= __('attachment_help_text') ?></small>
                     
                     <?php if ($is_edit && $project && !empty($project['attachments'])): ?>
                         <?php $existing_attachments = json_decode($project['attachments'], true); ?>
                         <?php if (!empty($existing_attachments)): ?>
                             <div class="existing-attachments">
-                                <h4>Current Attachments:</h4>
+                                <h4><?= __('current_attachments') ?>:</h4>
                                 <ul>
                                     <?php foreach ($existing_attachments as $attachment): ?>
                                         <li><?php echo htmlspecialchars(basename($attachment)); ?></li>
                                     <?php endforeach; ?>
                                 </ul>
-                                <small class="form-text">Upload new files to replace current attachments</small>
+                                <small class="form-text"><?= __('upload_new_files_replace') ?></small>
                             </div>
                         <?php endif; ?>
                     <?php endif; ?>
@@ -217,9 +212,9 @@ include 'includes/header.php';
 
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">
-                        <?php echo $is_edit ? 'Update Project' : 'Create Project'; ?>
+                        <?php echo $is_edit ? __('update_project') : __('create_project'); ?>
                     </button>
-                    <a href="email_projects.php" class="btn btn-secondary">Cancel</a>
+                    <a href="email_projects.php" class="btn btn-secondary"><?= __('cancel') ?></a>
                 </div>
             </form>
         </div>
@@ -231,7 +226,7 @@ include 'includes/header.php';
 function execCommand(command) {
     document.execCommand(command, false, null);
     if (command === 'createLink') {
-        const url = prompt('Enter URL:');
+        const url = prompt('<?= __('enter_url') ?>:');
         if (url) {
             document.execCommand('createLink', false, url);
         }
@@ -302,12 +297,12 @@ function validateCCEmails(input) {
         input.classList.add('is-invalid');
         input.classList.remove('is-valid');
         feedback.className += ' invalid-feedback';
-        feedback.textContent = `Invalid email${invalidEmails.length > 1 ? 's' : ''}: ${invalidEmails.join(', ')}`;
+        feedback.textContent = `<?= __('invalid_email') ?>${invalidEmails.length > 1 ? 's' : ''}: ${invalidEmails.join(', ')}`;
     } else if (validEmails.length > 0) {
         input.classList.add('is-valid');
         input.classList.remove('is-invalid');
         feedback.className += ' valid-feedback';
-        feedback.textContent = `${validEmails.length} valid email${validEmails.length > 1 ? 's' : ''} found`;
+        feedback.textContent = `${validEmails.length} <?= __('valid_emails_found') ?>${validEmails.length > 1 ? 's' : ''}`;
     }
     
     input.parentNode.appendChild(feedback);

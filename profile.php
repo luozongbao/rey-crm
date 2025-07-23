@@ -12,7 +12,7 @@ $error = '';
 
 // Get current user data
 try {
-    $stmt = $pdo->prepare("SELECT username, email, role FROM users WHERE user_id = ?");
+    $stmt = $pdo->prepare("SELECT username, email, role, preferred_language FROM users WHERE user_id = ?");
     $stmt->execute([$user_id]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -75,32 +75,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
     }
 }
 
-// Handle email/profile update
+// Handle profile updates (email and language preference)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     $email = trim($_POST['email'] ?? '');
+    $preferred_language = $_POST['preferred_language'] ?? '';
     
     try {
-        // Validate email format
+        // Begin transaction
+        $pdo->beginTransaction();
+        
+        // Validate email
         if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $error = "Please enter a valid email address.";
-        } else {
-            // Check if email already exists for a different user
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE email = ? AND user_id != ?");
-            $stmt->execute([$email, $user_id]);
-            if ($stmt->fetchColumn() > 0) {
-                $error = "Email address is already in use by another account.";
-            } else {
-                // Update email
-                $stmt = $pdo->prepare("UPDATE users SET email = ? WHERE user_id = ?");
-                $stmt->execute([$email, $user_id]);
-                
-                // Update session with new data if needed
-                $user['email'] = $email;
-                
-                $message = "Your profile has been updated successfully.";
-            }
+            throw new Exception("Please enter a valid email address.");
         }
+        
+        // Check if email is already taken by another user
+        $stmt = $pdo->prepare("SELECT user_id FROM users WHERE email = ? AND user_id != ?");
+        $stmt->execute([$email, $user_id]);
+        if ($stmt->fetch()) {
+            throw new Exception("This email address is already in use by another user.");
+        }
+        
+        // Validate language preference
+        if (!empty($preferred_language) && !isLanguageAvailable($preferred_language)) {
+            throw new Exception("Selected language is not available.");
+        }
+        
+        // Update user profile
+        $stmt = $pdo->prepare("UPDATE users SET email = ?, preferred_language = ?, updated_at = NOW() WHERE user_id = ?");
+        $stmt->execute([$email, $preferred_language, $user_id]);
+        
+        // Commit transaction
+        $pdo->commit();
+        
+        // Update user data for display
+        $user['email'] = $email;
+        $user['preferred_language'] = $preferred_language;
+        
+        // Update session language if changed
+        if (!empty($preferred_language)) {
+            $_SESSION['language'] = $preferred_language;
+            setcookie('language', $preferred_language, time() + (86400 * 30), '/'); // 30 days
+        }
+        
+        $message = "Your profile has been updated successfully.";
+        
+    } catch (Exception $e) {
+        // Rollback transaction
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        $error = $e->getMessage();
     } catch (PDOException $e) {
+        // Rollback transaction
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         $error = "Failed to update profile. Please try again.";
         logError("Profile update failed: " . $e->getMessage());
     }
@@ -111,8 +141,8 @@ require_once 'includes/header.php';
 
 <div class="container">
     <div class="header">
-        <h1>My Profile</h1>
-        <p>Manage your account settings and change your password.</p>
+        <h1><?php echo __('my_profile'); ?></h1>
+        <p><?php echo __('manage_account_settings'); ?></p>
     </div>
 
     <?php if ($error): ?>
@@ -126,28 +156,41 @@ require_once 'includes/header.php';
     <div class="settings-container">
         <div class="settings-section profile-box">
             <div class="settings-header">
-                <h3>Account Information</h3>
+                <h3><?php echo __('account_information'); ?></h3>
             </div>
             <div class="settings-content">
                 <form method="POST" action="" class="form">
                     <div class="form-group">
-                        <label for="username">Username:</label>
+                        <label for="username"><?php echo __('username'); ?>:</label>
                         <input type="text" id="username" value="<?php echo htmlspecialchars($user['username']); ?>" readonly class="form-input readonly">
-                        <small class="form-text text-muted">Username cannot be changed</small>
+                        <small class="form-text text-muted"><?php echo __('username_readonly'); ?></small>
                     </div>
 
                     <div class="form-group">
-                        <label for="email">Email Address:</label>
+                        <label for="email"><?php echo __('email_address'); ?>:</label>
                         <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" required class="form-input">
                     </div>
 
                     <div class="form-group">
-                        <label for="role">Role:</label>
+                        <label for="role"><?php echo __('role'); ?>:</label>
                         <input type="text" id="role" value="<?php echo htmlspecialchars(ucfirst($user['role'])); ?>" readonly class="form-input readonly">
                     </div>
 
+                    <div class="form-group">
+                        <label for="preferred_language"><?php echo __('preferred_language'); ?>:</label>
+                        <select id="preferred_language" name="preferred_language" class="form-input">
+                            <?php foreach (getAvailableLanguages() as $code => $info): ?>
+                                <option value="<?php echo htmlspecialchars($code); ?>" 
+                                        <?php echo ($user['preferred_language'] ?? getDefaultLanguage()) === $code ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($info['flag'] . ' ' . $info['native_name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <small class="form-text text-muted"><?php echo __('preferred_language_help'); ?></small>
+                    </div>
+
                     <div class="form-actions">
-                        <button type="submit" name="update_profile" class="btn btn-primary">Update Profile</button>
+                        <button type="submit" name="update_profile" class="btn btn-primary"><?php echo __('update_profile'); ?></button>
                     </div>
                 </form>
             </div>

@@ -1,0 +1,170 @@
+/* ============================================================================
+   MULTILANGUAGE SUPPORT CSS FOR REY CRM
+   ============================================================================ */
+
+/* Language switcher styling */
+.language-switcher {
+    margin-left: 1rem;
+    position: relative;
+}
+
+.language-switcher select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    min-width: 120px;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+}
+
+.language-switcher select:hover {
+    border-color: #aaa;
+}
+
+.language-switcher select:focus {
+    outline: none;
+    border-color: #007cba;
+    box-shadow: 0 0 0 1px #007cba;
+}
+
+/* Font support for different languages */
+
+/* Chinese font stack - optimized for readability */
+[lang="zh-cn"],
+[lang="zh-CN"] {
+    font-family: 
+        "PingFang SC",           /* macOS */
+        "Microsoft YaHei",       /* Windows */
+        "Hiragino Sans GB",      /* macOS fallback */
+        "Source Han Sans CN",    /* Adobe */
+        "Noto Sans CJK SC",      /* Google */
+        "WenQuanYi Micro Hei",   /* Linux */
+        sans-serif;
+    
+    /* Adjust line height for better Chinese text readability */
+    line-height: 1.6;
+}
+
+/* Specific styling for Chinese headings */
+[lang="zh-cn"] h1,
+[lang="zh-cn"] h2,
+[lang="zh-cn"] h3,
+[lang="zh-cn"] h4,
+[lang="zh-cn"] h5,
+[lang="zh-cn"] h6 {
+    font-weight: 500; /* Chinese fonts often look better with medium weight */
+    letter-spacing: 0.02em;
+}
+
+/* Adjust form elements for Chinese */
+[lang="zh-cn"] input,
+[lang="zh-cn"] textarea,
+[lang="zh-cn"] select {
+    font-family: inherit;
+}
+
+/* Button text for Chinese */
+[lang="zh-cn"] .btn {
+    letter-spacing: 0.05em;
+}
+
+/* RTL support for future right-to-left languages */
+.rtl {
+    direction: rtl;
+}
+
+.rtl .nav-list {
+    flex-direction: row-reverse;
+}
+
+.rtl .language-switcher {
+    margin-left: 0;
+    margin-right: 1rem;
+}
+
+.rtl .main-nav {
+    text-align: right;
+}
+
+.rtl .container {
+    direction: rtl;
+}
+
+.rtl .form-group {
+    text-align: right;
+}
+
+.rtl input,
+.rtl textarea,
+.rtl select {
+    text-align: right;
+}
+
+/* Language-specific adjustments */
+
+/* Adjust spacing for Chinese characters in tables */
+[lang="zh-cn"] .table td,
+[lang="zh-cn"] .table th {
+    padding: 0.75rem 0.5rem;
+}
+
+/* Navigation adjustments for Chinese */
+[lang="zh-cn"] .nav-link {
+    padding: 0.5rem 0.75rem;
+    white-space: nowrap;
+}
+
+/* Mobile language switcher */
+@media (max-width: 768px) {
+    .language-switcher {
+        margin-left: 0.5rem;
+        margin-top: 0.5rem;
+    }
+    
+    .language-switcher select {
+        min-width: 100px;
+        font-size: 13px;
+        padding: 0.4rem 0.6rem;
+        padding-right: 2rem;
+    }
+}
+
+/* Language switcher in mobile menu */
+.mobile-nav .language-switcher {
+    margin: 1rem 0;
+    padding: 0 1rem;
+}
+
+.mobile-nav .language-switcher select {
+    width: 100%;
+}
+
+/* Print styles - ensure proper fonts for different languages */
+@media print {
+    [lang="zh-cn"] * {
+        font-family: "SimSun", "MS Song", serif !important;
+    }
+}
+
+/* High contrast mode adjustments */
+@media (prefers-contrast: high) {
+    .language-switcher select {
+        border: 2px solid;
+        background: transparent;
+    }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    .language-switcher select {
+        transition: none;
+    }
+}
