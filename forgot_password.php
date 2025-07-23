@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     
     if (empty($email)) {
-        $error = "Please enter your email address.";
+        $error = __('please_enter_your_email_address');
     } else {
         try {
             // Check if the email exists in the database
@@ -29,54 +29,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user = $stmt->fetch();
             
             if ($user) {
-                // Generate a unique token
-                $token = bin2hex(random_bytes(32));
+                // Use centralized function to send password reset email
+                $reset_result = sendPasswordResetEmail($email, $user['username'], $user['user_id']);
                 
-                // Get token expiry time from config (default 24 hours)
-                $token_expiry_hours = defined('PASSWORD_RESET_EXPIRY_HOURS') ? PASSWORD_RESET_EXPIRY_HOURS : 24;
-                $expiry_date = date('Y-m-d H:i:s', strtotime("+{$token_expiry_hours} hours"));
-                
-                // Delete any existing tokens for the user
-                $stmt = $pdo->prepare("DELETE FROM password_reset_tokens WHERE user_id = ?");
-                $stmt->execute([$user['user_id']]);
-                
-                // Store the token in the database
-                $stmt = $pdo->prepare("INSERT INTO password_reset_tokens (user_id, token, expiry_date) VALUES (?, ?, ?)");
-                $stmt->execute([$user['user_id'], $token, $expiry_date]);
-                
-                // Generate reset link
-                $reset_link = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://{$_SERVER['HTTP_HOST']}/reset_password.php?token=" . urlencode($token);
-                
-                // Prepare email content
-                $subject = "Reset Your Rey CRM Password";
-                $body = "<html><body>
-                        <h2>Password Reset Request</h2>
-                        <p>Hello {$user['username']},</p>
-                        <p>We received a request to reset your password for your Rey CRM account. Click the link below to set a new password:</p>
-                        <p><a href='{$reset_link}'>Reset Your Password</a></p>
-                        <p>If you did not request this password reset, please ignore this email. The link will expire in {$token_expiry_hours} hours.</p>
-                        <p>Thank you,<br>Rey CRM Team</p>
-                        </body></html>";
-                $alt_body = "Hello {$user['username']},\n\nWe received a request to reset your password for your Rey CRM account. Click the link below to set a new password:\n\n{$reset_link}\n\nIf you did not request this password reset, please ignore this email. The link will expire in {$token_expiry_hours} hours.\n\nThank you,\nRey CRM Team";
-                
-                // Send the email
-                $email_result = sendEmail($email, $subject, $body, $alt_body);
-                
-                if ($email_result['success']) {
-                    $message = "Password reset instructions have been sent to your email.";
+                if ($reset_result['success']) {
+                    $message = __('password_reset_instructions_sent_to_email');
                 } else {
-                    $error = "Failed to send reset email: " . $email_result['message'];
-                    logError("Failed to send password reset email: " . $email_result['message']);
+                    $error = __('failed_to_send_reset_email') . ': ' . $reset_result['message'];
                 }
             } else {
                 // For security reasons, still display success message even if email doesn't exist
-                $message = "If your email is registered, password reset instructions will be sent to it.";
+                $message = __('if_email_registered_reset_instructions_will_be_sent');
             }
         } catch (PDOException $e) {
-            $error = "An error occurred. Please try again later.";
+            $error = __('error_occurred_try_again_later');
             logError("Password reset request failed: " . $e->getMessage());
         } catch (Exception $e) {
-            $error = "An error occurred. Please try again later.";
+            $error = __('error_occurred_try_again_later');
             logError("Password reset request failed: " . $e->getMessage());
         }
     }
@@ -87,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forgot Password - Rey CRM</title>
+    <title><?php echo __('forgot_password'); ?> - <?php echo __('rey_crm'); ?></title>
     <link rel="stylesheet" href="/assets/css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -97,8 +66,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="auth-container">
         <div class="auth-card">
             <div class="auth-header">
-                <h1 class="auth-title">Forgot Password</h1>
-                <p class="auth-subtitle">Enter your email to receive a password reset link</p>
+                <h1 class="auth-title"><?php echo __('forgot_password'); ?></h1>
+                <p class="auth-subtitle"><?php echo __('enter_email_to_receive_reset_link'); ?></p>
             </div>
 
             <?php if ($error): ?>
@@ -115,22 +84,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <form method="POST" class="auth-form">
                 <div class="form-group">
-                    <label for="email">Email Address</label>
+                    <label for="email"><?php echo __('email_address'); ?></label>
                     <input type="email" 
                            id="email" 
                            name="email" 
                            class="form-input" 
                            required 
                            autofocus
-                           placeholder="Enter your email">
+                           placeholder="<?php echo __('enter_your_email'); ?>">
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-block">
-                    Send Reset Link
+                    <?php echo __('send_reset_link'); ?>
                 </button>
                 
                 <div class="auth-links">
-                    <a href="login.php" class="text-link">Back to Login</a>
+                    <a href="login.php" class="text-link"><?php echo __('back_to_login'); ?></a>
                 </div>
             </form>
         </div>

@@ -64,11 +64,11 @@ function getUpcomingFollowups($limit = 5) {
                               FROM action_history ah
                               JOIN customers c ON ah.customer_id = c.customer_id
                               LEFT JOIN contact_persons cp ON ah.contact_id = cp.contact_id
-                              WHERE ah.follow_up_datetime >= NOW()
+                              WHERE ah.follow_up_datetime >= ?
                               ORDER BY ah.follow_up_datetime ASC
                               LIMIT :limit");
         $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
-        $stmt->execute();
+        $stmt->execute([getCurrentUTCDateTime()]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         error_log("Error getting upcoming followups: " . $e->getMessage());
@@ -178,8 +178,8 @@ function getContactStats() {
 function updateLastContactedDate($customer_id) {
     global $pdo;
     try {
-        $stmt = $pdo->prepare("UPDATE customers SET last_contacted_date = CURRENT_TIMESTAMP WHERE customer_id = ?");
-        return $stmt->execute([$customer_id]);
+        $stmt = $pdo->prepare("UPDATE customers SET last_contacted_date = ? WHERE customer_id = ?");
+        return $stmt->execute([getCurrentUTCDateTime(), $customer_id]);
     } catch (PDOException $e) {
         // Log the error but don't stop execution
         error_log("Error updating last contacted date: " . $e->getMessage());
@@ -507,10 +507,10 @@ function getSortedCustomers($search = '', $location = '', $sort = 'created_at', 
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '', $sort = 'follow_up_datetime', $order = 'asc') {
+function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '', $sort = 'follow_up_datetime', $order = 'asc', $customer_status = '') {
     global $pdo;
     
-    $query = "SELECT ah.*, c.company_name 
+    $query = "SELECT ah.*, c.company_name, c.status as customer_status, c.province, c.customer_id
               FROM action_history ah
               JOIN customers c ON ah.customer_id = c.customer_id
               WHERE 1=1";
@@ -532,9 +532,23 @@ function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '',
         $params[':date_to'] = $date_to;
     }
     
-    $validSorts = ['company_name', 'follow_up_datetime', 'action_datetime'];
+    if (!empty($customer_status)) {
+        if ($customer_status === 'All Except Not Qualified') {
+            $query .= " AND c.status != 'Not Qualified'";
+        } else {
+            $query .= " AND c.status = :customer_status";
+            $params[':customer_status'] = $customer_status;
+        }
+    }
+    
+    $validSorts = ['company_name', 'follow_up_datetime', 'action_datetime', 'customer_status'];
     $sort = in_array($sort, $validSorts) ? $sort : 'follow_up_datetime';
     $order = in_array($order, ['asc', 'desc']) ? $order : 'asc';
+    
+    // Handle sorting by customer_status (which is actually c.status in the query)
+    if ($sort === 'customer_status') {
+        $sort = 'c.status';
+    }
     
     $query .= " ORDER BY $sort $order";
     
@@ -548,10 +562,10 @@ function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '',
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-function getFilteredActivities($customer_id = '', $date_from = '', $date_to = '', $sort = 'action_datetime', $order = 'desc') {
+function getFilteredActivities($customer_id = '', $date_from = '', $date_to = '', $sort = 'action_datetime', $order = 'desc', $customer_status = '') {
     global $pdo;
     
-    $query = "SELECT ah.*, c.company_name 
+    $query = "SELECT ah.*, c.company_name, c.status as customer_status, c.province, c.customer_id
               FROM action_history ah
               JOIN customers c ON ah.customer_id = c.customer_id
               WHERE 1=1";
@@ -573,9 +587,23 @@ function getFilteredActivities($customer_id = '', $date_from = '', $date_to = ''
         $params[':date_to'] = $date_to;
     }
     
-    $validSorts = ['company_name', 'action_datetime'];
+    if (!empty($customer_status)) {
+        if ($customer_status === 'All Except Not Qualified') {
+            $query .= " AND c.status != 'Not Qualified'";
+        } else {
+            $query .= " AND c.status = :customer_status";
+            $params[':customer_status'] = $customer_status;
+        }
+    }
+    
+    $validSorts = ['company_name', 'action_datetime', 'customer_status'];
     $sort = in_array($sort, $validSorts) ? $sort : 'action_datetime';
     $order = in_array($order, ['asc', 'desc']) ? $order : 'desc';
+    
+    // Handle sorting by customer_status (which is actually c.status in the query)
+    if ($sort === 'customer_status') {
+        $sort = 'c.status';
+    }
     
     $query .= " ORDER BY $sort $order";
     
@@ -633,6 +661,38 @@ function requireAdmin() {
 }
 
 /**
+ * Get SMTP settings from database
+ */
+function getSMTPSettings() {
+    global $pdo;
+    try {
+        $stmt = $pdo->query("SELECT setting_name, value FROM settings WHERE setting_name LIKE 'smtp_%'");
+        $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        
+        return [
+            'smtp_host' => $settings['smtp_host'] ?? '',
+            'smtp_port' => intval($settings['smtp_port'] ?? 587),
+            'smtp_username' => $settings['smtp_username'] ?? '',
+            'smtp_password' => $settings['smtp_password'] ?? '',
+            'smtp_encryption' => $settings['smtp_encryption'] ?? 'tls',
+            'smtp_from_email' => $settings['smtp_from_email'] ?? '',
+            'smtp_from_name' => $settings['smtp_from_name'] ?? ''
+        ];
+    } catch (PDOException $e) {
+        logError("Failed to get SMTP settings: " . $e->getMessage());
+        return [
+            'smtp_host' => '',
+            'smtp_port' => 587,
+            'smtp_username' => '',
+            'smtp_password' => '',
+            'smtp_encryption' => 'tls',
+            'smtp_from_email' => '',
+            'smtp_from_name' => ''
+        ];
+    }
+}
+
+/**
  * Send an email using PHPMailer
  * 
  * @param string|array $to Recipient email address(es)
@@ -653,16 +713,7 @@ function sendEmail($to, $subject, $body, $altBody = '', $attachments = [], $cc =
         }
         
         // Get SMTP settings from database
-        global $pdo;
-        $smtp_settings = [];
-        $smtp_fields = ['smtp_host', 'smtp_port', 'smtp_username', 'smtp_password', 'smtp_from_email', 'smtp_from_name', 'smtp_encryption'];
-        
-        foreach ($smtp_fields as $field) {
-            $stmt = $pdo->prepare("SELECT value FROM settings WHERE setting_name = ?");
-            $stmt->execute([$field]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            $smtp_settings[$field] = ($result) ? $result['value'] : '';
-        }
+        $smtp_settings = getSMTPSettings();
         
         // Check if required SMTP settings are configured
         if (empty($smtp_settings['smtp_host']) || empty($smtp_settings['smtp_port'])) {
@@ -754,13 +805,17 @@ function sendEmail($to, $subject, $body, $altBody = '', $attachments = [], $cc =
         if (!empty($attachments)) {
             foreach ($attachments as $attachment) {
                 if (file_exists($attachment)) {
-                    $mail->addAttachment($attachment);
+                    // Extract original filename for display
+                    $originalName = getOriginalFileName($attachment);
+                    $mail->addAttachment($attachment, $originalName);
                 }
             }
         }
         
         // Content
         $mail->isHTML(true);
+        $mail->CharSet = 'UTF-8';  // Ensure UTF-8 encoding for Asian languages
+        $mail->Encoding = 'base64'; // Use base64 encoding for better compatibility
         $mail->Subject = $subject;
         $mail->Body = $body;
         $mail->AltBody = !empty($altBody) ? $altBody : strip_tags(str_replace('<br>', "\n", $body));
@@ -791,13 +846,14 @@ function cleanupExpiredTokens() {
         $pdo->beginTransaction();
         
         // Count how many expired tokens we have
-        $countStmt = $pdo->query("SELECT COUNT(*) FROM password_reset_tokens WHERE expiry_date < NOW()");
+        $countStmt = $pdo->prepare("SELECT COUNT(*) FROM password_reset_tokens WHERE expiry_date < ?");
+        $countStmt->execute([getCurrentUTCDateTime()]);
         $expired = $countStmt->fetchColumn();
         
         if ($expired > 0) {
             // Delete expired tokens
-            $stmt = $pdo->prepare("DELETE FROM password_reset_tokens WHERE expiry_date < NOW()");
-            $stmt->execute();
+            $stmt = $pdo->prepare("DELETE FROM password_reset_tokens WHERE expiry_date < ?");
+            $stmt->execute([getCurrentUTCDateTime()]);
             $deleted = $stmt->rowCount();
             
             // Log the cleanup
@@ -857,6 +913,700 @@ function redirectTo($path) {
         echo '<script>window.location.href = "' . $url . '";</script>';
         echo 'If you are not redirected, <a href="' . $url . '">click here</a>.';
         exit;
+    }
+}
+
+/**
+ * Check if a path is absolute
+ */
+function is_absolute_path($path) {
+    // On Unix systems, absolute paths start with /
+    // On Windows, absolute paths start with C:\ or similar
+    return (isset($path[0]) && $path[0] === '/') || 
+           (isset($path[1]) && $path[1] === ':');
+}
+
+/**
+ * Parse CC email addresses supporting both comma and semicolon separators
+ * @param string $cc_string The CC string with emails
+ * @return array Array of valid email addresses
+ */
+function parse_cc_emails($cc_string) {
+    if (empty($cc_string)) {
+        return [];
+    }
+    
+    // Split by both comma and semicolon
+    $emails = preg_split('/[,;]/', $cc_string);
+    $valid_emails = [];
+    
+    foreach ($emails as $email) {
+        $email = trim($email);
+        if (!empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $valid_emails[] = $email;
+        }
+    }
+    
+    return $valid_emails;
+}
+
+/**
+ * Validate CC email string and return validation results
+ * @param string $cc_string The CC string with emails
+ * @return array ['valid' => bool, 'emails' => array, 'invalid' => array, 'message' => string]
+ */
+function validate_cc_emails($cc_string) {
+    if (empty($cc_string)) {
+        return ['valid' => true, 'emails' => [], 'invalid' => [], 'message' => ''];
+    }
+    
+    // Split by both comma and semicolon
+    $emails = preg_split('/[,;]/', $cc_string);
+    $valid_emails = [];
+    $invalid_emails = [];
+    
+    foreach ($emails as $email) {
+        $email = trim($email);
+        if (!empty($email)) {
+            if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $valid_emails[] = $email;
+            } else {
+                $invalid_emails[] = $email;
+            }
+        }
+    }
+    
+    $result = [
+        'valid' => empty($invalid_emails),
+        'emails' => $valid_emails,
+        'invalid' => $invalid_emails,
+        'message' => ''
+    ];
+    
+    if (!empty($invalid_emails)) {
+        $result['message'] = 'Invalid email address' . (count($invalid_emails) > 1 ? 'es' : '') . ': ' . implode(', ', $invalid_emails);
+    }
+    
+    return $result;
+}
+
+/**
+ * Extract original filename from stored filename format
+ * Stored format: {unique_id}_{original_name}
+ * @param string $storedFileName The stored filename with unique prefix
+ * @return string The original filename without unique prefix
+ */
+function getOriginalFileName($storedFileName) {
+    // Extract just the filename without path
+    $filename = basename($storedFileName);
+    
+    // Match pattern: {unique_id}_{original_name}
+    // Unique ID is typically a hex string (letters and numbers)
+    if (preg_match('/^[a-f0-9]+_(.+)$/', $filename, $matches)) {
+        return $matches[1];
+    }
+    
+    // If pattern doesn't match, return the original filename as fallback
+    return $filename;
+}
+
+/**
+ * Send password reset email to user
+ * Centralized function used by both forgot password and user management
+ * @param string $email User's email address
+ * @param string $username User's username (optional for personalization)
+ * @param int $user_id User ID (optional, will be looked up if not provided)
+ * @return array ['success' => bool, 'message' => string]
+ */
+function sendPasswordResetEmail($email, $username = null, $user_id = null) {
+    global $pdo;
+    
+    try {
+        // If user_id not provided, look up the user
+        if (!$user_id) {
+            $stmt = $pdo->prepare("SELECT user_id, username FROM users WHERE email = ?");
+            $stmt->execute([$email]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$user) {
+                return ['success' => false, 'message' => 'User not found.'];
+            }
+            
+            $user_id = $user['user_id'];
+            $username = $username ?: $user['username'];
+        }
+        
+        // Generate a unique token
+        $token = bin2hex(random_bytes(32));
+        
+        // Get token expiry time from config (default 24 hours)
+        $token_expiry_hours = defined('PASSWORD_RESET_EXPIRY_HOURS') ? PASSWORD_RESET_EXPIRY_HOURS : 24;
+        $expiry_date = date('Y-m-d H:i:s', strtotime("+{$token_expiry_hours} hours"));
+        
+        // Delete any existing tokens for the user
+        $stmt = $pdo->prepare("DELETE FROM password_reset_tokens WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+        
+        // Store the token in the database
+        $stmt = $pdo->prepare("INSERT INTO password_reset_tokens (user_id, token, expiry_date) VALUES (?, ?, ?)");
+        $stmt->execute([$user_id, $token, $expiry_date]);
+        
+        // Generate reset link
+        $reset_link = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . 
+                     "://{$_SERVER['HTTP_HOST']}/reset_password.php?token=" . urlencode($token);
+        
+        // Prepare email content
+        $subject = "Reset Your Rey CRM Password";
+        $body = "<html><body>
+                <h2>Password Reset Request</h2>
+                <p>Hello " . htmlspecialchars($username) . ",</p>
+                <p>We received a request to reset your password for your Rey CRM account. Click the link below to set a new password:</p>
+                <p><a href='{$reset_link}'>Reset Your Password</a></p>
+                <p>If you did not request this password reset, please ignore this email. The link will expire in {$token_expiry_hours} hours.</p>
+                <p>Thank you,<br>Rey CRM Team</p>
+                </body></html>";
+        $alt_body = "Hello {$username},\n\nWe received a request to reset your password for your Rey CRM account. Click the link below to set a new password:\n\n{$reset_link}\n\nIf you did not request this password reset, please ignore this email. The link will expire in {$token_expiry_hours} hours.\n\nThank you,\nRey CRM Team";
+        
+        // Send the email
+        $email_result = sendEmail($email, $subject, $body, $alt_body);
+        
+        if ($email_result['success']) {
+            return ['success' => true, 'message' => 'Password reset email sent successfully.'];
+        } else {
+            logError("Failed to send password reset email: " . $email_result['message']);
+            return ['success' => false, 'message' => 'Failed to send reset email: ' . $email_result['message']];
+        }
+        
+    } catch (Exception $e) {
+        logError("Password reset email failed: " . $e->getMessage());
+        return ['success' => false, 'message' => 'An error occurred while sending the reset email.'];
+    }
+}
+
+/**
+ * Get user's preferred timezone from session, cookie, or default
+ * @return string Timezone identifier
+ */
+function getUserTimezone() {
+    // Try to get timezone from session first
+    if (isset($_SESSION['user_timezone'])) {
+        return $_SESSION['user_timezone'];
+    }
+    
+    // Try to get timezone from cookie
+    if (isset($_COOKIE['user_timezone'])) {
+        $timezone = $_COOKIE['user_timezone'];
+        // Validate timezone
+        if (in_array($timezone, timezone_identifiers_list())) {
+            $_SESSION['user_timezone'] = $timezone; // Cache in session
+            return $timezone;
+        }
+    }
+    
+    // Default timezone - can be configured
+    return getDefaultTimezone();
+}
+
+/**
+ * Get default system timezone - can be configured in settings
+ * @return string Default timezone identifier
+ */
+function getDefaultTimezone() {
+    // Try to get from database settings first
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare("SELECT value FROM settings WHERE setting_name = 'default_timezone' LIMIT 1");
+        $stmt->execute();
+        $result = $stmt->fetch();
+        if ($result && in_array($result['value'], timezone_identifiers_list())) {
+            return $result['value'];
+        }
+    } catch (Exception $e) {
+        // Fall through to default
+    }
+    
+    // Fallback to Asia/Bangkok for existing installations
+    return 'Asia/Bangkok';
+}
+
+/**
+ * Set user's timezone preference
+ * @param string $timezone Timezone identifier
+ * @return bool Success status
+ */
+function setUserTimezone($timezone) {
+    // Validate timezone
+    if (!in_array($timezone, timezone_identifiers_list())) {
+        return false;
+    }
+    
+    // Set in session
+    $_SESSION['user_timezone'] = $timezone;
+    
+    // Set cookie for 30 days
+    setcookie('user_timezone', $timezone, time() + (30 * 24 * 60 * 60), '/');
+    
+    return true;
+}
+
+/**
+ * Get current UTC datetime for database storage
+ * @return string UTC datetime in 'Y-m-d H:i:s' format
+ */
+function getCurrentUTCDateTime() {
+    return gmdate('Y-m-d H:i:s');
+}
+
+/**
+ * Convert local datetime to UTC for database storage
+ * @param string $localDateTime Local datetime string
+ * @param string $timezone Source timezone (if null, uses user's timezone)
+ * @return string UTC datetime in 'Y-m-d H:i:s' format
+ */
+function convertToUTC($localDateTime, $timezone = null) {
+    if (empty($localDateTime)) {
+        return null;
+    }
+    
+    // Use user's timezone if not specified
+    if ($timezone === null) {
+        $timezone = getUserTimezone();
+    }
+    
+    try {
+        // Create DateTime object with source timezone
+        $dt = new DateTime($localDateTime, new DateTimeZone($timezone));
+        
+        // Convert to UTC
+        $dt->setTimezone(new DateTimeZone('UTC'));
+        
+        return $dt->format('Y-m-d H:i:s');
+    } catch (Exception $e) {
+        // Fallback: assume input is already UTC or use current UTC time
+        return getCurrentUTCDateTime();
+    }
+}
+
+/**
+ * Format datetime for display with timezone conversion
+ * @param string $datetime Database datetime string (UTC)
+ * @param string $format Display format (default: 'Y-m-d H:i:s')
+ * @param string $timezone Target timezone (if null, uses user's timezone)
+ * @return string Formatted datetime string
+ */
+function formatDateTime($datetime, $format = 'Y-m-d H:i:s', $timezone = null) {
+    if (empty($datetime) || $datetime === '0000-00-00 00:00:00') {
+        return '-';
+    }
+    
+    // Use user's timezone if not specified
+    if ($timezone === null) {
+        $timezone = getUserTimezone();
+    }
+    
+    try {
+        // Create DateTime object from database datetime (assumed to be UTC)
+        $dt = new DateTime($datetime, new DateTimeZone('UTC'));
+        
+        // Convert to target timezone
+        $dt->setTimezone(new DateTimeZone($timezone));
+        
+        return $dt->format($format);
+    } catch (Exception $e) {
+        // Fallback to original datetime if conversion fails
+        return $datetime;
+    }
+}
+
+/**
+ * Format datetime for compact display (used in tables)
+ * @param string $datetime Database datetime string (UTC)
+ * @param string $timezone Target timezone (if null, uses user's timezone)
+ * @return string Formatted datetime string (e.g., "07/22/25 9:16 AM")
+ */
+function formatDateTimeCompact($datetime, $timezone = null) {
+    // Use user's timezone if not specified
+    if ($timezone === null) {
+        $timezone = getUserTimezone();
+    }
+    
+    return formatDateTime($datetime, 'm/d/y g:i A', $timezone);
+}
+
+// ============================================================================
+// LANGUAGE FUNCTIONS (Multilanguage Support)
+// ============================================================================
+
+/**
+ * Initialize language system with user preference integration
+ */
+function initLanguage() {
+    global $pdo;
+    
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    // Get language from various sources (priority order)
+    // 1. GET parameter (highest priority - for manual switching)
+    // 2. User database preference (if logged in)
+    // 3. COOKIE (persistent preference)
+    // 4. SESSION (current session)
+    // 5. Default language (fallback)
+    
+    $lang = $_GET['lang'] ?? null;
+    
+    // If no GET parameter, try user preference from database
+    if (!$lang && isset($_SESSION['user_id'])) {
+        $lang = getUserLanguagePreference($_SESSION['user_id']);
+    }
+    
+    // Fall back to cookie/session/default
+    if (!$lang) {
+        $lang = $_COOKIE['language'] ?? $_SESSION['language'] ?? getDefaultLanguage();
+    }
+    
+    // Validate language
+    if (!isLanguageAvailable($lang)) {
+        $lang = getDefaultLanguage();
+    }
+    
+    // Store in session
+    $_SESSION['language'] = $lang;
+    
+    // Only set cookie if headers haven't been sent
+    if (!headers_sent()) {
+        setcookie('language', $lang, time() + (86400 * 30), '/'); // 30 days
+    }
+    
+    // Update user preference if language was changed via GET parameter
+    if (isset($_GET['lang']) && isset($_SESSION['user_id'])) {
+        updateUserLanguagePreference($_SESSION['user_id'], $lang);
+    }
+    
+    return $lang;
+}
+
+/**
+ * Get available languages
+ */
+function getAvailableLanguages() {
+    static $available_languages = null;
+    
+    if ($available_languages === null) {
+        $config_file = __DIR__ . '/../languages/config.php';
+        if (file_exists($config_file)) {
+            include $config_file;
+            // $available_languages is now set from the config file
+        } else {
+            // Fallback if config file doesn't exist
+            $available_languages = [
+                'en' => [
+                    'name' => 'English',
+                    'native_name' => 'English',
+                    'flag' => '🇺🇸',
+                    'direction' => 'ltr'
+                ]
+            ];
+        }
+    }
+    
+    return $available_languages;
+}
+
+/**
+ * Get default language
+ */
+function getDefaultLanguage() {
+    static $default_language = null;
+    
+    if ($default_language === null) {
+        $config_file = __DIR__ . '/../languages/config.php';
+        if (file_exists($config_file)) {
+            include $config_file;
+            // $default_language is now set from the config file
+        } else {
+            // Fallback if config file doesn't exist
+            $default_language = 'en';
+        }
+    }
+    
+    return $default_language;
+}
+
+/**
+ * Check if language is available
+ */
+function isLanguageAvailable($lang) {
+    $available = getAvailableLanguages();
+    return isset($available[$lang]);
+}
+
+/**
+ * Load language messages
+ */
+function loadLanguageMessages($lang) {
+    static $loaded_messages = [];
+    
+    // Return cached messages if already loaded
+    if (isset($loaded_messages[$lang])) {
+        return $loaded_messages[$lang];
+    }
+    
+    $file = __DIR__ . "/../languages/{$lang}/messages.php";
+    if (file_exists($file)) {
+        $loaded_messages[$lang] = include $file;
+        return $loaded_messages[$lang];
+    }
+    
+    // Fallback to default language
+    $default = getDefaultLanguage();
+    if ($lang !== $default) {
+        $fallbackFile = __DIR__ . "/../languages/{$default}/messages.php";
+        if (file_exists($fallbackFile)) {
+            $loaded_messages[$lang] = include $fallbackFile;
+            return $loaded_messages[$lang];
+        }
+    }
+    
+    // Return empty array if no messages found
+    $loaded_messages[$lang] = [];
+    return $loaded_messages[$lang];
+}
+
+/**
+ * Translate function
+ * @param string $key Translation key
+ * @param array $params Parameters to replace in translation (e.g., ['{name}' => 'John'])
+ * @return string Translated text or original key if not found
+ */
+function __($key, $params = []) {
+    static $messages = null;
+    static $last_language = null;
+    
+    $current_lang = $_SESSION['language'] ?? getDefaultLanguage();
+    
+    // Reload messages if language changed or not loaded yet
+    if ($messages === null || $last_language !== $current_lang) {
+        $messages = loadLanguageMessages($current_lang);
+        $last_language = $current_lang;
+    }
+    
+    $text = $messages[$key] ?? $key;
+    
+    // Replace parameters
+    if (!empty($params)) {
+        foreach ($params as $param => $value) {
+            $text = str_replace($param, $value, $text);
+        }
+    }
+    
+    return $text;
+}
+
+/**
+ * Get current language
+ */
+function getCurrentLanguage() {
+    return $_SESSION['language'] ?? getDefaultLanguage();
+}
+
+/**
+ * Get current language info
+ */
+function getCurrentLanguageInfo() {
+    $lang = getCurrentLanguage();
+    $available = getAvailableLanguages();
+    return $available[$lang] ?? $available[getDefaultLanguage()];
+}
+
+/**
+ * Switch to a different language
+ * @param string $lang Language code
+ * @return bool Success status
+ */
+function switchLanguage($lang) {
+    if (!isLanguageAvailable($lang)) {
+        return false;
+    }
+    
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    $_SESSION['language'] = $lang;
+    setcookie('language', $lang, time() + (86400 * 30), '/'); // 30 days
+    
+    return true;
+}
+
+/**
+ * Get language-aware date format
+ */
+function getDateFormat($lang = null) {
+    if ($lang === null) {
+        $lang = getCurrentLanguage();
+    }
+    
+    switch ($lang) {
+        case 'zh-cn':
+            return 'Y年n月j日';
+        default:
+            return 'M j, Y';
+    }
+}
+
+/**
+ * Get language-aware datetime format
+ */
+function getDateTimeFormat($lang = null) {
+    if ($lang === null) {
+        $lang = getCurrentLanguage();
+    }
+    
+    switch ($lang) {
+        case 'zh-cn':
+            return 'Y年n月j日 H:i';
+        default:
+            return 'M j, Y g:i A';
+    }
+}
+
+// ============================================================================
+// USER LANGUAGE PREFERENCE FUNCTIONS (Phase 3)
+// ============================================================================
+
+/**
+ * Get user's language preference from database
+ * @param int $user_id User ID
+ * @return string|null Language code or null if not found
+ */
+function getUserLanguagePreference($user_id) {
+    global $pdo;
+    
+    try {
+        $stmt = $pdo->prepare("SELECT preferred_language FROM users WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+        $result = $stmt->fetchColumn();
+        
+        // Return the preference if it's a valid language
+        if ($result && isLanguageAvailable($result)) {
+            return $result;
+        }
+        
+        return null;
+    } catch (PDOException $e) {
+        logError("Error getting user language preference: " . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * Update user's language preference in database
+ * @param int $user_id User ID
+ * @param string $lang Language code
+ * @return bool Success status
+ */
+function updateUserLanguagePreference($user_id, $lang) {
+    global $pdo;
+    
+    // Validate language before saving
+    if (!isLanguageAvailable($lang)) {
+        return false;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("UPDATE users SET preferred_language = ? WHERE user_id = ?");
+        $result = $stmt->execute([$lang, $user_id]);
+        
+        if ($result) {
+            logError("User language preference updated: User $user_id changed to $lang");
+        }
+        
+        return $result;
+    } catch (PDOException $e) {
+        logError("Error updating user language preference: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Get system default language from database settings
+ * @return string Default language code
+ */
+function getSystemDefaultLanguage() {
+    global $pdo;
+    
+    try {
+        $stmt = $pdo->prepare("SELECT value FROM settings WHERE setting_name = 'default_language'");
+        $stmt->execute();
+        $result = $stmt->fetchColumn();
+        
+        if ($result && isLanguageAvailable($result)) {
+            return $result;
+        }
+        
+        // Fallback to hardcoded default
+        return getDefaultLanguage();
+    } catch (PDOException $e) {
+        logError("Error getting system default language: " . $e->getMessage());
+        return getDefaultLanguage();
+    }
+}
+
+/**
+ * Get available languages from database settings
+ * @return array Available language codes
+ */
+function getSystemAvailableLanguages() {
+    global $pdo;
+    
+    try {
+        $stmt = $pdo->prepare("SELECT value FROM settings WHERE setting_name = 'available_languages'");
+        $stmt->execute();
+        $result = $stmt->fetchColumn();
+        
+        if ($result) {
+            $languages = explode(',', $result);
+            // Filter out invalid languages
+            $validLanguages = [];
+            foreach ($languages as $lang) {
+                $lang = trim($lang);
+                if (isLanguageAvailable($lang)) {
+                    $validLanguages[] = $lang;
+                }
+            }
+            return $validLanguages;
+        }
+        
+        // Fallback to all available languages
+        return array_keys(getAvailableLanguages());
+    } catch (PDOException $e) {
+        logError("Error getting system available languages: " . $e->getMessage());
+        return array_keys(getAvailableLanguages());
+    }
+}
+
+/**
+ * Get language usage statistics
+ * @return array Language usage counts
+ */
+function getLanguageUsageStats() {
+    global $pdo;
+    
+    try {
+        $stmt = $pdo->query("
+            SELECT preferred_language, COUNT(*) as user_count 
+            FROM users 
+            WHERE preferred_language IS NOT NULL 
+            GROUP BY preferred_language 
+            ORDER BY user_count DESC
+        ");
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logError("Error getting language usage statistics: " . $e->getMessage());
+        return [];
     }
 }
 

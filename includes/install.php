@@ -103,6 +103,11 @@ function logError(\$message) {
     }
     error_log(date('Y-m-d H:i:s') . " - " . \$message . "\\n", 3, LOG_DIR . '/error.log');
 }
+
+// Initialize language system (only if functions are available)
+if (function_exists('initLanguage')) {
+    \$current_language = initLanguage();
+}
 EOT;
 
                 // Write the config file
