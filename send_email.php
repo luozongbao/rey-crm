@@ -3,6 +3,9 @@ require_once 'includes/config.php';
 require_once 'includes/functions.php';
 require_once 'vendor/autoload.php';
 
+// Ensure user is logged in
+requireLogin();
+
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
 use PHPMailer\PHPMailer\Exception;
@@ -40,35 +43,8 @@ if (count($_GET) > 0) {
     $showOnlyMine = true;
 }
 
-// Get customers and contacts for recipient selection
-try {
-    if ($showOnlyMine && !isAdmin()) {
-        $stmt = $pdo->prepare("
-            SELECT c.customer_id, c.company_name, c.contact_email as customer_email,
-                   cp.contact_id, cp.name as contact_name, cp.contact_email
-            FROM customers c
-            LEFT JOIN contact_persons cp ON c.customer_id = cp.customer_id
-            WHERE (c.contact_email IS NOT NULL OR cp.contact_email IS NOT NULL)
-            AND c.assigned_user_id = ?
-            ORDER BY c.company_name, cp.name
-        ");
-        $stmt->execute([$_SESSION['user_id']]);
-    } else {
-        $stmt = $pdo->prepare("
-            SELECT c.customer_id, c.company_name, c.contact_email as customer_email,
-                   cp.contact_id, cp.name as contact_name, cp.contact_email
-            FROM customers c
-            LEFT JOIN contact_persons cp ON c.customer_id = cp.customer_id
-            WHERE c.contact_email IS NOT NULL OR cp.contact_email IS NOT NULL
-            ORDER BY c.company_name, cp.name
-        ");
-        $stmt->execute();
-    }
-    $recipients = $stmt->fetchAll();
-} catch (PDOException $e) {
-    error_log("Error fetching recipients: " . $e->getMessage());
-    $recipients = [];
-}
+// Get customers and contacts for recipient selection using the new function
+$recipients = getMyCustomersContacts($showOnlyMine, $_SESSION['user_id']);
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {

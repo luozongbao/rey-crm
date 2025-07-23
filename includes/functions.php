@@ -1725,6 +1725,67 @@ function getMyCustomers($showOnlyMine = true) {
 }
 
 /**
+ * Get customers and their contacts for email recipients (follows same pattern as getMyCustomers)
+ */
+function getMyCustomersContacts($showOnlyMine = true, $user_id = null) {
+    global $pdo;
+    
+    // Use provided user_id or fall back to session
+    if ($user_id === null) {
+        $user_id = $_SESSION['user_id'] ?? null;
+    }
+    
+    if (!$showOnlyMine) {
+        // Get all customers with valid emails
+        try {
+            $stmt = $pdo->prepare("
+                SELECT c.customer_id, c.company_name, c.contact_email as customer_email,
+                       cp.contact_id, cp.name as contact_name, cp.contact_email
+                FROM customers c
+                LEFT JOIN contact_persons cp ON c.customer_id = cp.customer_id
+                WHERE (c.contact_email IS NOT NULL AND TRIM(c.contact_email) != '')
+                   OR (cp.contact_email IS NOT NULL AND TRIM(cp.contact_email) != '')
+                ORDER BY c.company_name, cp.name
+            ");
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            logError("Error getting all customers contacts: " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    // Check if we have a valid user_id
+    if (!$user_id) {
+        logError("getMyCustomersContacts: No user_id available (session: " . ($_SESSION['user_id'] ?? 'NOT SET') . ")");
+        return [];
+    }
+    
+    // Get only assigned customers with valid emails
+    try {
+        $stmt = $pdo->prepare("
+            SELECT c.customer_id, c.company_name, c.contact_email as customer_email,
+                   cp.contact_id, cp.name as contact_name, cp.contact_email
+            FROM customers c
+            LEFT JOIN contact_persons cp ON c.customer_id = cp.customer_id
+            WHERE c.assigned_user_id = ?
+              AND (
+                (c.contact_email IS NOT NULL AND TRIM(c.contact_email) != '')
+                OR (cp.contact_email IS NOT NULL AND TRIM(cp.contact_email) != '')
+              )
+            ORDER BY c.company_name, cp.name
+        ");
+        $stmt->execute([$user_id]);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return $results;
+    } catch (PDOException $e) {
+        logError("Error getting my customers contacts: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
  * Update customer assignment
  */
 function assignCustomerToUser($customer_id, $user_id) {
