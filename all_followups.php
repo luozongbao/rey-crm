@@ -74,12 +74,12 @@ require_once 'includes/header.php';
                 </div>
 
                 <div class="form-group">
-                    <label for="date_from"><?= __('from') ?>:</label>
+                    <label for="date_from"><?= __('date_from') ?>:</label>
                     <input type="date" name="date_from" id="date_from" value="<?= htmlspecialchars($date_from) ?>" onchange="validateDates()">
                 </div>
 
                 <div class="form-group">
-                    <label for="date_to"><?= __('to') ?>:</label>
+                    <label for="date_to"><?= __('date_to') ?>:</label>
                     <input type="date" name="date_to" id="date_to" value="<?= htmlspecialchars($date_to) ?>" onchange="validateDates()">
                 </div>
 
