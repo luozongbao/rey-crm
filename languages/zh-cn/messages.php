@@ -270,7 +270,6 @@ return [
     // Email Project Form page
     'edit_email_project' => '编辑邮件项目',
     'create_email_project' => '创建邮件项目',
-    'create_reusable_email_templates' => '为您的营销活动创建可重复使用的邮件模板',
     'back_to_projects' => '返回项目列表',
     'cc_optional' => '抄送（可选）',
     'cc_placeholder' => '输入多个邮箱，用逗号或分号分隔',

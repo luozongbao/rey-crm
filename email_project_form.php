@@ -106,16 +106,11 @@ include 'includes/header.php';
 ?>
 
 <div class="container">
-    <div class="page-header">
-        <div class="page-title-container">
+    <div class="header">
             <h1 class="page-title"><?php echo $is_edit ? __('edit_email_project') : __('create_email_project'); ?></h1>
-            <p class="page-subtitle"><?= __('create_reusable_email_templates') ?></p>
-        </div>
-        <div class="page-actions">
             <a href="email_projects.php" class="btn btn-secondary">
                 <?= __('back_to_projects') ?>
             </a>
-        </div>
     </div>
 
     <?php if (isset($error)): ?>

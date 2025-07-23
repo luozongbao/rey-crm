@@ -262,7 +262,6 @@ return [
     // Email Project Form page
     'edit_email_project' => 'Edit Email Project',
     'create_email_project' => 'Create Email Project',
-    'create_reusable_email_templates' => 'Create reusable email templates for your campaigns',
     'back_to_projects' => 'Back to Projects',
     'cc_optional' => 'CC (optional)',
     'cc_placeholder' => 'Enter multiple emails separated by commas or semicolons',
