@@ -23,9 +23,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_report'])) {
             exit;
         }
         
-        $report_result = ['success' => true, 'message' => 'Report generated successfully'];
+        $report_result = ['success' => true, 'message' => __('report_generated_successfully')];
     } else {
-        $report_result = ['success' => false, 'message' => 'Please fill in all required fields'];
+        $report_result = ['success' => false, 'message' => __('please_fill_required_fields')];
     }
 }
 
@@ -452,62 +452,62 @@ $users = getAllUsers();
     <?php endif; ?>
 
     <div class="reports-header">
-        <h3>Reports & Export</h3>
-        <p>Generate detailed reports on user performance, customer activities, and system usage</p>
+        <h3><?php echo __('reports_export'); ?></h3>
+        <p><?php echo __('generate_detailed_reports'); ?></p>
     </div>
 
     <div class="reports-layout">
         <!-- Report Generation Form -->
         <div class="report-generator">
             <div class="generator-header">
-                <h4>Generate Report</h4>
+                <h4><?php echo __('generate_report'); ?></h4>
             </div>
             
             <form method="POST" class="report-form">
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="report_type">Report Type:</label>
+                        <label for="report_type"><?php echo __('report_type'); ?>:</label>
                         <select name="report_type" id="report_type" class="form-control" required>
-                            <option value="">-- Select Report Type --</option>
-                            <optgroup label="User Performance Reports">
-                                <option value="user_activity">User Activity Report</option>
-                                <option value="user_performance">User Performance Summary</option>
-                                <option value="follow_up_performance">Follow-up Performance Report</option>
+                            <option value=""><?php echo __('select_report_type'); ?></option>
+                            <optgroup label="<?php echo __('user_performance_reports'); ?>">
+                                <option value="user_activity"><?php echo __('user_activity_report'); ?></option>
+                                <option value="user_performance"><?php echo __('user_performance_summary'); ?></option>
+                                <option value="follow_up_performance"><?php echo __('follow_up_performance_report'); ?></option>
                             </optgroup>
-                            <optgroup label="Customer Reports">
-                                <option value="customer_status">Customer Status Report</option>
-                                <option value="customer_conversion">Customer Conversion Report</option>
-                                <option value="inactive_customers">Inactive Customers Report</option>
+                            <optgroup label="<?php echo __('customer_reports'); ?>">
+                                <option value="customer_status"><?php echo __('customer_status_report'); ?></option>
+                                <option value="customer_conversion"><?php echo __('customer_conversion_report'); ?></option>
+                                <option value="inactive_customers"><?php echo __('inactive_customers_report'); ?></option>
                             </optgroup>
-                            <optgroup label="Activity Reports">
-                                <option value="activity_summary">Activity Summary Report</option>
-                                <option value="response_time">Response Time Analysis</option>
-                                <option value="communication_frequency">Communication Frequency Report</option>
+                            <optgroup label="<?php echo __('activity_reports'); ?>">
+                                <option value="activity_summary"><?php echo __('activity_summary_report'); ?></option>
+                                <option value="response_time"><?php echo __('response_time_analysis'); ?></option>
+                                <option value="communication_frequency"><?php echo __('communication_frequency_report'); ?></option>
                             </optgroup>
-                            <optgroup label="Management Reports">
-                                <option value="assignment_history">Assignment History Report</option>
-                                <option value="assignment_distribution">Assignment Distribution Report</option>
-                                <option value="workload_balance">Workload Balance Report</option>
+                            <optgroup label="<?php echo __('management_reports'); ?>">
+                                <option value="assignment_history"><?php echo __('assignment_history_report'); ?></option>
+                                <option value="assignment_distribution"><?php echo __('assignment_distribution_report'); ?></option>
+                                <option value="workload_balance"><?php echo __('workload_balance_report'); ?></option>
                             </optgroup>
                         </select>
                     </div>
                     
                     <div class="form-group">
-                        <label for="start_date">Start Date:</label>
+                        <label for="start_date"><?php echo __('start_date'); ?>:</label>
                         <input type="date" name="start_date" id="start_date" class="form-control" 
                                value="<?php echo date('Y-m-d', strtotime('-30 days')); ?>" required>
                     </div>
                     
                     <div class="form-group">
-                        <label for="end_date">End Date:</label>
+                        <label for="end_date"><?php echo __('end_date'); ?>:</label>
                         <input type="date" name="end_date" id="end_date" class="form-control" 
                                value="<?php echo date('Y-m-d'); ?>" required>
                     </div>
                     
                     <div class="form-group">
-                        <label for="user_filter">Filter by User (Optional):</label>
+                        <label for="user_filter"><?php echo __('filter_by_user_optional'); ?>:</label>
                         <select name="user_filter" id="user_filter" class="form-control">
-                            <option value="">All Users</option>
+                            <option value=""><?php echo __('all_users'); ?></option>
                             <?php foreach ($users as $user): ?>
                                 <option value="<?php echo $user['user_id']; ?>">
                                     <?php echo htmlspecialchars($user['username']); ?>
@@ -517,36 +517,36 @@ $users = getAllUsers();
                     </div>
                     
                     <div class="form-group">
-                        <label for="status_filter">Filter by Customer Status (Optional):</label>
+                        <label for="status_filter"><?php echo __('filter_by_customer_status_optional'); ?>:</label>
                         <select name="status_filter" id="status_filter" class="form-control">
-                            <option value="">All Statuses</option>
-                            <option value="Prospect">Prospect</option>
-                            <option value="Active">Active</option>
-                            <option value="Inactive">Inactive</option>
-                            <option value="Lost Customer">Lost Customer</option>
+                            <option value=""><?php echo __('all_statuses'); ?></option>
+                            <option value="Prospect"><?php echo __('prospect'); ?></option>
+                            <option value="Active"><?php echo __('active'); ?></option>
+                            <option value="Inactive"><?php echo __('inactive'); ?></option>
+                            <option value="Lost Customer"><?php echo __('lost_customer'); ?></option>
                         </select>
                     </div>
                     
                     <div class="form-group">
-                        <label for="activity_filter">Filter by Activity Type (Optional):</label>
+                        <label for="activity_filter"><?php echo __('filter_by_activity_type_optional'); ?>:</label>
                         <select name="activity_filter" id="activity_filter" class="form-control">
-                            <option value="">All Activities</option>
-                            <option value="email">Email Only</option>
-                            <option value="call">Call Only</option>
-                            <option value="meeting">Meeting Only</option>
+                            <option value=""><?php echo __('all_activities'); ?></option>
+                            <option value="email"><?php echo __('email_only'); ?></option>
+                            <option value="call"><?php echo __('call_only'); ?></option>
+                            <option value="meeting"><?php echo __('meeting_only'); ?></option>
                         </select>
                     </div>
                 </div>
                 
                 <div class="form-actions">
                     <button type="submit" name="generate_report" value="view" class="btn btn-primary">
-                        <i class="fas fa-chart-bar"></i> Generate Report
+                        <i class="fas fa-chart-bar"></i> <?php echo __('generate_report'); ?>
                     </button>
                     <button type="submit" name="generate_report" value="csv" formtarget="_blank" class="btn btn-success">
-                        <i class="fas fa-file-csv"></i> Download CSV
+                        <i class="fas fa-file-csv"></i> <?php echo __('download_csv'); ?>
                     </button>
                     <button type="submit" name="generate_report" value="excel" formtarget="_blank" class="btn btn-info">
-                        <i class="fas fa-file-excel"></i> Download Excel
+                        <i class="fas fa-file-excel"></i> <?php echo __('download_excel'); ?>
                     </button>
                     <input type="hidden" name="format" id="format" value="view">
                 </div>
@@ -560,25 +560,25 @@ $users = getAllUsers();
                     <h4>
                         <?php
                         $report_titles = [
-                            'user_activity' => 'User Activity Report',
-                            'user_performance' => 'User Performance Summary',
-                            'follow_up_performance' => 'Follow-up Performance Report',
-                            'customer_status' => 'Customer Status Report',
-                            'customer_conversion' => 'Customer Conversion Report',
-                            'inactive_customers' => 'Inactive Customers Report',
-                            'activity_summary' => 'Activity Summary Report',
-                            'response_time' => 'Response Time Analysis',
-                            'communication_frequency' => 'Communication Frequency Report',
-                            'assignment_history' => 'Assignment History Report',
-                            'assignment_distribution' => 'Assignment Distribution Report',
-                            'workload_balance' => 'Workload Balance Report'
+                            'user_activity' => __('user_activity_report'),
+                            'user_performance' => __('user_performance_summary'),
+                            'follow_up_performance' => __('follow_up_performance_report'),
+                            'customer_status' => __('customer_status_report'),
+                            'customer_conversion' => __('customer_conversion_report'),
+                            'inactive_customers' => __('inactive_customers_report'),
+                            'activity_summary' => __('activity_summary_report'),
+                            'response_time' => __('response_time_analysis'),
+                            'communication_frequency' => __('communication_frequency_report'),
+                            'assignment_history' => __('assignment_history_report'),
+                            'assignment_distribution' => __('assignment_distribution_report'),
+                            'workload_balance' => __('workload_balance_report')
                         ];
-                        echo $report_titles[$report_data['type']] ?? 'Report';
+                        echo $report_titles[$report_data['type']] ?? __('generate_report');
                         ?>
                     </h4>
                     <div class="report-meta">
-                        <span>Period: <?php echo $report_data['params']['start_date']; ?> to <?php echo $report_data['params']['end_date']; ?></span>
-                        <span>Records: <?php echo count($report_data['data']); ?></span>
+                        <span><?php echo __('period'); ?>: <?php echo $report_data['params']['start_date']; ?> <?php echo __('to'); ?> <?php echo $report_data['params']['end_date']; ?></span>
+                        <span><?php echo __('records'); ?>: <?php echo count($report_data['data']); ?></span>
                     </div>
                 </div>
                 
@@ -618,15 +618,15 @@ $users = getAllUsers();
             <?php elseif ($report_data): ?>
                 <div class="no-data">
                     <i class="fas fa-chart-line"></i>
-                    <h4>No Data Found</h4>
-                    <p>No data available for the selected criteria. Try adjusting the date range or filters.</p>
+                    <h4><?php echo __('no_data_found'); ?></h4>
+                    <p><?php echo __('no_data_available_for_criteria'); ?></p>
                 </div>
                 
             <?php else: ?>
                 <div class="report-placeholder">
                     <i class="fas fa-file-chart-line"></i>
-                    <h4>Generate a Report</h4>
-                    <p>Select a report type and date range to generate detailed analytics and export data.</p>
+                    <h4><?php echo __('generate_a_report'); ?></h4>
+                    <p><?php echo __('select_report_type_and_date_range'); ?></p>
                 </div>
             <?php endif; ?>
         </div>
@@ -634,22 +634,22 @@ $users = getAllUsers();
 
     <!-- Pre-defined Report Links -->
     <div class="quick-reports">
-        <h4>Quick Reports</h4>
+        <h4><?php echo __('quick_reports'); ?></h4>
         <div class="quick-report-grid">
             <div class="quick-report-card">
                 <div class="card-icon">
                     <i class="fas fa-users"></i>
                 </div>
                 <div class="card-content">
-                    <h5>Monthly User Summary</h5>
-                    <p>User activity and performance for the last 30 days</p>
+                    <h5><?php echo __('monthly_user_summary'); ?></h5>
+                    <p><?php echo __('user_activity_performance_last_30_days'); ?></p>
                     <form method="POST" style="display: inline;">
                         <input type="hidden" name="report_type" value="user_activity">
                         <input type="hidden" name="start_date" value="<?php echo date('Y-m-d', strtotime('-30 days')); ?>">
                         <input type="hidden" name="end_date" value="<?php echo date('Y-m-d'); ?>">
                         <input type="hidden" name="user_filter" value="">
                         <input type="hidden" name="format" value="view">
-                        <button type="submit" name="generate_report" class="btn btn-outline-primary btn-sm">Generate</button>
+                        <button type="submit" name="generate_report" class="btn btn-outline-primary btn-sm"><?php echo __('generate'); ?></button>
                     </form>
                 </div>
             </div>
@@ -659,15 +659,15 @@ $users = getAllUsers();
                     <i class="fas fa-chart-line"></i>
                 </div>
                 <div class="card-content">
-                    <h5>Weekly Activity Summary</h5>
-                    <p>System-wide activity breakdown for the last 7 days</p>
+                    <h5><?php echo __('weekly_activity_summary'); ?></h5>
+                    <p><?php echo __('system_wide_activity_breakdown_7_days'); ?></p>
                     <form method="POST" style="display: inline;">
                         <input type="hidden" name="report_type" value="activity_summary">
                         <input type="hidden" name="start_date" value="<?php echo date('Y-m-d', strtotime('-7 days')); ?>">
                         <input type="hidden" name="end_date" value="<?php echo date('Y-m-d'); ?>">
                         <input type="hidden" name="user_filter" value="">
                         <input type="hidden" name="format" value="view">
-                        <button type="submit" name="generate_report" class="btn btn-outline-primary btn-sm">Generate</button>
+                        <button type="submit" name="generate_report" class="btn btn-outline-primary btn-sm"><?php echo __('generate'); ?></button>
                     </form>
                 </div>
             </div>
@@ -677,15 +677,15 @@ $users = getAllUsers();
                     <i class="fas fa-building"></i>
                 </div>
                 <div class="card-content">
-                    <h5>Customer Status Overview</h5>
-                    <p>Current status of all customers with recent activities</p>
+                    <h5><?php echo __('customer_status_overview'); ?></h5>
+                    <p><?php echo __('current_status_all_customers_recent_activities'); ?></p>
                     <form method="POST" style="display: inline;">
                         <input type="hidden" name="report_type" value="customer_status">
                         <input type="hidden" name="start_date" value="<?php echo date('Y-m-d', strtotime('-90 days')); ?>">
                         <input type="hidden" name="end_date" value="<?php echo date('Y-m-d'); ?>">
                         <input type="hidden" name="user_filter" value="">
                         <input type="hidden" name="format" value="view">
-                        <button type="submit" name="generate_report" class="btn btn-outline-primary btn-sm">Generate</button>
+                        <button type="submit" name="generate_report" class="btn btn-outline-primary btn-sm"><?php echo __('generate'); ?></button>
                     </form>
                 </div>
             </div>
@@ -695,15 +695,15 @@ $users = getAllUsers();
                     <i class="fas fa-exchange-alt"></i>
                 </div>
                 <div class="card-content">
-                    <h5>Assignment Changes</h5>
-                    <p>Customer assignment history for the last 30 days</p>
+                    <h5><?php echo __('assignment_changes'); ?></h5>
+                    <p><?php echo __('customer_assignment_history_30_days'); ?></p>
                     <form method="POST" style="display: inline;">
                         <input type="hidden" name="report_type" value="assignment_history">
                         <input type="hidden" name="start_date" value="<?php echo date('Y-m-d', strtotime('-30 days')); ?>">
                         <input type="hidden" name="end_date" value="<?php echo date('Y-m-d'); ?>">
                         <input type="hidden" name="user_filter" value="">
                         <input type="hidden" name="format" value="view">
-                        <button type="submit" name="generate_report" class="btn btn-outline-primary btn-sm">Generate</button>
+                        <button type="submit" name="generate_report" class="btn btn-outline-primary btn-sm"><?php echo __('generate'); ?></button>
                     </form>
                 </div>
             </div>
@@ -712,40 +712,40 @@ $users = getAllUsers();
 
     <!-- Report Scheduling Section -->
     <div class="report-scheduling">
-        <h4>Scheduled Reports</h4>
+        <h4><?php echo __('scheduled_reports'); ?></h4>
         <div class="scheduling-layout">
             <div class="schedule-form">
-                <h5>Schedule New Report</h5>
+                <h5><?php echo __('schedule_new_report'); ?></h5>
                 <form method="POST" class="schedule-report-form">
                     <div class="form-row-inline">
                         <div class="form-group">
-                            <label>Report Type:</label>
+                            <label><?php echo __('report_type'); ?>:</label>
                             <select name="schedule_report_type" class="form-control form-control-sm">
-                                <option value="user_performance">User Performance Summary</option>
-                                <option value="activity_summary">Activity Summary</option>
-                                <option value="customer_status">Customer Status Overview</option>
-                                <option value="assignment_distribution">Assignment Distribution</option>
+                                <option value="user_performance"><?php echo __('user_performance_summary'); ?></option>
+                                <option value="activity_summary"><?php echo __('activity_summary_report'); ?></option>
+                                <option value="customer_status"><?php echo __('customer_status_overview'); ?></option>
+                                <option value="assignment_distribution"><?php echo __('assignment_distribution_report'); ?></option>
                             </select>
                         </div>
                         
                         <div class="form-group">
-                            <label>Frequency:</label>
+                            <label><?php echo __('frequency'); ?>:</label>
                             <select name="schedule_frequency" class="form-control form-control-sm">
-                                <option value="weekly">Weekly</option>
-                                <option value="monthly">Monthly</option>
-                                <option value="quarterly">Quarterly</option>
+                                <option value="weekly"><?php echo __('weekly'); ?></option>
+                                <option value="monthly"><?php echo __('monthly'); ?></option>
+                                <option value="quarterly"><?php echo __('quarterly'); ?></option>
                             </select>
                         </div>
                         
                         <div class="form-group">
-                            <label>Email To:</label>
+                            <label><?php echo __('email_to'); ?>:</label>
                             <input type="email" name="schedule_email" class="form-control form-control-sm" 
                                    placeholder="admin@company.com" required>
                         </div>
                         
                         <div class="form-group">
                             <button type="submit" name="schedule_report" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-calendar-plus"></i> Schedule
+                                <i class="fas fa-calendar-plus"></i> <?php echo __('schedule'); ?>
                             </button>
                         </div>
                     </div>
@@ -753,10 +753,10 @@ $users = getAllUsers();
             </div>
             
             <div class="scheduled-reports-list">
-                <h5>Active Schedules</h5>
+                <h5><?php echo __('active_schedules'); ?></h5>
                 <div class="schedule-placeholder">
                     <i class="fas fa-calendar-alt"></i>
-                    <p>No scheduled reports yet. Use the form above to schedule automated report generation.</p>
+                    <p><?php echo __('no_scheduled_reports_yet'); ?></p>
                 </div>
                 <!-- Future: List of scheduled reports would appear here -->
             </div>
@@ -765,17 +765,17 @@ $users = getAllUsers();
 
     <!-- Advanced Export Options -->
     <div class="advanced-export">
-        <h4>Advanced Export Options</h4>
+        <h4><?php echo __('advanced_export_options'); ?></h4>
         <div class="export-options-grid">
             <div class="export-option">
                 <div class="option-icon">
                     <i class="fas fa-database"></i>
                 </div>
                 <div class="option-content">
-                    <h5>Bulk Data Export</h5>
-                    <p>Export complete datasets for external analysis</p>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="alert('Feature coming soon!')">
-                        <i class="fas fa-download"></i> Export All Data
+                    <h5><?php echo __('bulk_data_export'); ?></h5>
+                    <p><?php echo __('export_complete_datasets_external_analysis'); ?></p>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="alert('<?php echo __('feature_coming_soon'); ?>')">
+                        <i class="fas fa-download"></i> <?php echo __('export_all_data'); ?>
                     </button>
                 </div>
             </div>
@@ -785,10 +785,10 @@ $users = getAllUsers();
                     <i class="fas fa-filter"></i>
                 </div>
                 <div class="option-content">
-                    <h5>Custom Filtered Export</h5>
-                    <p>Export with advanced filtering and custom fields</p>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="alert('Feature coming soon!')">
-                        <i class="fas fa-sliders-h"></i> Custom Export
+                    <h5><?php echo __('custom_filtered_export'); ?></h5>
+                    <p><?php echo __('export_with_advanced_filtering'); ?></p>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="alert('<?php echo __('feature_coming_soon'); ?>')">
+                        <i class="fas fa-sliders-h"></i> <?php echo __('custom_export'); ?>
                     </button>
                 </div>
             </div>
@@ -798,10 +798,10 @@ $users = getAllUsers();
                     <i class="fas fa-code"></i>
                 </div>
                 <div class="option-content">
-                    <h5>API Access</h5>
-                    <p>Programmatic access to report data</p>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="alert('API documentation coming soon!')">
-                        <i class="fas fa-terminal"></i> API Docs
+                    <h5><?php echo __('api_access'); ?></h5>
+                    <p><?php echo __('programmatic_access_report_data'); ?></p>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="alert('<?php echo __('api_documentation_coming_soon'); ?>')">
+                        <i class="fas fa-terminal"></i> <?php echo __('api_docs'); ?>
                     </button>
                 </div>
             </div>
@@ -811,10 +811,10 @@ $users = getAllUsers();
                     <i class="fas fa-file-pdf"></i>
                 </div>
                 <div class="option-content">
-                    <h5>PDF Reports</h5>
-                    <p>Generate formatted PDF reports for presentations</p>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="alert('PDF export coming soon!')">
-                        <i class="fas fa-file-export"></i> Generate PDF
+                    <h5><?php echo __('pdf_reports'); ?></h5>
+                    <p><?php echo __('generate_formatted_pdf_reports'); ?></p>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="alert('<?php echo __('pdf_export_coming_soon'); ?>')">
+                        <i class="fas fa-file-export"></i> <?php echo __('generate_pdf'); ?>
                     </button>
                 </div>
             </div>

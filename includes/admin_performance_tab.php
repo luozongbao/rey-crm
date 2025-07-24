@@ -149,8 +149,8 @@ try {
     <!-- Header with Controls -->
     <div class="performance-header">
         <div class="header-content">
-            <h3>Performance Analytics</h3>
-            <p>Track team performance and system metrics for <?php echo $period_label; ?></p>
+            <h3><?php echo __('performance_analytics'); ?></h3>
+            <p><?php echo __('track_team_performance_for', ['period' => $period_label]); ?></p>
         </div>
         
         <div class="date-controls">
@@ -158,26 +158,26 @@ try {
                 <input type="hidden" name="tab" value="performance">
                 
                 <div class="form-group">
-                    <label>Quick Range:</label>
+                    <label><?php echo __('quick_range'); ?>:</label>
                     <select name="range" class="form-select form-select-sm">
-                        <option value="7" <?php echo $date_range === '7' ? 'selected' : ''; ?>>Last 7 Days</option>
-                        <option value="30" <?php echo $date_range === '30' ? 'selected' : ''; ?>>Last 30 Days</option>
-                        <option value="90" <?php echo $date_range === '90' ? 'selected' : ''; ?>>Last 90 Days</option>
-                        <option value="365" <?php echo $date_range === '365' ? 'selected' : ''; ?>>Last Year</option>
+                        <option value="7" <?php echo $date_range === '7' ? 'selected' : ''; ?>><?php echo __('last_7_days'); ?></option>
+                        <option value="30" <?php echo $date_range === '30' ? 'selected' : ''; ?>><?php echo __('last_30_days'); ?></option>
+                        <option value="90" <?php echo $date_range === '90' ? 'selected' : ''; ?>><?php echo __('last_90_days'); ?></option>
+                        <option value="365" <?php echo $date_range === '365' ? 'selected' : ''; ?>><?php echo __('last_year'); ?></option>
                     </select>
                 </div>
                 
                 <div class="form-group">
-                    <label>Custom Range:</label>
+                    <label><?php echo __('custom_range'); ?>:</label>
                     <input type="date" name="start_date" value="<?php echo $start_date; ?>" class="form-control form-control-sm">
                 </div>
                 
                 <div class="form-group">
-                    <label>to:</label>
+                    <label><?php echo __('to'); ?>:</label>
                     <input type="date" name="end_date" value="<?php echo $end_date; ?>" class="form-control form-control-sm">
                 </div>
                 
-                <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+                <button type="submit" class="btn btn-primary btn-sm"><?php echo __('apply'); ?></button>
             </form>
         </div>
     </div>
@@ -190,7 +190,7 @@ try {
             </div>
             <div class="metric-content">
                 <div class="metric-value"><?php echo number_format($system_metrics['total_activities']); ?></div>
-                <div class="metric-label">Total Activities</div>
+                <div class="metric-label"><?php echo __('total_activities'); ?></div>
             </div>
         </div>
         
@@ -200,7 +200,7 @@ try {
             </div>
             <div class="metric-content">
                 <div class="metric-value"><?php echo number_format($system_metrics['active_customers']); ?></div>
-                <div class="metric-label">Customers Contacted</div>
+                <div class="metric-label"><?php echo __('customers_contacted'); ?></div>
             </div>
         </div>
         
@@ -210,7 +210,7 @@ try {
             </div>
             <div class="metric-content">
                 <div class="metric-value"><?php echo number_format($system_metrics['total_emails']); ?></div>
-                <div class="metric-label">Emails Sent</div>
+                <div class="metric-label"><?php echo __('emails_sent'); ?></div>
             </div>
         </div>
         
@@ -220,7 +220,7 @@ try {
             </div>
             <div class="metric-content">
                 <div class="metric-value"><?php echo number_format($system_metrics['total_calls']); ?></div>
-                <div class="metric-label">Calls Made</div>
+                <div class="metric-label"><?php echo __('calls_made'); ?></div>
             </div>
         </div>
         
@@ -230,7 +230,7 @@ try {
             </div>
             <div class="metric-content">
                 <div class="metric-value"><?php echo round($system_metrics['avg_followup_days'] ?? 0, 1); ?></div>
-                <div class="metric-label">Avg Follow-up Days</div>
+                <div class="metric-label"><?php echo __('avg_followup_days'); ?></div>
             </div>
         </div>
         
@@ -240,7 +240,7 @@ try {
             </div>
             <div class="metric-content">
                 <div class="metric-value"><?php echo round($response_metrics['avg_first_response_hours'] ?? 0, 1); ?>h</div>
-                <div class="metric-label">Avg Response Time</div>
+                <div class="metric-label"><?php echo __('avg_response_time'); ?></div>
             </div>
         </div>
     </div>
@@ -248,11 +248,11 @@ try {
     <div class="performance-layout">
         <!-- Left Column: Team Performance -->
         <div class="performance-section">
-            <h4>Team Performance</h4>
+            <h4><?php echo __('team_performance'); ?></h4>
             
             <!-- Top Performers -->
             <div class="top-performers">
-                <h5>Top Performers</h5>
+                <h5><?php echo __('best_performers'); ?></h5>
                 <div class="performers-list">
                     <?php foreach ($top_performers as $index => $performer): ?>
                         <div class="performer-item">
@@ -260,8 +260,8 @@ try {
                             <div class="performer-info">
                                 <div class="performer-name"><?php echo htmlspecialchars($performer['username']); ?></div>
                                 <div class="performer-stats">
-                                    <?php echo $performer['total_activities']; ?> activities • 
-                                    <?php echo $performer['customers_assigned']; ?> customers
+                                    <?php echo $performer['total_activities']; ?> <?php echo __('activities'); ?> • 
+                                    <?php echo $performer['customers_assigned']; ?> <?php echo __('customers'); ?>
                                 </div>
                             </div>
                             <div class="performer-score">
@@ -274,19 +274,19 @@ try {
 
             <!-- All Users Performance Table -->
             <div class="users-performance">
-                <h5>All Users Performance</h5>
+                <h5><?php echo __('user_performance'); ?></h5>
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>User</th>
-                                <th>Customers</th>
-                                <th>Activities</th>
-                                <th>Emails</th>
-                                <th>Calls</th>
-                                <th>Meetings</th>
-                                <th>Efficiency</th>
-                                <th>Last Activity</th>
+                                <th><?php echo __('user'); ?></th>
+                                <th><?php echo __('customers'); ?></th>
+                                <th><?php echo __('activities'); ?></th>
+                                <th><?php echo __('emails_sent'); ?></th>
+                                <th><?php echo __('calls_made'); ?></th>
+                                <th><?php echo __('meetings'); ?></th>
+                                <th><?php echo __('efficiency'); ?></th>
+                                <th><?php echo __('last_activity'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -309,10 +309,10 @@ try {
                                         $efficiency_class = $efficiency >= 3 ? 'text-success' : ($efficiency >= 1.5 ? 'text-warning' : 'text-danger');
                                         ?>
                                         <span class="<?php echo $efficiency_class; ?>"><?php echo $efficiency; ?></span>
-                                        <small class="text-muted"> act/cust</small>
+                                        <small class="text-muted"> <?php echo __('act_per_cust'); ?></small>
                                     </td>
                                     <td>
-                                        <?php echo $user['last_activity_date'] ? formatDateTimeCompact($user['last_activity_date']) : 'No activity'; ?>
+                                        <?php echo $user['last_activity_date'] ? formatDateTimeCompact($user['last_activity_date']) : __('no_activity'); ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -324,11 +324,11 @@ try {
 
         <!-- Right Column: Trends and Analysis -->
         <div class="analytics-section">
-            <h4>Analytics & Trends</h4>
+            <h4><?php echo __('trends_overview'); ?></h4>
             
             <!-- Conversion Funnel -->
             <div class="conversion-funnel">
-                <h5>Customer Status Distribution</h5>
+                <h5><?php echo __('customer_status_distribution'); ?></h5>
                 <div class="funnel-chart">
                     <?php 
                     $total_customers = array_sum(array_column($conversion_funnel, 'count'));
@@ -338,7 +338,7 @@ try {
                         <div class="funnel-stage">
                             <div class="stage-info">
                                 <div class="stage-name"><?php echo $stage['status']; ?></div>
-                                <div class="stage-count"><?php echo $stage['count']; ?> customers</div>
+                                <div class="stage-count"><?php echo $stage['count']; ?> <?php echo __('customers'); ?></div>
                                 <div class="stage-percentage"><?php echo round($percentage, 1); ?>%</div>
                             </div>
                             <div class="stage-bar">
@@ -352,7 +352,7 @@ try {
 
             <!-- Response Time Analytics -->
             <div class="response-analytics">
-                <h5>Response Time Performance</h5>
+                <h5><?php echo __('response_time_performance'); ?></h5>
                 <div class="response-metrics">
                     <div class="response-metric">
                         <div class="metric-icon-small quick">
@@ -360,7 +360,7 @@ try {
                         </div>
                         <div class="metric-details">
                             <div class="metric-number"><?php echo $response_metrics['quick_responses_24h'] ?? 0; ?></div>
-                            <div class="metric-desc">Quick Responses (≤24h)</div>
+                            <div class="metric-desc"><?php echo __('quick_responses_24h'); ?></div>
                         </div>
                     </div>
                     
@@ -370,7 +370,7 @@ try {
                         </div>
                         <div class="metric-details">
                             <div class="metric-number"><?php echo $response_metrics['slow_responses_72h'] ?? 0; ?></div>
-                            <div class="metric-desc">Slow Responses (>72h)</div>
+                            <div class="metric-desc"><?php echo __('slow_responses_72h'); ?></div>
                         </div>
                     </div>
                     
@@ -380,7 +380,7 @@ try {
                         </div>
                         <div class="metric-details">
                             <div class="metric-number"><?php echo round($response_metrics['avg_first_response_hours'] ?? 0, 1); ?>h</div>
-                            <div class="metric-desc">Average Response Time</div>
+                            <div class="metric-desc"><?php echo __('average_response_time'); ?></div>
                         </div>
                     </div>
                 </div>
@@ -388,12 +388,12 @@ try {
                 <?php if ($response_metrics['total_customers_with_activity'] > 0): ?>
                     <div class="response-summary">
                         <div class="summary-stat">
-                            <strong>Response Rate:</strong> 
+                            <strong><?php echo __('response_rate'); ?>:</strong> 
                             <?php 
                             $quick_rate = round(($response_metrics['quick_responses_24h'] / $response_metrics['total_customers_with_activity']) * 100, 1);
                             $rate_class = $quick_rate >= 70 ? 'text-success' : ($quick_rate >= 50 ? 'text-warning' : 'text-danger');
                             ?>
-                            <span class="<?php echo $rate_class; ?>"><?php echo $quick_rate; ?>%</span> within 24 hours
+                            <span class="<?php echo $rate_class; ?>"><?php echo $quick_rate; ?>%</span> <?php echo __('within_24_hours'); ?>
                         </div>
                     </div>
                 <?php endif; ?>
@@ -401,8 +401,8 @@ try {
 
             <!-- Follow-up Management -->
             <div class="followup-management">
-                <h5>Follow-up Management</h5>
-                <div class="followup-overview">
+                <h5><?php echo __('followup_management'); ?></h5>
+                <!-- <div class="followup-overview"> -->
                     <div class="followup-summary">
                         <div class="followup-stat overdue">
                             <div class="stat-icon">
@@ -410,7 +410,7 @@ try {
                             </div>
                             <div class="stat-content">
                                 <div class="stat-number"><?php echo $total_overdue; ?></div>
-                                <div class="stat-label">Overdue Follow-ups</div>
+                                <div class="stat-label"><?php echo __('overdue_followups'); ?></div>
                             </div>
                         </div>
                         
@@ -420,7 +420,7 @@ try {
                             </div>
                             <div class="stat-content">
                                 <div class="stat-number"><?php echo $total_upcoming; ?></div>
-                                <div class="stat-label">Upcoming Follow-ups</div>
+                                <div class="stat-label"><?php echo __('upcoming_followups'); ?></div>
                             </div>
                         </div>
                         
@@ -430,14 +430,14 @@ try {
                             </div>
                             <div class="stat-content">
                                 <div class="stat-number"><?php echo $total_scheduled; ?></div>
-                                <div class="stat-label">Total Scheduled</div>
+                                <div class="stat-label"><?php echo __('total_scheduled'); ?></div>
                             </div>
                         </div>
                     </div>
                     
                     <?php if (!empty($followup_metrics) && $total_overdue > 0): ?>
                         <div class="overdue-alerts">
-                            <h6>Users with Overdue Follow-ups</h6>
+                            <h6><?php echo __('users_with_overdue_followups'); ?></h6>
                             <div class="alert-list">
                                 <?php foreach ($followup_metrics as $user): ?>
                                     <?php if ($user['user_overdue_count'] > 0): ?>
@@ -448,7 +448,7 @@ try {
                                             </div>
                                             <div class="alert-count">
                                                 <span class="badge badge-danger"><?php echo $user['user_overdue_count']; ?></span>
-                                                overdue
+                                                <?php echo __('overdue'); ?>
                                             </div>
                                         </div>
                                     <?php endif; ?>
@@ -456,12 +456,12 @@ try {
                             </div>
                         </div>
                     <?php endif; ?>
-                </div>
+                <!-- </div> -->
             </div>
 
             <!-- Daily Activity Trend -->
             <div class="activity-trend">
-                <h5>Daily Activity Trend</h5>
+                <h5><?php echo __('daily_activity_trend'); ?></h5>
                 <?php if (!empty($daily_trends)): ?>
                     <div class="trend-chart">
                         <?php 
@@ -477,27 +477,27 @@ try {
                     </div>
                     <div class="trend-summary">
                         <div class="summary-item">
-                            <strong>Peak Day:</strong> 
+                            <strong><?php echo __('peak_day'); ?>:</strong> 
                             <?php 
                             $peak_day = array_reduce($daily_trends, function($carry, $day) {
                                 return $carry === null || $day['daily_activities'] > $carry['daily_activities'] ? $day : $carry;
                             });
-                            echo $peak_day['activity_date'] . ' (' . $peak_day['daily_activities'] . ' activities)';
+                            echo $peak_day['activity_date'] . ' (' . $peak_day['daily_activities'] . ' ' . __('activities') . ')';
                             ?>
                         </div>
                         <div class="summary-item">
-                            <strong>Average Daily:</strong> 
-                            <?php echo round(array_sum(array_column($daily_trends, 'daily_activities')) / count($daily_trends), 1); ?> activities
+                            <strong><?php echo __('average_daily'); ?>:</strong> 
+                            <?php echo round(array_sum(array_column($daily_trends, 'daily_activities')) / count($daily_trends), 1); ?> <?php echo __('activities'); ?>
                         </div>
                     </div>
                 <?php else: ?>
-                    <p class="text-muted">No activity data available for the selected period.</p>
+                    <p class="text-muted"><?php echo __('no_activity_data_available'); ?></p>
                 <?php endif; ?>
             </div>
 
             <!-- Quick Insights -->
             <div class="quick-insights">
-                <h5>Quick Insights</h5>
+                <h5><?php echo __('quick_insights'); ?></h5>
                 <div class="insights-list">
                     <?php
                     // Calculate insights
@@ -518,24 +518,24 @@ try {
                     
                     <div class="insight-item">
                         <i class="fas fa-users text-primary"></i>
-                        <span><strong><?php echo round($engagement_rate, 1); ?>%</strong> user engagement rate 
-                        (<?php echo $active_users; ?> of <?php echo $total_users; ?> users active)</span>
+                        <span><strong><?php echo round($engagement_rate, 1); ?>%</strong> <?php echo __('user_engagement_rate'); ?> 
+                        (<?php echo $active_users; ?> <?php echo __('of'); ?> <?php echo $total_users; ?> <?php echo __('users_active'); ?>)</span>
                     </div>
                     
                     <div class="insight-item">
                         <i class="fas fa-chart-bar text-success"></i>
-                        <span><strong><?php echo round($avg_activities_per_user, 1); ?></strong> average activities per active user</span>
+                        <span><strong><?php echo round($avg_activities_per_user, 1); ?></strong> <?php echo __('average_activities_per_active_user'); ?></span>
                     </div>
                     
                     <div class="insight-item">
                         <i class="fas fa-balance-scale <?php echo $workload_imbalance <= 5 ? 'text-success' : ($workload_imbalance <= 15 ? 'text-warning' : 'text-danger'); ?>"></i>
-                        <span><strong><?php echo $workload_imbalance; ?></strong> customer difference between heaviest and lightest workloads</span>
+                        <span><strong><?php echo $workload_imbalance; ?></strong> <?php echo __('customer_difference_between_workloads'); ?></span>
                     </div>
                     
                     <?php if (!empty($daily_trends)): ?>
                         <div class="insight-item">
                             <i class="fas fa-calendar text-info"></i>
-                            <span><strong><?php echo count($daily_trends); ?></strong> days with recorded activity</span>
+                            <span><strong><?php echo count($daily_trends); ?></strong> <?php echo __('days_with_recorded_activity'); ?></span>
                         </div>
                     <?php endif; ?>
                     
@@ -543,14 +543,14 @@ try {
                         <div class="insight-item">
                             <i class="fas fa-envelope text-warning"></i>
                             <span><strong><?php echo round(($system_metrics['total_emails'] / $system_metrics['total_activities']) * 100, 1); ?>%</strong> 
-                            of activities are emails</span>
+                            <?php echo __('of_activities_are_emails'); ?></span>
                         </div>
                     <?php endif; ?>
                     
                     <?php if (($response_metrics['quick_responses_24h'] ?? 0) > 0): ?>
                         <div class="insight-item">
                             <i class="fas fa-bolt text-success"></i>
-                            <span><strong><?php echo $response_metrics['quick_responses_24h']; ?></strong> customers received quick responses (≤24h)</span>
+                            <span><strong><?php echo $response_metrics['quick_responses_24h']; ?></strong> <?php echo __('customers_received_quick_responses'); ?></span>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -560,34 +560,34 @@ try {
 
     <!-- Team Performance Summary -->
     <div class="team-summary-section">
-        <h4>Team Performance Summary</h4>
+        <h4><?php echo __('team_summary'); ?></h4>
         <div class="summary-cards">
             <div class="summary-card">
                 <div class="summary-header">
-                    <h5>Activity Distribution</h5>
+                    <h5><?php echo __('activity_distribution'); ?></h5>
                     <i class="fas fa-chart-pie"></i>
                 </div>
                 <div class="summary-content">
                     <div class="summary-stat">
-                        <span class="stat-label">Email Activities:</span>
+                        <span class="stat-label"><?php echo __('email_activities'); ?>:</span>
                         <span class="stat-value"><?php echo number_format($system_metrics['total_emails']); ?> 
                         (<?php echo $system_metrics['total_activities'] > 0 ? round(($system_metrics['total_emails'] / $system_metrics['total_activities']) * 100, 1) : 0; ?>%)</span>
                     </div>
                     <div class="summary-stat">
-                        <span class="stat-label">Call Activities:</span>
+                        <span class="stat-label"><?php echo __('call_activities'); ?>:</span>
                         <span class="stat-value"><?php echo number_format($system_metrics['total_calls']); ?> 
                         (<?php echo $system_metrics['total_activities'] > 0 ? round(($system_metrics['total_calls'] / $system_metrics['total_activities']) * 100, 1) : 0; ?>%)</span>
                     </div>
                     <div class="summary-stat">
-                        <span class="stat-label">Active Users:</span>
-                        <span class="stat-value"><?php echo $active_users; ?> of <?php echo $total_users; ?> users</span>
+                        <span class="stat-label"><?php echo __('active_users'); ?>:</span>
+                        <span class="stat-value"><?php echo $active_users; ?> <?php echo __('of'); ?> <?php echo $total_users; ?> <?php echo __('users'); ?></span>
                     </div>
                 </div>
             </div>
             
             <div class="summary-card">
                 <div class="summary-header">
-                    <h5>Performance Trends</h5>
+                    <h5><?php echo __('performance_trends'); ?></h5>
                     <i class="fas fa-trending-up"></i>
                 </div>
                 <div class="summary-content">
@@ -602,19 +602,19 @@ try {
                         $trend_icon = $trend_direction === 'up' ? 'fa-arrow-up' : ($trend_direction === 'down' ? 'fa-arrow-down' : 'fa-minus');
                         ?>
                         <div class="summary-stat">
-                            <span class="stat-label">Daily Average (Last 7 days):</span>
-                            <span class="stat-value"><?php echo round($avg_recent, 1); ?> activities</span>
+                            <span class="stat-label"><?php echo __('daily_average_last_7_days'); ?>:</span>
+                            <span class="stat-value"><?php echo round($avg_recent, 1); ?> <?php echo __('activities'); ?></span>
                         </div>
                         <div class="summary-stat">
-                            <span class="stat-label">Trend:</span>
+                            <span class="stat-label"><?php echo __('trend'); ?>:</span>
                             <span class="stat-value <?php echo $trend_class; ?>">
                                 <i class="fas <?php echo $trend_icon; ?>"></i>
-                                <?php echo ucfirst($trend_direction); ?>
+                                <?php echo __(strtolower($trend_direction)); ?>
                             </span>
                         </div>
                     <?php else: ?>
                         <div class="summary-stat">
-                            <span class="stat-label">No trend data available</span>
+                            <span class="stat-label"><?php echo __('no_trend_data_available'); ?></span>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -622,21 +622,21 @@ try {
             
             <div class="summary-card">
                 <div class="summary-header">
-                    <h5>Response Quality</h5>
+                    <h5><?php echo __('response_quality'); ?></h5>
                     <i class="fas fa-stopwatch"></i>
                 </div>
                 <div class="summary-content">
                     <div class="summary-stat">
-                        <span class="stat-label">Avg Response Time:</span>
-                        <span class="stat-value"><?php echo round($response_metrics['avg_first_response_hours'] ?? 0, 1); ?> hours</span>
+                        <span class="stat-label"><?php echo __('avg_response_time'); ?>:</span>
+                        <span class="stat-value"><?php echo round($response_metrics['avg_first_response_hours'] ?? 0, 1); ?> <?php echo __('hours'); ?></span>
                     </div>
                     <div class="summary-stat">
-                        <span class="stat-label">Quick Responses:</span>
-                        <span class="stat-value text-success"><?php echo $response_metrics['quick_responses_24h'] ?? 0; ?> (≤24h)</span>
+                        <span class="stat-label"><?php echo __('quick_responses'); ?></span>
+                        <span class="stat-value text-success"><?php echo $response_metrics['quick_responses_24h'] ?? 0; ?> (≤24<?php echo __('hours'); ?>)</span>
                     </div>
                     <div class="summary-stat">
-                        <span class="stat-label">Slow Responses:</span>
-                        <span class="stat-value text-warning"><?php echo $response_metrics['slow_responses_72h'] ?? 0; ?> (>72h)</span>
+                        <span class="stat-label"><?php echo __('slow_responses'); ?></span>
+                        <span class="stat-value text-warning"><?php echo $response_metrics['slow_responses_72h'] ?? 0; ?> (>72<?php echo __('hours'); ?>)</span>
                     </div>
                 </div>
             </div>
