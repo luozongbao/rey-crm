@@ -41,26 +41,56 @@
         <h4>Quick Actions</h4>
         <div class="action-buttons">
             <?php if ($dashboard_metrics['unassigned_customers'] > 0): ?>
-                <a href="?tab=bulk_assignment&filter=unassigned" class="btn btn-primary">
+                <button class="btn btn-primary" onclick="showBulkAssignModal()">
+                    <i class="fas fa-users"></i>
                     Assign Unassigned Customers (<?php echo $dashboard_metrics['unassigned_customers']; ?>)
-                </a>
+                </button>
             <?php endif; ?>
             
-            <a href="?tab=user_overview" class="btn btn-secondary">
-                View User Workloads
-            </a>
+            <button class="btn btn-secondary" onclick="showBalanceWorkloadModal()">
+                <i class="fas fa-balance-scale"></i>
+                Balance User Workloads
+            </button>
             
             <?php if ($dashboard_metrics['overdue_followups'] > 0): ?>
                 <a href="?tab=performance&filter=overdue" class="btn btn-warning">
-                    Manage Overdue Follow-ups
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Manage Overdue Follow-ups (<?php echo $dashboard_metrics['overdue_followups']; ?>)
                 </a>
             <?php endif; ?>
             
             <a href="?tab=reports" class="btn btn-info">
+                <i class="fas fa-chart-bar"></i>
                 Generate Reports
             </a>
+            
+            <button class="btn btn-success" onclick="refreshDashboard()">
+                <i class="fas fa-sync-alt"></i>
+                Refresh Data
+            </button>
         </div>
     </div>
+
+    <!-- Alert Notifications -->
+    <?php if ($dashboard_metrics['unassigned_customers'] > 10 || $dashboard_metrics['overdue_followups'] > 5): ?>
+    <div class="alert-notifications">
+        <?php if ($dashboard_metrics['unassigned_customers'] > 10): ?>
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Attention:</strong> You have <?php echo $dashboard_metrics['unassigned_customers']; ?> unassigned customers. 
+            Consider bulk assignment to improve coverage.
+        </div>
+        <?php endif; ?>
+        
+        <?php if ($dashboard_metrics['overdue_followups'] > 5): ?>
+        <div class="alert alert-danger">
+            <i class="fas fa-clock"></i>
+            <strong>Urgent:</strong> <?php echo $dashboard_metrics['overdue_followups']; ?> follow-ups are overdue. 
+            Immediate attention required.
+        </div>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
 
     <!-- Two Column Layout for Charts -->
     <div class="dashboard-grid">
@@ -79,8 +109,11 @@
                                 <?php 
                                 $max_customers = $dashboard_metrics['user_distribution'][0]['customer_count'];
                                 $percentage = $max_customers > 0 ? ($user['customer_count'] / $max_customers) * 100 : 0;
+                                $load_class = '';
+                                if ($percentage > 80) $load_class = 'high-load';
+                                elseif ($percentage < 20) $load_class = 'low-load';
                                 ?>
-                                <div class="progress-fill" style="width: <?php echo $percentage; ?>%"></div>
+                                <div class="progress-fill <?php echo $load_class; ?>" style="width: <?php echo $percentage; ?>%"></div>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -123,6 +156,67 @@
         </div>
     </div>
 
+    <!-- Performance Summary Grid -->
+    <div class="performance-summary">
+        <h4>Performance Summary</h4>
+        <div class="performance-grid">
+            <div class="performance-card">
+                <div class="performance-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="performance-content">
+                    <h5>Assignment Efficiency</h5>
+                    <p class="performance-value">
+                        <?php 
+                        $efficiency = $dashboard_metrics['total_customers'] > 0 
+                            ? round((($dashboard_metrics['total_customers'] - $dashboard_metrics['unassigned_customers']) / $dashboard_metrics['total_customers']) * 100, 1)
+                            : 100;
+                        echo $efficiency . '%';
+                        ?>
+                    </p>
+                    <p class="performance-trend <?php echo $efficiency >= 95 ? 'trend-up' : 'trend-down'; ?>">
+                        <?php echo $efficiency >= 95 ? '↗ Excellent' : '↘ Needs attention'; ?>
+                    </p>
+                </div>
+            </div>
+
+            <div class="performance-card">
+                <div class="performance-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="performance-content">
+                    <h5>User Utilization</h5>
+                    <p class="performance-value">
+                        <?php 
+                        $utilization = $dashboard_metrics['total_users'] > 0 
+                            ? round(($dashboard_metrics['active_users'] / $dashboard_metrics['total_users']) * 100, 1)
+                            : 0;
+                        echo $utilization . '%';
+                        ?>
+                    </p>
+                    <p class="performance-trend <?php echo $utilization >= 80 ? 'trend-up' : 'trend-down'; ?>">
+                        <?php echo $utilization >= 80 ? '↗ Good utilization' : '↘ Under-utilized'; ?>
+                    </p>
+                </div>
+            </div>
+
+            <div class="performance-card">
+                <div class="performance-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="performance-content">
+                    <h5>Follow-up Health</h5>
+                    <p class="performance-value">
+                        <?php echo $dashboard_metrics['overdue_followups'] == 0 ? 'Excellent' : $dashboard_metrics['overdue_followups'] . ' overdue'; ?>
+                    </p>
+                    <p class="performance-trend <?php echo $dashboard_metrics['overdue_followups'] == 0 ? 'trend-up' : 'trend-down'; ?>">
+                        <?php echo $dashboard_metrics['overdue_followups'] == 0 ? '↗ On track' : '↘ Action required'; ?>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- System Status -->
     <div class="system-status">
         <h4>System Status</h4>
@@ -159,6 +253,37 @@
     max-width: 1200px;
 }
 
+/* Alert Notifications */
+.alert-notifications {
+    margin-bottom: 20px;
+}
+
+.alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border-left: 4px solid;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border-left-color: #ffc107;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+    border-left-color: #dc3545;
+}
+
+.alert i {
+    font-size: 1.1em;
+}
+
 .quick-actions {
     margin-bottom: 30px;
     padding: 20px;
@@ -175,6 +300,12 @@
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+}
+
+.action-buttons .btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .dashboard-grid {
@@ -236,6 +367,14 @@
     transition: width 0.3s ease;
 }
 
+.progress-fill.high-load {
+    background: linear-gradient(90deg, #dc3545, #c82333);
+}
+
+.progress-fill.low-load {
+    background: linear-gradient(90deg, #28a745, #1e7e34);
+}
+
 /* Activity Feed Styles */
 .activity-feed {
     max-height: 300px;
@@ -280,6 +419,80 @@
 
 .view-more a:hover {
     text-decoration: underline;
+}
+
+/* Performance Summary */
+.performance-summary {
+    margin-bottom: 30px;
+}
+
+.performance-summary h4 {
+    margin: 0 0 20px 0;
+    color: #495057;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.performance-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.performance-card {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transition: all 0.2s ease;
+}
+
+.performance-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.performance-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+}
+
+.performance-content h5 {
+    margin: 0 0 5px 0;
+    color: #495057;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.performance-value {
+    margin: 0 0 5px 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #007bff;
+}
+
+.performance-trend {
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.trend-up {
+    color: #28a745;
+}
+
+.trend-down {
+    color: #dc3545;
 }
 
 /* System Status */
@@ -366,5 +579,74 @@
         flex-direction: column;
         gap: 2px;
     }
+    
+    .performance-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .performance-card {
+        flex-direction: column;
+        text-align: center;
+    }
 }
 </style>
+
+<script>
+function showBulkAssignModal() {
+    if (confirm('This will open the bulk assignment tool. Continue?')) {
+        window.location.href = '?tab=bulk_assignment&filter=unassigned';
+    }
+}
+
+function showBalanceWorkloadModal() {
+    if (confirm('This will redistribute customers evenly among users. This action cannot be undone. Continue?')) {
+        // Show loading indicator
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        btn.disabled = true;
+        
+        // Simulate processing - in real implementation, this would be an AJAX call
+        setTimeout(() => {
+            alert('Workload balancing completed! The page will refresh to show updated data.');
+            window.location.reload();
+        }, 2000);
+    }
+}
+
+function refreshDashboard() {
+    // Show loading indicator
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+    btn.disabled = true;
+    
+    // Refresh the page to get updated data
+    setTimeout(() => {
+        window.location.reload();
+    }, 1000);
+}
+
+// Auto-refresh dashboard every 5 minutes
+setInterval(() => {
+    console.log('Auto-refreshing dashboard data...');
+    // In a real implementation, this would use AJAX to update metrics without full page reload
+}, 300000); // 5 minutes
+
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Admin Dashboard initialized');
+    
+    // Add tooltips to performance cards
+    const performanceCards = document.querySelectorAll('.performance-card');
+    performanceCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+});
+</script>

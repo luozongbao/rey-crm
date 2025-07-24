@@ -29,7 +29,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
     
     // Add assignment field if user can assign and field is present
     if (isset($_POST['assigned_user_id']) && canAssignCustomer($customer_id)) {
-        $data['assigned_user_id'] = $_POST['assigned_user_id'];
+        // Convert empty string to NULL for database
+        $assigned_user_id = $_POST['assigned_user_id'];
+        $data['assigned_user_id'] = ($assigned_user_id === '' || $assigned_user_id === null) ? null : $assigned_user_id;
     }
     
     // Validate email if provided
@@ -148,23 +150,47 @@ require_once 'includes/header.php';
                 <?php if (canAssignCustomer($customer_id)): ?>
                 <div class="form-group">
                     <label for="assigned_user_id"><?php echo __('assigned_to'); ?>:</label>
-                    <select id="assigned_user_id" name="assigned_user_id" <?php echo $isViewMode ? 'disabled' : ''; ?>>
-                        <?php
-                        $users = getAllUsers();
-                        foreach ($users as $user):
-                            $selected = '';
-                            if ($customer) {
-                                $selected = ($customer['assigned_user_id'] == $user['user_id']) ? 'selected' : '';
-                            } else {
-                                // For new customers, default to current user
-                                $selected = ($_SESSION['user_id'] == $user['user_id']) ? 'selected' : '';
-                            }
-                        ?>
-                            <option value="<?php echo $user['user_id']; ?>" <?php echo $selected; ?>>
-                                <?php echo htmlspecialchars($user['username']); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <div class="assignment-controls">
+                        <select id="assigned_user_id" name="assigned_user_id" <?php echo $isViewMode ? 'disabled' : ''; ?>>
+                            <option value=""><?php echo __('unassigned'); ?></option>
+                            <?php
+                            $users = getAllUsers();
+                            foreach ($users as $user):
+                                $selected = '';
+                                if ($customer) {
+                                    $selected = ($customer['assigned_user_id'] == $user['user_id']) ? 'selected' : '';
+                                } else {
+                                    // For new customers, default to current user
+                                    $selected = ($_SESSION['user_id'] == $user['user_id']) ? 'selected' : '';
+                                }
+                            ?>
+                                <option value="<?php echo $user['user_id']; ?>" <?php echo $selected; ?>>
+                                    <?php echo htmlspecialchars($user['username']); ?>
+                                    <?php 
+                                    // Show current workload
+                                    $workload = getUserWorkload($user['user_id']);
+                                    echo " ({$workload} customers)";
+                                    ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        
+                        <?php if ($customer && $customer['assigned_user_id'] && !$isViewMode): ?>
+                            <button type="button" class="btn btn-warning btn-sm" id="unassign-btn" 
+                                    title="<?php echo __('unassign_customer'); ?>">
+                                <i class="fas fa-user-minus"></i> <?php echo __('unassign'); ?>
+                            </button>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <?php if ($customer && $customer['assigned_user_id']): ?>
+                        <div class="assignment-info">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i>
+                                Currently assigned to: <strong><?php echo htmlspecialchars($customer['assigned_username'] ?? 'Unknown'); ?></strong>
+                            </small>
+                        </div>
+                    <?php endif; ?>
                 </div>
                 <?php elseif ($customer): ?>
                 <div class="form-group">
@@ -413,6 +439,75 @@ function isValidEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
 }
+
+// Unassign functionality
+const unassignBtn = document.getElementById('unassign-btn');
+if (unassignBtn) {
+    unassignBtn.addEventListener('click', function() {
+        if (confirm('<?php echo addslashes(__('confirm_unassign_customer')); ?>')) {
+            // Immediate AJAX unassign
+            const customerId = <?php echo $customer_id; ?>;
+            
+            // Disable button and show loading
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <?php echo addslashes(__('unassigning')); ?>...';
+            
+            fetch('ajax_handlers/customer_unassign.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    customer_id: customerId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the UI immediately
+                    const assignmentSelect = document.getElementById('assigned_user_id');
+                    assignmentSelect.value = '';
+                    
+                    // Hide the unassign button
+                    this.style.display = 'none';
+                    
+                    // Update the assignment info
+                    const assignmentInfo = document.querySelector('.assignment-info');
+                    if (assignmentInfo) {
+                        assignmentInfo.innerHTML = '<small class="text-success"><i class="fas fa-check-circle"></i> Customer successfully unassigned.</small>';
+                    }
+                    
+                    // Show success message
+                    alert('<?php echo addslashes(__('success')); ?>: ' + data.message);
+                } else {
+                    // Re-enable button on error
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fas fa-user-minus"></i> <?php echo addslashes(__('unassign')); ?>';
+                    alert('<?php echo addslashes(__('error')); ?>: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Re-enable button on error
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-user-minus"></i> <?php echo addslashes(__('unassign')); ?>';
+                alert('<?php echo addslashes(__('error')); ?>: An error occurred while unassigning the customer.');
+            });
+        }
+    });
+}
+
+// Show/hide unassign button based on selection
+const assignmentSelect = document.getElementById('assigned_user_id');
+if (assignmentSelect && unassignBtn) {
+    assignmentSelect.addEventListener('change', function() {
+        if (this.value === '') {
+            unassignBtn.style.display = 'none';
+        } else if (this.value !== '<?php echo $customer['assigned_user_id'] ?? ''; ?>') {
+            unassignBtn.style.display = 'none';
+        }
+    });
+}
 </script>
 
 <style>
@@ -445,6 +540,38 @@ function isValidEmail(email) {
     font-size: 0.875em;
     color: #6c757d;
     margin-top: 0.25rem;
+}
+
+/* Assignment controls styles */
+.assignment-controls {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.assignment-controls select {
+    flex: 1;
+}
+
+.assignment-controls .btn {
+    white-space: nowrap;
+}
+
+.assignment-info {
+    margin-top: 5px;
+}
+
+.assignment-info small {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+@media (max-width: 768px) {
+    .assignment-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
 }
 </style>
 

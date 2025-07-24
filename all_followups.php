@@ -102,8 +102,8 @@ require_once 'includes/header.php';
             <div class="form-row">
                 <div class="form-group">
                     <label for="sort_by"><?= __('sort_by') ?>:</label>
-                    <select name="sort_by" id="sort_by" onchange="this.form.submit()">
-                        <option value="followup_date" <?= $sort_by == 'followup_date' ? 'selected' : '' ?>><?= __('followup_date') ?></option>
+                    <select name="sort" id="sort" onchange="this.form.submit()">
+                        <option value="followup_datetime" <?= $sort_by == 'followup_datetime' ? 'selected' : '' ?>><?= __('followup_date') ?></option>
                         <option value="company_name" <?= $sort_by == 'company_name' ? 'selected' : '' ?>><?= __('customer_name') ?></option>
                         <option value="customer_status" <?= $sort_by == 'customer_status' ? 'selected' : '' ?>><?= __('customer_status') ?></option>
                     </select>
@@ -112,8 +112,8 @@ require_once 'includes/header.php';
                 <div class="form-group">
                     <label for="order"><?= __('order') ?>:</label>
                     <select name="order" id="order" onchange="this.form.submit()">
-                        <option value="ASC" <?= $order == 'ASC' ? 'selected' : '' ?>><?= __('ascending') ?></option>
-                        <option value="DESC" <?= $order == 'DESC' ? 'selected' : '' ?>><?= __('descending') ?></option>
+                        <option value="asc" <?= $order == 'asc' ? 'selected' : '' ?>><?= __('ascending') ?></option>
+                        <option value="desc" <?= $order == 'desc' ? 'selected' : '' ?>><?= __('descending') ?></option>
                     </select>
                 </div>
                 <div class="form-group">

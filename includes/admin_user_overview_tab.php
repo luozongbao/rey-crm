@@ -3,7 +3,7 @@
 
 // Get filter parameters
 $selected_user = $_GET['user_id'] ?? '';
-$view_mode = $_GET['view'] ?? 'summary'; // 'summary', 'customers'
+$view_mode = $_GET['view'] ?? 'summary'; // 'summary', 'customers', 'history'
 
 // Get all users with their workload statistics
 $all_users_stats = getUserWorkloadStats();
@@ -15,11 +15,14 @@ $user_customers = [];
 if (!empty($selected_user)) {
     $user_details = getUserWorkloadStats($selected_user);
     
+    // Get additional activity stats for this user
+    $user_activity_stats = getUserActivityStats($selected_user);
+    
     // Get customers assigned to this user
     $stmt = $pdo->prepare("
         SELECT c.*, 
                MAX(ah.action_datetime) as last_activity,
-               COUNT(ah.activity_id) as activity_count,
+               COUNT(ah.history_id) as activity_count,
                (SELECT follow_up_datetime FROM action_history 
                 WHERE customer_id = c.customer_id AND follow_up_datetime > NOW() 
                 ORDER BY follow_up_datetime ASC LIMIT 1) as next_followup
@@ -85,14 +88,17 @@ function reassignCustomer($customer_id, $new_user_id, $reason = '') {
         $stmt = $pdo->prepare("UPDATE customers SET assigned_user_id = ?, updated_at = NOW() WHERE customer_id = ?");
         $stmt->execute([$new_user_id, $customer_id]);
         
-        // Log the reassignment
+        // Log the reassignment in action_history
         $log_note = "Customer reassigned from " . ($customer['current_user'] ?? 'unassigned') . " to " . $new_user['username'];
         if (!empty($reason)) {
             $log_note .= " (Reason: " . $reason . ")";
         }
         
-        $stmt = $pdo->prepare("INSERT INTO activities (customer_id, user_id, activity_type, notes, created_at) VALUES (?, ?, 'reassignment', ?, NOW())");
-        $stmt->execute([$customer_id, $_SESSION['user_id'], $log_note]);
+        $stmt = $pdo->prepare("
+            INSERT INTO action_history (customer_id, action_datetime, action, response, next_step, follow_up_datetime, notes) 
+            VALUES (?, NOW(), ?, '', '', DATE_ADD(NOW(), INTERVAL 30 DAY), ?)
+        ");
+        $stmt->execute([$customer_id, $log_note, "Admin reassignment"]);
         
         $pdo->commit();
         
@@ -114,16 +120,16 @@ function reassignCustomer($customer_id, $new_user_id, $reason = '') {
     <?php endif; ?>
 
     <div class="overview-header">
-        <h3>User Management Overview</h3>
-        <p>Monitor and manage user assignments and workloads</p>
+        <h3><?php echo __('user_management_overview'); ?></h3>
+        <p><?php echo __('monitor_and_manage_user_assignments'); ?></p>
     </div>
 
     <div class="user-overview-layout">
         <!-- Users List Panel -->
         <div class="users-panel">
             <div class="panel-header">
-                <h4>All Users</h4>
-                <span class="user-count"><?php echo count($all_users_stats); ?> users</span>
+                <h4><?php echo __('all_users'); ?></h4>
+                <span class="user-count"><?php echo count($all_users_stats); ?> <?php echo __('users'); ?></span>
             </div>
             
             <div class="users-list">
@@ -135,11 +141,11 @@ function reassignCustomer($customer_id, $new_user_id, $reason = '') {
                                 <div class="user-stats">
                                     <span class="stat-item">
                                         <i class="fas fa-users"></i>
-                                        <?php echo $user['customer_count']; ?> customers
+                                        <?php echo $user['customer_count']; ?> <?php echo __('customers'); ?>
                                     </span>
                                     <span class="stat-item">
                                         <i class="fas fa-chart-line"></i>
-                                        <?php echo $user['active_customers']; ?> active
+                                        <?php echo $user['active_customers']; ?> <?php echo __('active'); ?>
                                     </span>
                                 </div>
                             </div>
@@ -168,9 +174,11 @@ function reassignCustomer($customer_id, $new_user_id, $reason = '') {
                     <h4><?php echo htmlspecialchars($user_details['username']); ?></h4>
                     <div class="view-toggle">
                         <a href="?tab=user_overview&user_id=<?php echo $selected_user; ?>&view=summary" 
-                           class="btn btn-sm <?php echo $view_mode === 'summary' ? 'btn-primary' : 'btn-outline-primary'; ?>">Summary</a>
+                           class="btn btn-sm <?php echo $view_mode === 'summary' ? 'btn-primary' : 'btn-outline-primary'; ?>"><?php echo __('summary'); ?></a>
                         <a href="?tab=user_overview&user_id=<?php echo $selected_user; ?>&view=customers" 
-                           class="btn btn-sm <?php echo $view_mode === 'customers' ? 'btn-primary' : 'btn-outline-primary'; ?>">Customers</a>
+                           class="btn btn-sm <?php echo $view_mode === 'customers' ? 'btn-primary' : 'btn-outline-primary'; ?>"><?php echo __('customers'); ?></a>
+                        <a href="?tab=user_overview&user_id=<?php echo $selected_user; ?>&view=history" 
+                           class="btn btn-sm <?php echo $view_mode === 'history' ? 'btn-primary' : 'btn-outline-primary'; ?>"><?php echo __('history'); ?></a>
                     </div>
                 </div>
 
@@ -184,7 +192,7 @@ function reassignCustomer($customer_id, $new_user_id, $reason = '') {
                                 </div>
                                 <div class="card-content">
                                     <div class="card-value"><?php echo $user_details['customer_count']; ?></div>
-                                    <div class="card-label">Total Customers</div>
+                                    <div class="card-label"><?php echo __('total_customers'); ?></div>
                                 </div>
                             </div>
                             
@@ -194,7 +202,7 @@ function reassignCustomer($customer_id, $new_user_id, $reason = '') {
                                 </div>
                                 <div class="card-content">
                                     <div class="card-value"><?php echo $user_details['active_customers']; ?></div>
-                                    <div class="card-label">Active Customers</div>
+                                    <div class="card-label"><?php echo __('active_customers'); ?></div>
                                 </div>
                             </div>
                             
@@ -204,7 +212,7 @@ function reassignCustomer($customer_id, $new_user_id, $reason = '') {
                                 </div>
                                 <div class="card-content">
                                     <div class="card-value"><?php echo $user_details['prospect_customers']; ?></div>
-                                    <div class="card-label">Prospects</div>
+                                    <div class="card-label"><?php echo __('prospects'); ?></div>
                                 </div>
                             </div>
                             
@@ -214,39 +222,178 @@ function reassignCustomer($customer_id, $new_user_id, $reason = '') {
                                 </div>
                                 <div class="card-content">
                                     <div class="card-value"><?php echo $user_details['recent_activities'] ?? 0; ?></div>
-                                    <div class="card-label">Recent Activities</div>
+                                    <div class="card-label"><?php echo __('recent_activities'); ?></div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Quick Actions -->
                         <div class="quick-actions">
-                            <h5>Quick Actions</h5>
+                            <h5><?php echo __('quick_actions'); ?></h5>
                             <div class="action-buttons">
                                 <a href="?tab=bulk_assignment&filter=unassigned" class="btn btn-outline-primary">
-                                    <i class="fas fa-plus"></i> Assign New Customers
+                                    <i class="fas fa-plus"></i> <?php echo __('assign_new_customers'); ?>
                                 </a>
                                 <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#bulkReassignModal">
-                                    <i class="fas fa-exchange-alt"></i> Bulk Reassign
+                                    <i class="fas fa-exchange-alt"></i> <?php echo __('bulk_reassign'); ?>
                                 </button>
                                 <a href="customers.php?filter=assigned&user_id=<?php echo $selected_user; ?>" class="btn btn-outline-secondary">
-                                    <i class="fas fa-list"></i> View All Customers
+                                    <i class="fas fa-list"></i> <?php echo __('view_all_customers'); ?>
                                 </a>
                             </div>
                         </div>
+
+                        <!-- Performance Analytics -->
+                        <div class="performance-section">
+                            <h5><?php echo __('performance_analytics_30_days'); ?></h5>
+                            <div class="analytics-grid">
+                                <div class="analytics-card">
+                                    <div class="analytics-header">
+                                        <i class="fas fa-chart-line"></i>
+                                        <span><?php echo __('activity_summary'); ?></span>
+                                    </div>
+                                    <div class="analytics-content">
+                                        <div class="metric">
+                                            <span class="metric-value"><?php echo $user_activity_stats['total_activities']; ?></span>
+                                            <span class="metric-label"><?php echo __('total_activities'); ?></span>
+                                        </div>
+                                        <div class="metric">
+                                            <span class="metric-value"><?php echo $user_activity_stats['customers_contacted']; ?></span>
+                                            <span class="metric-label"><?php echo __('customers_contacted'); ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="analytics-card">
+                                    <div class="analytics-header">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        <span><?php echo __('followup_status'); ?></span>
+                                    </div>
+                                    <div class="analytics-content">
+                                        <div class="metric">
+                                            <span class="metric-value"><?php echo $user_activity_stats['scheduled_followups']; ?></span>
+                                            <span class="metric-label"><?php echo __('scheduled'); ?></span>
+                                        </div>
+                                        <div class="metric">
+                                            <span class="metric-value text-danger"><?php echo $user_activity_stats['overdue_followups']; ?></span>
+                                            <span class="metric-label"><?php echo __('overdue'); ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="analytics-card">
+                                    <div class="analytics-header">
+                                        <i class="fas fa-percentage"></i>
+                                        <span><?php echo __('conversion_rate'); ?></span>
+                                    </div>
+                                    <div class="analytics-content">
+                                        <?php 
+                                        $conversion_rate = $user_details['customer_count'] > 0 
+                                            ? round(($user_details['active_customers'] / $user_details['customer_count']) * 100, 1) 
+                                            : 0;
+                                        ?>
+                                        <div class="metric-large">
+                                            <span class="metric-value-large"><?php echo $conversion_rate; ?>%</span>
+                                            <span class="metric-label"><?php echo __('active_rate'); ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Assignment History -->
+                        <div class="assignment-history-section">
+                            <h5>Recent Assignment Changes</h5>
+                            <?php 
+                            $assignment_history = getAssignmentHistory(['user_id' => $selected_user, 'date_from' => date('Y-m-d', strtotime('-14 days'))]);
+                            ?>
+                            <?php if (!empty($assignment_history)): ?>
+                                <div class="history-list">
+                                    <?php foreach (array_slice($assignment_history, 0, 5) as $history): ?>
+                                        <div class="history-item">
+                                            <div class="history-icon">
+                                                <i class="fas fa-exchange-alt"></i>
+                                            </div>
+                                            <div class="history-content">
+                                                <div class="history-text"><?php echo htmlspecialchars($history['action']); ?></div>
+                                                <div class="history-meta">
+                                                    <span class="company-name"><?php echo htmlspecialchars($history['company_name']); ?></span>
+                                                    <span class="history-date"><?php echo formatDateTimeCompact($history['action_datetime']); ?></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <div class="view-all-link">
+                                    <a href="?tab=user_overview&user_id=<?php echo $selected_user; ?>&view=history" class="btn btn-sm btn-outline-secondary">
+                                        View All History
+                                    </a>
+                                </div>
+                            <?php else: ?>
+                                <p class="text-muted">No recent assignment changes</p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                <?php elseif ($view_mode === 'history'): ?>
+                    <!-- Assignment History View -->
+                    <div class="user-history">
+                        <div class="history-header">
+                            <h5>Assignment History for <?php echo htmlspecialchars($user_details['username']); ?></h5>
+                            <p class="text-muted">Track all assignment changes and activities</p>
+                        </div>
+
+                        <?php 
+                        $full_assignment_history = getAssignmentHistory(['user_id' => $selected_user]);
+                        ?>
+                        
+                        <?php if (!empty($full_assignment_history)): ?>
+                            <div class="history-timeline">
+                                <?php foreach ($full_assignment_history as $history): ?>
+                                    <div class="timeline-item">
+                                        <div class="timeline-marker">
+                                            <i class="fas fa-exchange-alt"></i>
+                                        </div>
+                                        <div class="timeline-content">
+                                            <div class="timeline-header">
+                                                <h6><?php echo htmlspecialchars($history['company_name']); ?></h6>
+                                                <span class="timeline-date"><?php echo formatDateTime($history['action_datetime'], 'M j, Y g:i A'); ?></span>
+                                            </div>
+                                            <div class="timeline-body">
+                                                <p><?php echo htmlspecialchars($history['action']); ?></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                            
+                            <div class="history-summary">
+                                <p class="text-muted">
+                                    Showing <?php echo count($full_assignment_history); ?> assignment changes
+                                </p>
+                            </div>
+                        <?php else: ?>
+                            <div class="no-history">
+                                <div class="no-history-content">
+                                    <i class="fas fa-clock"></i>
+                                    <h5>No Assignment History</h5>
+                                    <p>No assignment changes found for this user.</p>
+                                </div>
+                            </div>
+                        <?php endif; ?>
                     </div>
 
                 <?php else: // customers view ?>
                     <!-- Customers View -->
                     <div class="user-customers">
                         <div class="customers-header">
-                            <h5>Assigned Customers (<?php echo count($user_customers); ?>)</h5>
+                            <h5><?php echo __('assigned_customers'); ?> (<?php echo count($user_customers); ?>)</h5>
                             <div class="filter-options">
                                 <select class="form-select form-select-sm" id="customer-filter">
-                                    <option value="">All Customers</option>
-                                    <option value="active">Active Only</option>
-                                    <option value="prospects">Prospects Only</option>
-                                    <option value="overdue">Overdue Follow-ups</option>
+                                    <option value=""><?php echo __('all_customers'); ?></option>
+                                    <option value="active"><?php echo __('active_only'); ?></option>
+                                    <option value="prospects"><?php echo __('prospects_only'); ?></option>
+                                    <option value="overdue"><?php echo __('overdue_followups'); ?></option>
                                 </select>
                             </div>
                         </div>
@@ -256,12 +403,12 @@ function reassignCustomer($customer_id, $new_user_id, $reason = '') {
                                 <table class="table table-hover">
                                     <thead>
                                         <tr>
-                                            <th>Company</th>
-                                            <th>Status</th>
-                                            <th>Last Activity</th>
-                                            <th>Next Follow-up</th>
-                                            <th>Activities</th>
-                                            <th>Actions</th>
+                                            <th><?php echo __('company'); ?></th>
+                                            <th><?php echo __('status'); ?></th>
+                                            <th><?php echo __('last_activity'); ?></th>
+                                            <th><?php echo __('next_followup'); ?></th>
+                                            <th><?php echo __('activities'); ?></th>
+                                            <th><?php echo __('actions'); ?></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -279,7 +426,7 @@ function reassignCustomer($customer_id, $new_user_id, $reason = '') {
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <?php echo $customer['last_activity'] ? formatDateTimeCompact($customer['last_activity']) : 'No activity'; ?>
+                                                    <?php echo $customer['last_activity'] ? formatDateTimeCompact($customer['last_activity']) : __('no_activity'); ?>
                                                 </td>
                                                 <td>
                                                     <?php if ($customer['next_followup']): ?>
@@ -292,7 +439,7 @@ function reassignCustomer($customer_id, $new_user_id, $reason = '') {
                                                             <?php echo formatDateTimeCompact($customer['next_followup']); ?>
                                                         </span>
                                                     <?php else: ?>
-                                                        <span class="text-muted">None scheduled</span>
+                                                        <span class="text-muted"><?php echo __('none_scheduled'); ?></span>
                                                     <?php endif; ?>
                                                 </td>
                                                 <td>
@@ -300,12 +447,12 @@ function reassignCustomer($customer_id, $new_user_id, $reason = '') {
                                                 </td>
                                                 <td>
                                                     <div class="action-buttons">
-                                                        <a href="customer_form.php?customer_id=<?php echo $customer['customer_id']; ?>" 
-                                                           class="btn btn-sm btn-outline-primary">View</a>
+                                                        <a href="customer_form.php?action=view&id=<?php echo $customer['customer_id']; ?>" 
+                                                           class="btn btn-sm btn-outline-primary"><?php echo __('view'); ?></a>
                                                         <button type="button" class="btn btn-sm btn-outline-warning reassign-btn" 
                                                                 data-customer-id="<?php echo $customer['customer_id']; ?>"
                                                                 data-customer-name="<?php echo htmlspecialchars($customer['company_name']); ?>">
-                                                            Reassign
+                                                            <?php echo __('reassign'); ?>
                                                         </button>
                                                     </div>
                                                 </td>
@@ -316,8 +463,8 @@ function reassignCustomer($customer_id, $new_user_id, $reason = '') {
                             </div>
                         <?php else: ?>
                             <div class="no-customers">
-                                <p>This user has no assigned customers.</p>
-                                <a href="?tab=bulk_assignment" class="btn btn-primary">Assign Customers</a>
+                                <p><?php echo __('no_assigned_customers'); ?></p>
+                                <a href="?tab=bulk_assignment" class="btn btn-primary"><?php echo __('assign_customers'); ?></a>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -328,8 +475,8 @@ function reassignCustomer($customer_id, $new_user_id, $reason = '') {
                 <div class="no-selection">
                     <div class="no-selection-content">
                         <i class="fas fa-user-circle"></i>
-                        <h4>Select a User</h4>
-                        <p>Choose a user from the list to view their assignments and manage their workload.</p>
+                        <h4><?php echo __('select_user'); ?></h4>
+                        <p><?php echo __('choose_user_to_view_assignments'); ?></p>
                     </div>
                 </div>
             <?php endif; ?>
@@ -653,6 +800,248 @@ document.addEventListener('DOMContentLoaded', function() {
     flex-wrap: wrap;
 }
 
+/* Performance Analytics */
+.performance-section {
+    margin-top: 30px;
+}
+
+.performance-section h5 {
+    margin-bottom: 20px;
+    color: #495057;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 10px;
+}
+
+.analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.analytics-card {
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.analytics-header {
+    background: #f8f9fa;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #495057;
+}
+
+.analytics-header i {
+    color: #6c757d;
+}
+
+.analytics-content {
+    padding: 16px;
+}
+
+.metric {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.metric:last-child {
+    margin-bottom: 0;
+}
+
+.metric-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #28a745;
+}
+
+.metric-label {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.metric-large {
+    text-align: center;
+}
+
+.metric-value-large {
+    display: block;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #007bff;
+    margin-bottom: 5px;
+}
+
+/* Assignment History */
+.assignment-history-section {
+    margin-top: 30px;
+}
+
+.assignment-history-section h5 {
+    margin-bottom: 20px;
+    color: #495057;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 10px;
+}
+
+.history-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.history-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.history-item:last-child {
+    border-bottom: none;
+}
+
+.history-icon {
+    width: 32px;
+    height: 32px;
+    background: #e3f2fd;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #1976d2;
+    flex-shrink: 0;
+}
+
+.history-content {
+    flex: 1;
+}
+
+.history-text {
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+
+.history-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.company-name {
+    font-weight: 500;
+}
+
+.view-all-link {
+    margin-top: 15px;
+    text-align: center;
+}
+
+/* History Timeline */
+.user-history {
+    padding: 20px;
+}
+
+.history-header {
+    margin-bottom: 30px;
+}
+
+.history-header h5 {
+    margin-bottom: 10px;
+    color: #495057;
+}
+
+.history-timeline {
+    position: relative;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.timeline-item {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 25px;
+    position: relative;
+}
+
+.timeline-item:before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 40px;
+    bottom: -25px;
+    width: 2px;
+    background: #e9ecef;
+}
+
+.timeline-item:last-child:before {
+    display: none;
+}
+
+.timeline-marker {
+    width: 30px;
+    height: 30px;
+    background: #007bff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
+    z-index: 1;
+    position: relative;
+}
+
+.timeline-content {
+    flex: 1;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.timeline-header h6 {
+    margin: 0;
+    color: #495057;
+}
+
+.timeline-date {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.timeline-body p {
+    margin: 0;
+    color: #6c757d;
+}
+
+.no-history {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+}
+
+.no-history-content i {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
 /* Customers View */
 .user-customers {
     padding: 20px;
@@ -764,6 +1153,10 @@ document.addEventListener('DOMContentLoaded', function() {
     .action-buttons {
         justify-content: center;
     }
+
+    .analytics-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 768px) {
@@ -785,6 +1178,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     .action-buttons {
         flex-direction: column;
+    }
+    
+    .history-meta {
+        flex-direction: column;
+        gap: 4px;
     }
 }
 </style>

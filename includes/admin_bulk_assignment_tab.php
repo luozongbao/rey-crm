@@ -3,15 +3,24 @@
 
 // Handle bulk assignment form submission
 $bulk_result = null;
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_assign'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'])) {
     $customer_ids = $_POST['customer_ids'] ?? [];
+    $action_type = $_POST['action_type'] ?? '';
     $assign_to_user = $_POST['assign_to_user'] ?? '';
     $assignment_reason = $_POST['assignment_reason'] ?? '';
     
-    if (!empty($customer_ids) && !empty($assign_to_user)) {
-        $bulk_result = bulkAssignCustomers($customer_ids, $assign_to_user, $assignment_reason);
+    if (!empty($customer_ids)) {
+        if ($action_type === 'assign' && !empty($assign_to_user)) {
+            $bulk_result = bulkAssignCustomers($customer_ids, $assign_to_user, $assignment_reason);
+        } elseif ($action_type === 'unassign') {
+            $bulk_result = bulkUnassignCustomers($customer_ids, $assignment_reason);
+        } elseif ($action_type === 'auto_distribute') {
+            $bulk_result = autoDistributeCustomers($customer_ids, $assignment_reason);
+        } else {
+            $bulk_result = ['success' => false, 'message' => 'Please select a valid action.'];
+        }
     } else {
-        $bulk_result = ['success' => false, 'message' => 'Please select customers and a user to assign to.'];
+        $bulk_result = ['success' => false, 'message' => 'Please select at least one customer.'];
     }
 }
 
@@ -130,29 +139,110 @@ $locations = getAllLocations(); // Use existing function signature
     <form method="POST" id="bulk-assignment-form">
         <div class="bulk-actions">
             <h4>Bulk Assignment Actions</h4>
-            <div class="action-row">
-                <div class="action-group">
-                    <label for="assign_to_user">Assign Selected To:</label>
-                    <select name="assign_to_user" id="assign_to_user" class="form-control" required>
-                        <option value="">-- Select User --</option>
-                        <?php foreach ($users as $user): ?>
-                            <option value="<?php echo $user['user_id']; ?>">
-                                <?php echo htmlspecialchars($user['username']); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+            <div class="action-tabs">
+                <button type="button" class="action-tab active" data-action="assign">
+                    <i class="fas fa-user-plus"></i> Assign to User
+                </button>
+                <button type="button" class="action-tab" data-action="unassign">
+                    <i class="fas fa-user-minus"></i> Unassign Users
+                </button>
+                <button type="button" class="action-tab" data-action="auto_distribute">
+                    <i class="fas fa-random"></i> Auto Distribute
+                </button>
+            </div>
+            
+            <input type="hidden" name="action_type" id="action_type" value="assign">
+            
+            <!-- Assign Action Panel -->
+            <div class="action-panel" id="assign-panel">
+                <div class="action-row">
+                    <div class="action-group">
+                        <label for="assign_to_user">Assign Selected To:</label>
+                        <select name="assign_to_user" id="assign_to_user" class="form-control">
+                            <option value="">-- Select User --</option>
+                            <?php foreach ($users as $user): ?>
+                                <option value="<?php echo $user['user_id']; ?>">
+                                    <?php echo htmlspecialchars($user['username']); ?>
+                                    <?php 
+                                    // Show current workload
+                                    $workload = getUserWorkload($user['user_id']);
+                                    echo " ({$workload} customers)";
+                                    ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    
+                    <div class="action-group">
+                        <label for="assignment_reason">Reason (Optional):</label>
+                        <input type="text" name="assignment_reason" id="assignment_reason" 
+                               class="form-control" placeholder="e.g., Load balancing, Geographic assignment">
+                    </div>
+                    
+                    <div class="action-group">
+                        <button type="submit" name="bulk_action" class="btn btn-primary" id="assign-btn" disabled>
+                            <i class="fas fa-user-plus"></i>
+                            Assign Selected (<span class="selected-count">0</span>)
+                        </button>
+                    </div>
                 </div>
-                
-                <div class="action-group">
-                    <label for="assignment_reason">Reason (Optional):</label>
-                    <input type="text" name="assignment_reason" id="assignment_reason" 
-                           class="form-control" placeholder="e.g., Load balancing, Geographic assignment">
+            </div>
+            
+            <!-- Unassign Action Panel -->
+            <div class="action-panel" id="unassign-panel" style="display: none;">
+                <div class="action-row">
+                    <div class="action-group">
+                        <label for="unassign_reason">Reason for Unassignment:</label>
+                        <input type="text" name="assignment_reason" class="form-control" 
+                               placeholder="e.g., User unavailable, Reassignment needed">
+                    </div>
+                    
+                    <div class="action-group">
+                        <button type="submit" name="bulk_action" class="btn btn-warning" id="unassign-btn" disabled>
+                            <i class="fas fa-user-minus"></i>
+                            Unassign Selected (<span class="selected-count">0</span>)
+                        </button>
+                    </div>
                 </div>
-                
-                <div class="action-group">
-                    <button type="submit" name="bulk_assign" class="btn btn-primary" id="bulk-assign-btn" disabled>
-                        Assign Selected (<span id="selected-count">0</span>)
-                    </button>
+                <div class="action-info">
+                    <i class="fas fa-info-circle"></i>
+                    <small>This will remove user assignments from selected customers. They will become unassigned.</small>
+                </div>
+            </div>
+            
+            <!-- Auto Distribute Action Panel -->
+            <div class="action-panel" id="auto_distribute-panel" style="display: none;">
+                <div class="action-row">
+                    <div class="action-group">
+                        <label>Distribution Method:</label>
+                        <div class="distribution-options">
+                            <label class="radio-label">
+                                <input type="radio" name="distribution_method" value="round_robin" checked>
+                                Round Robin (Equal distribution)
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="distribution_method" value="workload_based">
+                                Workload Based (Balance existing assignments)
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="action-group">
+                        <label for="auto_reason">Reason:</label>
+                        <input type="text" name="assignment_reason" class="form-control" 
+                               placeholder="e.g., Automatic load balancing">
+                    </div>
+                    
+                    <div class="action-group">
+                        <button type="submit" name="bulk_action" class="btn btn-success" id="auto-distribute-btn" disabled>
+                            <i class="fas fa-random"></i>
+                            Auto Distribute (<span class="selected-count">0</span>)
+                        </button>
+                    </div>
+                </div>
+                <div class="action-info">
+                    <i class="fas fa-info-circle"></i>
+                    <small>This will automatically distribute selected customers among available users.</small>
                 </div>
             </div>
         </div>
@@ -180,7 +270,9 @@ $locations = getAllLocations(); // Use existing function signature
                                 <th>Location</th>
                                 <th>Status</th>
                                 <th>Currently Assigned To</th>
+                                <th>Workload</th>
                                 <th>Created</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -216,7 +308,38 @@ $locations = getAllLocations(); // Use existing function signature
                                         <?php endif; ?>
                                     </td>
                                     <td>
+                                        <?php if ($customer['assigned_user_id']): ?>
+                                            <?php $userWorkload = getUserWorkload($customer['assigned_user_id']); ?>
+                                            <span class="workload-indicator">
+                                                <?php echo $userWorkload; ?> customers
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="text-muted">-</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
                                         <?php echo formatDateTimeCompact($customer['created_at']); ?>
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <?php if ($customer['assigned_user_id']): ?>
+                                                <button type="button" class="btn btn-sm btn-outline-warning quick-unassign" 
+                                                        data-customer-id="<?php echo $customer['customer_id']; ?>"
+                                                        data-customer-name="<?php echo htmlspecialchars($customer['company_name']); ?>">
+                                                    <i class="fas fa-user-minus"></i>
+                                                </button>
+                                            <?php else: ?>
+                                                <button type="button" class="btn btn-sm btn-outline-primary quick-assign" 
+                                                        data-customer-id="<?php echo $customer['customer_id']; ?>"
+                                                        data-customer-name="<?php echo htmlspecialchars($customer['company_name']); ?>">
+                                                    <i class="fas fa-user-plus"></i>
+                                                </button>
+                                            <?php endif; ?>
+                                            <a href="/customer_form.php?id=<?php echo $customer['customer_id']; ?>" 
+                                               class="btn btn-sm btn-outline-info" target="_blank">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -237,16 +360,19 @@ $locations = getAllLocations(); // Use existing function signature
 document.addEventListener('DOMContentLoaded', function() {
     const selectAllCheckbox = document.getElementById('select-all-checkbox');
     const customerCheckboxes = document.querySelectorAll('.customer-checkbox');
-    const selectedCountSpan = document.getElementById('selected-count');
-    const bulkAssignBtn = document.getElementById('bulk-assign-btn');
+    const selectedCountSpans = document.querySelectorAll('.selected-count');
+    const actionButtons = document.querySelectorAll('#assign-btn, #unassign-btn, #auto-distribute-btn');
     const selectAllBtn = document.getElementById('select-all');
     const selectNoneBtn = document.getElementById('select-none');
     const selectUnassignedBtn = document.getElementById('select-unassigned');
+    const actionTabs = document.querySelectorAll('.action-tab');
+    const actionPanels = document.querySelectorAll('.action-panel');
+    const actionTypeInput = document.getElementById('action_type');
 
     function updateSelectedCount() {
         const selectedCount = document.querySelectorAll('.customer-checkbox:checked').length;
-        selectedCountSpan.textContent = selectedCount;
-        bulkAssignBtn.disabled = selectedCount === 0;
+        selectedCountSpans.forEach(span => span.textContent = selectedCount);
+        actionButtons.forEach(btn => btn.disabled = selectedCount === 0);
         
         // Update select all checkbox state
         const totalCheckboxes = customerCheckboxes.length;
@@ -260,6 +386,24 @@ document.addEventListener('DOMContentLoaded', function() {
             selectAllCheckbox.indeterminate = true;
         }
     }
+
+    // Action tab switching
+    actionTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const action = this.dataset.action;
+            
+            // Update active tab
+            actionTabs.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Show corresponding panel
+            actionPanels.forEach(panel => panel.style.display = 'none');
+            document.getElementById(action + '-panel').style.display = 'block';
+            
+            // Update action type
+            actionTypeInput.value = action;
+        });
+    });
 
     // Individual checkbox change
     customerCheckboxes.forEach(checkbox => {
@@ -300,14 +444,49 @@ document.addEventListener('DOMContentLoaded', function() {
         updateSelectedCount();
     });
 
+    // Quick assign/unassign buttons
+    document.querySelectorAll('.quick-assign').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const customerId = this.dataset.customerId;
+            const customerName = this.dataset.customerName;
+            showQuickAssignModal(customerId, customerName);
+        });
+    });
+
+    document.querySelectorAll('.quick-unassign').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const customerId = this.dataset.customerId;
+            const customerName = this.dataset.customerName;
+            if (confirm(`Are you sure you want to unassign ${customerName}?`)) {
+                quickUnassign(customerId);
+            }
+        });
+    });
+
     // Form submission confirmation
     document.getElementById('bulk-assignment-form').addEventListener('submit', function(e) {
         const selectedCount = document.querySelectorAll('.customer-checkbox:checked').length;
-        const assignToUser = document.getElementById('assign_to_user').value;
+        const actionType = actionTypeInput.value;
         
-        if (selectedCount > 0 && assignToUser) {
-            const userName = document.getElementById('assign_to_user').selectedOptions[0].text;
-            if (!confirm(`Are you sure you want to assign ${selectedCount} customer(s) to ${userName}?`)) {
+        if (selectedCount > 0) {
+            let confirmMessage = '';
+            
+            if (actionType === 'assign') {
+                const assignToUser = document.getElementById('assign_to_user').value;
+                if (!assignToUser) {
+                    e.preventDefault();
+                    alert('Please select a user to assign to.');
+                    return;
+                }
+                const userName = document.getElementById('assign_to_user').selectedOptions[0].text;
+                confirmMessage = `Are you sure you want to assign ${selectedCount} customer(s) to ${userName}?`;
+            } else if (actionType === 'unassign') {
+                confirmMessage = `Are you sure you want to unassign ${selectedCount} customer(s)? They will become unassigned.`;
+            } else if (actionType === 'auto_distribute') {
+                confirmMessage = `Are you sure you want to auto-distribute ${selectedCount} customer(s) among available users?`;
+            }
+            
+            if (confirmMessage && !confirm(confirmMessage)) {
                 e.preventDefault();
             }
         }
@@ -316,6 +495,119 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial count update
     updateSelectedCount();
 });
+
+function showQuickAssignModal(customerId, customerName) {
+    const users = <?php echo json_encode($users); ?>;
+    let optionsHtml = '<option value="">-- Select User --</option>';
+    users.forEach(user => {
+        optionsHtml += `<option value="${user.user_id}">${user.username}</option>`;
+    });
+    
+    const modalHtml = `
+        <div class="modal fade" id="quickAssignModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Quick Assign: ${customerName}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="quick-assign-form">
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="quick-assign-user" class="form-label">Assign to User:</label>
+                                <select id="quick-assign-user" class="form-control" required>
+                                    ${optionsHtml}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="quick-assign-reason" class="form-label">Reason (Optional):</label>
+                                <input type="text" id="quick-assign-reason" class="form-control" 
+                                       placeholder="Assignment reason">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Assign Customer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal
+    const existingModal = document.getElementById('quickAssignModal');
+    if (existingModal) existingModal.remove();
+    
+    // Add modal to DOM
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('quickAssignModal'));
+    modal.show();
+    
+    // Handle form submission
+    document.getElementById('quick-assign-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const userId = document.getElementById('quick-assign-user').value;
+        const reason = document.getElementById('quick-assign-reason').value;
+        
+        if (userId) {
+            quickAssign(customerId, userId, reason);
+            modal.hide();
+        }
+    });
+}
+
+function quickAssign(customerId, userId, reason = '') {
+    fetch('ajax_handlers/quick_assign.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            customer_id: customerId,
+            user_id: userId,
+            reason: reason
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload(); // Refresh to show updated assignment
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while assigning the customer.');
+    });
+}
+
+function quickUnassign(customerId) {
+    fetch('ajax_handlers/quick_unassign.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            customer_id: customerId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload(); // Refresh to show updated assignment
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while unassigning the customer.');
+    });
+}
 </script>
 
 <style>
@@ -363,6 +655,45 @@ document.addEventListener('DOMContentLoaded', function() {
     color: #495057;
 }
 
+/* Action Tabs */
+.action-tabs {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.action-tab {
+    background: none;
+    border: none;
+    padding: 12px 20px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    color: #6c757d;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.action-tab:hover {
+    color: #495057;
+    background: #f8f9fa;
+}
+
+.action-tab.active {
+    color: #007bff;
+    border-bottom-color: #007bff;
+    background: #f8f9fa;
+}
+
+.action-tab i {
+    margin-right: 8px;
+}
+
+/* Action Panels */
+.action-panel {
+    padding: 15px 0;
+}
+
 .action-row {
     display: grid;
     grid-template-columns: 1fr 1fr auto;
@@ -375,6 +706,38 @@ document.addEventListener('DOMContentLoaded', function() {
     margin-bottom: 5px;
     font-weight: 500;
     color: #495057;
+}
+
+.action-info {
+    margin-top: 10px;
+    padding: 10px;
+    background: #e9ecef;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+.action-info i {
+    color: #17a2b8;
+    margin-right: 5px;
+}
+
+.distribution-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0;
+    cursor: pointer;
+}
+
+.radio-label input[type="radio"] {
+    margin: 0;
 }
 
 .customer-table-section {
@@ -459,15 +822,60 @@ document.addEventListener('DOMContentLoaded', function() {
     font-weight: 500;
 }
 
+.workload-indicator {
+    background: #e9ecef;
+    color: #495057;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.75rem;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.action-buttons .btn {
+    padding: 4px 8px;
+    font-size: 0.8rem;
+}
+
+.quick-assign {
+    color: #007bff;
+    border-color: #007bff;
+}
+
+.quick-unassign {
+    color: #ffc107;
+    border-color: #ffc107;
+}
+
 .no-customers {
     text-align: center;
     padding: 40px;
     color: #6c757d;
 }
 
-#bulk-assign-btn:disabled {
+/* Button states */
+button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+/* Modal styling */
+.modal-content {
+    border-radius: 8px;
+}
+
+.modal-header {
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.modal-footer {
+    background: #f8f9fa;
+    border-top: 1px solid #dee2e6;
 }
 
 /* Responsive Design */
@@ -480,6 +888,10 @@ document.addEventListener('DOMContentLoaded', function() {
         grid-template-columns: 1fr;
     }
     
+    .action-tabs {
+        flex-direction: column;
+    }
+    
     .table-header {
         flex-direction: column;
         gap: 15px;
@@ -488,10 +900,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     .selection-controls {
         justify-content: center;
+        flex-wrap: wrap;
     }
     
     .table-responsive {
         font-size: 0.9rem;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        align-items: stretch;
     }
 }
 </style>

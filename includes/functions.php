@@ -437,6 +437,12 @@ function updateCustomer($id, $data) {
     $updateAssignment = isset($data['assigned_user_id']) && canAssignCustomer($id);
     
     if ($updateAssignment) {
+        // Convert empty string to NULL for unassignment
+        $assigned_user_id = $data['assigned_user_id'];
+        if ($assigned_user_id === '' || $assigned_user_id === null) {
+            $assigned_user_id = null;
+        }
+        
         $stmt = $pdo->prepare("UPDATE customers SET 
                               company_name = ?, address = ?, country = ?, province = ?,
                               company_type = ?, contact_phone = ?, contact_email = ?, 
@@ -453,7 +459,7 @@ function updateCustomer($id, $data) {
             $data['website'],
             $data['status'],
             $data['notes'],
-            $data['assigned_user_id'],
+            $assigned_user_id,
             $id
         ]);
     } else {
@@ -1795,6 +1801,11 @@ function assignCustomerToUser($customer_id, $user_id) {
         return false;
     }
     
+    // Convert empty string to NULL for unassignment
+    if ($user_id === '' || $user_id === null) {
+        $user_id = null;
+    }
+    
     try {
         $stmt = $pdo->prepare("UPDATE customers SET assigned_user_id = ? WHERE customer_id = ?");
         return $stmt->execute([$user_id, $customer_id]);
@@ -1991,6 +2002,317 @@ function getUserWorkloadStats($user_id = null) {
     } catch (PDOException $e) {
         logError("Error getting user workload stats: " . $e->getMessage());
         return $user_id ? null : [];
+    }
+}
+
+/**
+ * Bulk unassign customers from their current users
+ */
+function bulkUnassignCustomers($customer_ids, $reason = '') {
+    global $pdo;
+    
+    try {
+        $pdo->beginTransaction();
+        
+        $success_count = 0;
+        foreach ($customer_ids as $customer_id) {
+            // Get current assignment
+            $stmt = $pdo->prepare("SELECT assigned_user_id, company_name FROM customers WHERE customer_id = ?");
+            $stmt->execute([$customer_id]);
+            $customer = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($customer && $customer['assigned_user_id']) {
+                // Unassign customer
+                $stmt = $pdo->prepare("UPDATE customers SET assigned_user_id = NULL WHERE customer_id = ?");
+                $stmt->execute([$customer_id]);
+                
+                // Log the action in action_history table
+                $action_text = "Customer unassigned from user";
+                if ($reason) {
+                    $action_text .= " (Reason: $reason)";
+                }
+                
+                $stmt = $pdo->prepare("
+                    INSERT INTO action_history (customer_id, action_datetime, action, response, next_step, follow_up_datetime, notes) 
+                    VALUES (?, NOW(), ?, '', '', DATE_ADD(NOW(), INTERVAL 30 DAY), ?)
+                ");
+                $stmt->execute([$customer_id, $action_text, "Bulk unassignment by admin"]);
+                
+                $success_count++;
+            }
+        }
+        
+        $pdo->commit();
+        
+        return [
+            'success' => true,
+            'message' => "Successfully unassigned $success_count customer(s)."
+        ];
+        
+    } catch (PDOException $e) {
+        $pdo->rollback();
+        logError("Error in bulk unassign: " . $e->getMessage());
+        return [
+            'success' => false,
+            'message' => 'An error occurred while unassigning customers.'
+        ];
+    }
+}
+
+/**
+ * Auto distribute customers among available users
+ */
+function autoDistributeCustomers($customer_ids, $reason = '') {
+    global $pdo;
+    
+    try {
+        // Get all active users
+        $stmt = $pdo->query("SELECT user_id, username FROM users WHERE active = 1 ORDER BY user_id");
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        if (empty($users)) {
+            return [
+                'success' => false,
+                'message' => 'No active users available for assignment.'
+            ];
+        }
+        
+        $pdo->beginTransaction();
+        
+        $success_count = 0;
+        $user_index = 0;
+        
+        foreach ($customer_ids as $customer_id) {
+            $assigned_user = $users[$user_index % count($users)];
+            
+            // Assign customer
+            $stmt = $pdo->prepare("UPDATE customers SET assigned_user_id = ? WHERE customer_id = ?");
+            $stmt->execute([$assigned_user['user_id'], $customer_id]);
+            
+            // Log the action in action_history table
+            $action_text = "Customer auto-assigned to " . $assigned_user['username'];
+            if ($reason) {
+                $action_text .= " (Reason: $reason)";
+            }
+            
+            $stmt = $pdo->prepare("
+                INSERT INTO action_history (customer_id, action_datetime, action, response, next_step, follow_up_datetime, notes) 
+                VALUES (?, NOW(), ?, '', '', DATE_ADD(NOW(), INTERVAL 30 DAY), ?)
+            ");
+            $stmt->execute([$customer_id, $action_text, "Auto-distribution by admin"]);
+            
+            $success_count++;
+            $user_index++;
+        }
+        
+        $pdo->commit();
+        
+        return [
+            'success' => true,
+            'message' => "Successfully auto-distributed $success_count customer(s) among " . count($users) . " user(s)."
+        ];
+        
+    } catch (PDOException $e) {
+        $pdo->rollback();
+        logError("Error in auto distribute: " . $e->getMessage());
+        return [
+            'success' => false,
+            'message' => 'An error occurred while auto-distributing customers.'
+        ];
+    }
+}
+
+/**
+ * Get user workload (customer count)
+ */
+function getUserWorkload($user_id) {
+    global $pdo;
+    
+    try {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM customers WHERE assigned_user_id = ?");
+        $stmt->execute([$user_id]);
+        return $stmt->fetchColumn();
+    } catch (PDOException $e) {
+        logError("Error getting user workload: " . $e->getMessage());
+        return 0;
+    }
+}
+
+/**
+ * Get user activity statistics for a date range
+ */
+function getUserActivityStats($user_id, $date_from = null, $date_to = null) {
+    global $pdo;
+    
+    try {
+        $date_from = $date_from ?: date('Y-m-d', strtotime('-30 days'));
+        $date_to = $date_to ?: date('Y-m-d');
+        
+        $stmt = $pdo->prepare("
+            SELECT 
+                COUNT(DISTINCT ah.history_id) as total_activities,
+                COUNT(DISTINCT ah.customer_id) as customers_contacted,
+                COUNT(CASE WHEN ah.follow_up_datetime >= NOW() THEN 1 END) as scheduled_followups,
+                COUNT(CASE WHEN ah.follow_up_datetime < NOW() THEN 1 END) as overdue_followups,
+                AVG(TIMESTAMPDIFF(HOUR, ah.action_datetime, ah.follow_up_datetime)) as avg_followup_time
+            FROM action_history ah
+            JOIN customers c ON ah.customer_id = c.customer_id
+            WHERE c.assigned_user_id = ?
+            AND DATE(ah.action_datetime) BETWEEN ? AND ?
+        ");
+        $stmt->execute([$user_id, $date_from, $date_to]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logError("Error getting user activity stats: " . $e->getMessage());
+        return [
+            'total_activities' => 0,
+            'customers_contacted' => 0,
+            'scheduled_followups' => 0,
+            'overdue_followups' => 0,
+            'avg_followup_time' => 0
+        ];
+    }
+}
+
+/**
+ * Get assignment history with filters
+ */
+function getAssignmentHistory($filters = []) {
+    global $pdo;
+    
+    try {
+        $conditions = [];
+        $params = [];
+        
+        $query = "
+            SELECT 
+                ah.history_id,
+                ah.customer_id,
+                ah.action_datetime,
+                ah.action,
+                c.company_name,
+                u_from.username as from_user,
+                u_to.username as to_user
+            FROM action_history ah
+            JOIN customers c ON ah.customer_id = c.customer_id
+            LEFT JOIN users u_from ON ah.notes LIKE CONCAT('%from ', u_from.username, '%')
+            LEFT JOIN users u_to ON ah.notes LIKE CONCAT('%to ', u_to.username, '%')
+            WHERE ah.action LIKE '%assigned%' OR ah.action LIKE '%reassigned%'
+        ";
+        
+        if (!empty($filters['user_id'])) {
+            $conditions[] = "c.assigned_user_id = ?";
+            $params[] = $filters['user_id'];
+        }
+        
+        if (!empty($filters['date_from'])) {
+            $conditions[] = "DATE(ah.action_datetime) >= ?";
+            $params[] = $filters['date_from'];
+        }
+        
+        if (!empty($filters['date_to'])) {
+            $conditions[] = "DATE(ah.action_datetime) <= ?";
+            $params[] = $filters['date_to'];
+        }
+        
+        if (!empty($conditions)) {
+            $query .= " AND " . implode(" AND ", $conditions);
+        }
+        
+        $query .= " ORDER BY ah.action_datetime DESC LIMIT 50";
+        
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logError("Error getting assignment history: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get performance metrics for users
+ */
+function getPerformanceMetrics($user_ids = [], $date_range = []) {
+    global $pdo;
+    
+    try {
+        $date_from = $date_range['from'] ?? date('Y-m-d', strtotime('-30 days'));
+        $date_to = $date_range['to'] ?? date('Y-m-d');
+        
+        $user_condition = '';
+        $params = [$date_from, $date_to];
+        
+        if (!empty($user_ids)) {
+            $placeholders = str_repeat('?,', count($user_ids) - 1) . '?';
+            $user_condition = "AND u.user_id IN ($placeholders)";
+            $params = array_merge($params, $user_ids);
+        }
+        
+        $stmt = $pdo->prepare("
+            SELECT 
+                u.user_id,
+                u.username,
+                COUNT(DISTINCT c.customer_id) as customer_count,
+                COUNT(DISTINCT ah.history_id) as total_activities,
+                COUNT(DISTINCT CASE WHEN ah.action_datetime BETWEEN ? AND ? THEN ah.history_id END) as recent_activities,
+                COUNT(CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as overdue_followups,
+                COUNT(CASE WHEN c.status = 'Active' THEN 1 END) as active_customers,
+                COUNT(CASE WHEN c.status = 'Prospect' THEN 1 END) as prospect_customers,
+                MAX(ah.action_datetime) as last_activity_date,
+                AVG(CASE WHEN c.status = 'Active' THEN 1 ELSE 0 END) * 100 as conversion_rate
+            FROM users u
+            LEFT JOIN customers c ON u.user_id = c.assigned_user_id
+            LEFT JOIN action_history ah ON c.customer_id = ah.customer_id
+            WHERE 1=1 $user_condition
+            GROUP BY u.user_id, u.username
+            ORDER BY recent_activities DESC, customer_count DESC
+        ");
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logError("Error getting performance metrics: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get assignment distribution overview
+ */
+function getAssignmentDistribution() {
+    global $pdo;
+    
+    try {
+        $stmt = $pdo->query("
+            SELECT 
+                u.user_id,
+                u.username,
+                COUNT(c.customer_id) as customer_count,
+                COUNT(CASE WHEN c.status = 'Active' THEN 1 END) as active_count,
+                COUNT(CASE WHEN c.status = 'Prospect' THEN 1 END) as prospect_count,
+                COUNT(CASE WHEN c.status IN ('Inactive', 'Lost Customer') THEN 1 END) as inactive_count
+            FROM users u
+            LEFT JOIN customers c ON u.user_id = c.assigned_user_id
+            GROUP BY u.user_id, u.username
+            
+            UNION ALL
+            
+            SELECT 
+                NULL as user_id,
+                'Unassigned' as username,
+                COUNT(*) as customer_count,
+                COUNT(CASE WHEN status = 'Active' THEN 1 END) as active_count,
+                COUNT(CASE WHEN status = 'Prospect' THEN 1 END) as prospect_count,
+                COUNT(CASE WHEN status IN ('Inactive', 'Lost Customer') THEN 1 END) as inactive_count
+            FROM customers 
+            WHERE assigned_user_id IS NULL
+            
+            ORDER BY customer_count DESC
+        ");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logError("Error getting assignment distribution: " . $e->getMessage());
+        return [];
     }
 }
 

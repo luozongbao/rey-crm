@@ -82,7 +82,7 @@ if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) !== 'login.ph
                             <ul class="dropdown-menu">
                                 <li><a href="/all_activities.php" class="dropdown-link"><?php echo __('all_activities'); ?></a></li>
                                 <li><a href="/all_followups.php" class="dropdown-link"><?php echo __('followups'); ?></a></li>
-                                <li><a href="/history_form.php" class="dropdown-link"><?php echo __('add_activity'); ?></a></li>
+                                <!-- <li><a href="/history_form.php" class="dropdown-link"><?php echo __('add_activity'); ?></a></li> -->
                             </ul>
                         </li>
                         
@@ -96,7 +96,7 @@ if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) !== 'login.ph
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a href="/email_projects.php" class="dropdown-link"><?php echo __('email_projects'); ?></a></li>
-                                <li><a href="/send_email.php" class="dropdown-link"><?php echo __('send_email'); ?></a></li>
+                                <!-- <li><a href="/send_email.php" class="dropdown-link"><?php echo __('send_email'); ?></a></li> -->
                                 <li><a href="/email_history.php" class="dropdown-link"><?php echo __('email_history'); ?></a></li>
                             </ul>
                         </li>
@@ -187,15 +187,34 @@ if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) !== 'login.ph
             
             // Dropdown functionality
             const dropdowns = document.querySelectorAll('.nav-item.dropdown');
+            console.log('Found dropdowns:', dropdowns.length);
             
-            dropdowns.forEach(dropdown => {
+            dropdowns.forEach((dropdown, index) => {
                 const toggle = dropdown.querySelector('.dropdown-toggle');
                 const menu = dropdown.querySelector('.dropdown-menu');
                 
+                console.log(`Dropdown ${index}:`, { dropdown, toggle, menu });
+                
                 if (toggle && menu) {
-                    // Click toggle
+                    // Add hover listeners for desktop
+                    dropdown.addEventListener('mouseenter', function() {
+                        console.log('Mouse enter dropdown:', index);
+                        if (window.innerWidth > 768) {
+                            dropdown.classList.add('show');
+                        }
+                    });
+                    
+                    dropdown.addEventListener('mouseleave', function() {
+                        console.log('Mouse leave dropdown:', index);
+                        if (window.innerWidth > 768) {
+                            dropdown.classList.remove('show');
+                        }
+                    });
+                    
+                    // Click toggle for mobile and desktop
                     toggle.addEventListener('click', function(e) {
                         e.preventDefault();
+                        console.log('Dropdown clicked:', index, 'Width:', window.innerWidth);
                         
                         // Close other dropdowns
                         dropdowns.forEach(otherDropdown => {
@@ -206,29 +225,19 @@ if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) !== 'login.ph
                         
                         // Toggle current dropdown
                         dropdown.classList.toggle('show');
-                    });
-                    
-                    // Hover for desktop
-                    dropdown.addEventListener('mouseenter', function() {
-                        if (window.innerWidth > 768) {
-                            dropdown.classList.add('show');
-                        }
-                    });
-                    
-                    dropdown.addEventListener('mouseleave', function() {
-                        if (window.innerWidth > 768) {
-                            dropdown.classList.remove('show');
-                        }
+                        console.log('Dropdown show class:', dropdown.classList.contains('show'));
                     });
                 }
             });
             
-            // Close dropdowns when clicking outside
+            // Close dropdowns when clicking outside (mobile only)
             document.addEventListener('click', function(e) {
-                if (!e.target.closest('.nav-item.dropdown')) {
-                    dropdowns.forEach(dropdown => {
-                        dropdown.classList.remove('show');
-                    });
+                if (window.innerWidth <= 768) {
+                    if (!e.target.closest('.nav-item.dropdown')) {
+                        dropdowns.forEach(dropdown => {
+                            dropdown.classList.remove('show');
+                        });
+                    }
                 }
             });
             
