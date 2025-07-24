@@ -89,12 +89,59 @@ try {
     ");
     $conversion_funnel = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // Response time analytics
+    $stmt = $pdo->query("
+        SELECT 
+            AVG(TIMESTAMPDIFF(HOUR, c.created_at, first_activity.action_datetime)) as avg_first_response_hours,
+            COUNT(CASE WHEN TIMESTAMPDIFF(HOUR, c.created_at, first_activity.action_datetime) <= 24 THEN 1 END) as quick_responses_24h,
+            COUNT(CASE WHEN TIMESTAMPDIFF(HOUR, c.created_at, first_activity.action_datetime) > 72 THEN 1 END) as slow_responses_72h,
+            COUNT(DISTINCT c.customer_id) as total_customers_with_activity
+        FROM customers c
+        LEFT JOIN (
+            SELECT customer_id, MIN(action_datetime) as action_datetime
+            FROM action_history 
+            WHERE action_datetime $date_filter
+            GROUP BY customer_id
+        ) first_activity ON c.customer_id = first_activity.customer_id
+        WHERE c.created_at $date_filter AND first_activity.action_datetime IS NOT NULL
+    ");
+    $response_metrics = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // Follow-up management metrics
+    $stmt = $pdo->query("
+        SELECT 
+            COUNT(CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as overdue_followups,
+            COUNT(CASE WHEN ah.follow_up_datetime >= NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as upcoming_followups,
+            COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL THEN 1 END) as total_followups_scheduled,
+            AVG(TIMESTAMPDIFF(DAY, ah.action_datetime, ah.follow_up_datetime)) as avg_followup_interval,
+            u.username,
+            u.user_id,
+            COUNT(CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as user_overdue_count
+        FROM action_history ah
+        JOIN customers c ON ah.customer_id = c.customer_id
+        JOIN users u ON c.assigned_user_id = u.user_id
+        WHERE ah.action_datetime $date_filter
+        GROUP BY u.user_id, u.username
+        ORDER BY user_overdue_count DESC
+    ");
+    $followup_metrics = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // System-wide follow-up summary
+    $total_overdue = array_sum(array_column($followup_metrics, 'overdue_followups'));
+    $total_upcoming = array_sum(array_column($followup_metrics, 'upcoming_followups'));
+    $total_scheduled = array_sum(array_column($followup_metrics, 'total_followups_scheduled'));
+
 } catch (PDOException $e) {
     logError("Error getting performance metrics: " . $e->getMessage());
     $user_performance = [];
     $system_metrics = ['active_customers' => 0, 'total_activities' => 0, 'total_emails' => 0, 'total_calls' => 0, 'avg_followup_days' => 0];
     $daily_trends = [];
     $conversion_funnel = [];
+    $response_metrics = ['avg_first_response_hours' => 0, 'quick_responses_24h' => 0, 'slow_responses_72h' => 0, 'total_customers_with_activity' => 0];
+    $followup_metrics = [];
+    $total_overdue = 0;
+    $total_upcoming = 0;
+    $total_scheduled = 0;
 }
 ?>
 
@@ -186,6 +233,16 @@ try {
                 <div class="metric-label">Avg Follow-up Days</div>
             </div>
         </div>
+        
+        <div class="metric-card">
+            <div class="metric-icon response">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <div class="metric-content">
+                <div class="metric-value"><?php echo round($response_metrics['avg_first_response_hours'] ?? 0, 1); ?>h</div>
+                <div class="metric-label">Avg Response Time</div>
+            </div>
+        </div>
     </div>
 
     <div class="performance-layout">
@@ -228,6 +285,7 @@ try {
                                 <th>Emails</th>
                                 <th>Calls</th>
                                 <th>Meetings</th>
+                                <th>Efficiency</th>
                                 <th>Last Activity</th>
                             </tr>
                         </thead>
@@ -244,6 +302,15 @@ try {
                                     <td><?php echo $user['emails_sent']; ?></td>
                                     <td><?php echo $user['calls_made']; ?></td>
                                     <td><?php echo $user['meetings_held']; ?></td>
+                                    <td>
+                                        <?php 
+                                        $efficiency = $user['customers_assigned'] > 0 ? 
+                                            round($user['total_activities'] / $user['customers_assigned'], 1) : 0;
+                                        $efficiency_class = $efficiency >= 3 ? 'text-success' : ($efficiency >= 1.5 ? 'text-warning' : 'text-danger');
+                                        ?>
+                                        <span class="<?php echo $efficiency_class; ?>"><?php echo $efficiency; ?></span>
+                                        <small class="text-muted"> act/cust</small>
+                                    </td>
                                     <td>
                                         <?php echo $user['last_activity_date'] ? formatDateTimeCompact($user['last_activity_date']) : 'No activity'; ?>
                                     </td>
@@ -280,6 +347,115 @@ try {
                             </div>
                         </div>
                     <?php endforeach; ?>
+                </div>
+            </div>
+
+            <!-- Response Time Analytics -->
+            <div class="response-analytics">
+                <h5>Response Time Performance</h5>
+                <div class="response-metrics">
+                    <div class="response-metric">
+                        <div class="metric-icon-small quick">
+                            <i class="fas fa-rocket"></i>
+                        </div>
+                        <div class="metric-details">
+                            <div class="metric-number"><?php echo $response_metrics['quick_responses_24h'] ?? 0; ?></div>
+                            <div class="metric-desc">Quick Responses (≤24h)</div>
+                        </div>
+                    </div>
+                    
+                    <div class="response-metric">
+                        <div class="metric-icon-small slow">
+                            <i class="fas fa-turtle"></i>
+                        </div>
+                        <div class="metric-details">
+                            <div class="metric-number"><?php echo $response_metrics['slow_responses_72h'] ?? 0; ?></div>
+                            <div class="metric-desc">Slow Responses (>72h)</div>
+                        </div>
+                    </div>
+                    
+                    <div class="response-metric">
+                        <div class="metric-icon-small average">
+                            <i class="fas fa-stopwatch"></i>
+                        </div>
+                        <div class="metric-details">
+                            <div class="metric-number"><?php echo round($response_metrics['avg_first_response_hours'] ?? 0, 1); ?>h</div>
+                            <div class="metric-desc">Average Response Time</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <?php if ($response_metrics['total_customers_with_activity'] > 0): ?>
+                    <div class="response-summary">
+                        <div class="summary-stat">
+                            <strong>Response Rate:</strong> 
+                            <?php 
+                            $quick_rate = round(($response_metrics['quick_responses_24h'] / $response_metrics['total_customers_with_activity']) * 100, 1);
+                            $rate_class = $quick_rate >= 70 ? 'text-success' : ($quick_rate >= 50 ? 'text-warning' : 'text-danger');
+                            ?>
+                            <span class="<?php echo $rate_class; ?>"><?php echo $quick_rate; ?>%</span> within 24 hours
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Follow-up Management -->
+            <div class="followup-management">
+                <h5>Follow-up Management</h5>
+                <div class="followup-overview">
+                    <div class="followup-summary">
+                        <div class="followup-stat overdue">
+                            <div class="stat-icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-number"><?php echo $total_overdue; ?></div>
+                                <div class="stat-label">Overdue Follow-ups</div>
+                            </div>
+                        </div>
+                        
+                        <div class="followup-stat upcoming">
+                            <div class="stat-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-number"><?php echo $total_upcoming; ?></div>
+                                <div class="stat-label">Upcoming Follow-ups</div>
+                            </div>
+                        </div>
+                        
+                        <div class="followup-stat total">
+                            <div class="stat-icon">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-number"><?php echo $total_scheduled; ?></div>
+                                <div class="stat-label">Total Scheduled</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <?php if (!empty($followup_metrics) && $total_overdue > 0): ?>
+                        <div class="overdue-alerts">
+                            <h6>Users with Overdue Follow-ups</h6>
+                            <div class="alert-list">
+                                <?php foreach ($followup_metrics as $user): ?>
+                                    <?php if ($user['user_overdue_count'] > 0): ?>
+                                        <div class="alert-item">
+                                            <div class="alert-user">
+                                                <i class="fas fa-user"></i>
+                                                <?php echo htmlspecialchars($user['username']); ?>
+                                            </div>
+                                            <div class="alert-count">
+                                                <span class="badge badge-danger"><?php echo $user['user_overdue_count']; ?></span>
+                                                overdue
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -332,6 +508,12 @@ try {
                     $engagement_rate = $total_users > 0 ? ($active_users / $total_users) * 100 : 0;
                     
                     $avg_activities_per_user = $active_users > 0 ? $system_metrics['total_activities'] / $active_users : 0;
+                    
+                    // Workload balance insight
+                    $user_customer_counts = array_column($user_performance, 'customers_assigned');
+                    $max_customers = max($user_customer_counts ?: [0]);
+                    $min_customers = min(array_filter($user_customer_counts) ?: [0]);
+                    $workload_imbalance = $max_customers - $min_customers;
                     ?>
                     
                     <div class="insight-item">
@@ -343,6 +525,11 @@ try {
                     <div class="insight-item">
                         <i class="fas fa-chart-bar text-success"></i>
                         <span><strong><?php echo round($avg_activities_per_user, 1); ?></strong> average activities per active user</span>
+                    </div>
+                    
+                    <div class="insight-item">
+                        <i class="fas fa-balance-scale <?php echo $workload_imbalance <= 5 ? 'text-success' : ($workload_imbalance <= 15 ? 'text-warning' : 'text-danger'); ?>"></i>
+                        <span><strong><?php echo $workload_imbalance; ?></strong> customer difference between heaviest and lightest workloads</span>
                     </div>
                     
                     <?php if (!empty($daily_trends)): ?>
@@ -359,6 +546,98 @@ try {
                             of activities are emails</span>
                         </div>
                     <?php endif; ?>
+                    
+                    <?php if (($response_metrics['quick_responses_24h'] ?? 0) > 0): ?>
+                        <div class="insight-item">
+                            <i class="fas fa-bolt text-success"></i>
+                            <span><strong><?php echo $response_metrics['quick_responses_24h']; ?></strong> customers received quick responses (≤24h)</span>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Performance Summary -->
+    <div class="team-summary-section">
+        <h4>Team Performance Summary</h4>
+        <div class="summary-cards">
+            <div class="summary-card">
+                <div class="summary-header">
+                    <h5>Activity Distribution</h5>
+                    <i class="fas fa-chart-pie"></i>
+                </div>
+                <div class="summary-content">
+                    <div class="summary-stat">
+                        <span class="stat-label">Email Activities:</span>
+                        <span class="stat-value"><?php echo number_format($system_metrics['total_emails']); ?> 
+                        (<?php echo $system_metrics['total_activities'] > 0 ? round(($system_metrics['total_emails'] / $system_metrics['total_activities']) * 100, 1) : 0; ?>%)</span>
+                    </div>
+                    <div class="summary-stat">
+                        <span class="stat-label">Call Activities:</span>
+                        <span class="stat-value"><?php echo number_format($system_metrics['total_calls']); ?> 
+                        (<?php echo $system_metrics['total_activities'] > 0 ? round(($system_metrics['total_calls'] / $system_metrics['total_activities']) * 100, 1) : 0; ?>%)</span>
+                    </div>
+                    <div class="summary-stat">
+                        <span class="stat-label">Active Users:</span>
+                        <span class="stat-value"><?php echo $active_users; ?> of <?php echo $total_users; ?> users</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="summary-card">
+                <div class="summary-header">
+                    <h5>Performance Trends</h5>
+                    <i class="fas fa-trending-up"></i>
+                </div>
+                <div class="summary-content">
+                    <?php if (!empty($daily_trends)): ?>
+                        <?php 
+                        $recent_days = array_slice($daily_trends, 0, 7);
+                        $avg_recent = array_sum(array_column($recent_days, 'daily_activities')) / count($recent_days);
+                        $older_days = array_slice($daily_trends, 7, 7);
+                        $avg_older = !empty($older_days) ? array_sum(array_column($older_days, 'daily_activities')) / count($older_days) : $avg_recent;
+                        $trend_direction = $avg_recent > $avg_older ? 'up' : ($avg_recent < $avg_older ? 'down' : 'stable');
+                        $trend_class = $trend_direction === 'up' ? 'text-success' : ($trend_direction === 'down' ? 'text-danger' : 'text-muted');
+                        $trend_icon = $trend_direction === 'up' ? 'fa-arrow-up' : ($trend_direction === 'down' ? 'fa-arrow-down' : 'fa-minus');
+                        ?>
+                        <div class="summary-stat">
+                            <span class="stat-label">Daily Average (Last 7 days):</span>
+                            <span class="stat-value"><?php echo round($avg_recent, 1); ?> activities</span>
+                        </div>
+                        <div class="summary-stat">
+                            <span class="stat-label">Trend:</span>
+                            <span class="stat-value <?php echo $trend_class; ?>">
+                                <i class="fas <?php echo $trend_icon; ?>"></i>
+                                <?php echo ucfirst($trend_direction); ?>
+                            </span>
+                        </div>
+                    <?php else: ?>
+                        <div class="summary-stat">
+                            <span class="stat-label">No trend data available</span>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            
+            <div class="summary-card">
+                <div class="summary-header">
+                    <h5>Response Quality</h5>
+                    <i class="fas fa-stopwatch"></i>
+                </div>
+                <div class="summary-content">
+                    <div class="summary-stat">
+                        <span class="stat-label">Avg Response Time:</span>
+                        <span class="stat-value"><?php echo round($response_metrics['avg_first_response_hours'] ?? 0, 1); ?> hours</span>
+                    </div>
+                    <div class="summary-stat">
+                        <span class="stat-label">Quick Responses:</span>
+                        <span class="stat-value text-success"><?php echo $response_metrics['quick_responses_24h'] ?? 0; ?> (≤24h)</span>
+                    </div>
+                    <div class="summary-stat">
+                        <span class="stat-label">Slow Responses:</span>
+                        <span class="stat-value text-warning"><?php echo $response_metrics['slow_responses_72h'] ?? 0; ?> (>72h)</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -443,6 +722,7 @@ try {
 .metric-icon.emails { background: #6f42c1; }
 .metric-icon.calls { background: #fd7e14; }
 .metric-icon.followups { background: #20c997; }
+.metric-icon.response { background: #6610f2; }
 
 .metric-content {
     flex: 1;
@@ -581,6 +861,217 @@ try {
     margin-bottom: 30px;
 }
 
+/* Response Analytics */
+.response-analytics {
+    margin-bottom: 30px;
+}
+
+.response-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.response-metric {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+.metric-icon-small {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1rem;
+}
+
+.metric-icon-small.quick { background: #28a745; }
+.metric-icon-small.slow { background: #dc3545; }
+.metric-icon-small.average { background: #6c757d; }
+
+.metric-details {
+    flex: 1;
+}
+
+.metric-number {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #495057;
+    line-height: 1;
+}
+
+.metric-desc {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-top: 2px;
+}
+
+.response-summary {
+    padding: 12px;
+    background: #e9ecef;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.summary-stat {
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+/* Follow-up Management */
+.followup-management {
+    margin-bottom: 30px;
+}
+
+.followup-overview {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.followup-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.followup-stat {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px;
+    background: white;
+    border-radius: 6px;
+    border-left: 4px solid #007bff;
+}
+
+.followup-stat.overdue {
+    border-left-color: #dc3545;
+}
+
+.followup-stat.upcoming {
+    border-left-color: #ffc107;
+}
+
+.followup-stat.total {
+    border-left-color: #28a745;
+}
+
+.stat-icon {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.9rem;
+}
+
+.followup-stat.overdue .stat-icon {
+    background: #dc3545;
+}
+
+.followup-stat.upcoming .stat-icon {
+    background: #ffc107;
+}
+
+.followup-stat.total .stat-icon {
+    background: #28a745;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-number {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #495057;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-top: 2px;
+}
+
+.overdue-alerts {
+    margin-top: 20px;
+}
+
+.overdue-alerts h6 {
+    margin: 0 0 12px 0;
+    color: #495057;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.alert-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.alert-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background: white;
+    border-radius: 4px;
+    border-left: 3px solid #dc3545;
+}
+
+.alert-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: #495057;
+    font-weight: 500;
+}
+
+.alert-user i {
+    color: #6c757d;
+}
+
+.alert-count {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: center;
+    color: white;
+    margin-right: 5px;
+}
+
+.badge-danger {
+    background: #dc3545;
+}
+
+/* Conversion Funnel Styles */
+.conversion-funnel {
+    margin-bottom: 30px;
+}
+
 .funnel-chart {
     display: flex;
     flex-direction: column;
@@ -707,7 +1198,92 @@ try {
     color: #495057;
 }
 
+/* Team Performance Summary */
+.team-summary-section {
+    margin-top: 40px;
+    padding: 25px;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+}
+
+.team-summary-section h4 {
+    margin: 0 0 25px 0;
+    color: #495057;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 10px;
+}
+
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.summary-card {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.summary-header h5 {
+    margin: 0;
+    color: #495057;
+    font-size: 1rem;
+}
+
+.summary-header i {
+    color: #6c757d;
+    font-size: 1.2rem;
+}
+
+.summary-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.summary-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.summary-stat:last-child {
+    border-bottom: none;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.stat-value {
+    font-size: 0.9rem;
+    color: #495057;
+    font-weight: 600;
+}
+
 /* Responsive Design */
+@media (max-width: 1200px) {
+    .summary-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 @media (max-width: 1024px) {
     .performance-layout {
         grid-template-columns: 1fr;
@@ -719,6 +1295,18 @@ try {
     
     .date-filter-form {
         justify-content: center;
+    }
+    
+    .summary-cards {
+        grid-template-columns: 1fr;
+    }
+    
+    .response-metrics {
+        grid-template-columns: 1fr;
+    }
+    
+    .followup-summary {
+        grid-template-columns: 1fr;
     }
 }
 
