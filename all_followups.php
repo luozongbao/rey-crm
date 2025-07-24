@@ -27,14 +27,14 @@ if (strtotime($date_from) > strtotime($date_to)) {
 }
 
 $sort = $_GET['sort'] ?? 'follow_up_datetime';
-$order = $_GET['order'] ?? 'asc';
+$order = $_GET['order'] ?? 'desc';
 
 // Validate parameters
 $validSorts = ['company_name', 'follow_up_datetime', 'action_datetime', 'customer_status'];
 $validOrders = ['asc', 'desc'];
 
 $sort = in_array($sort, $validSorts) ? $sort : 'follow_up_datetime';
-$order = in_array($order, $validOrders) ? $order : 'asc';
+$order = in_array($order, $validOrders) ? $order : 'desc';
 
 // Get customers for filter dropdown (respecting the filter)
 $customers = getMyCustomers($showOnlyMine);

@@ -335,7 +335,7 @@ $locations = getAllLocations(); // Use existing function signature
                                                     <i class="fas fa-user-plus"></i>
                                                 </button>
                                             <?php endif; ?>
-                                            <a href="/customer_form.php?id=<?php echo $customer['customer_id']; ?>" 
+                                            <a href="/customer_form.php?action=view&id=<?php echo $customer['customer_id']; ?>" 
                                                class="btn btn-sm btn-outline-info" target="_blank">
                                                 <i class="fas fa-eye"></i>
                                             </a>
