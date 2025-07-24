@@ -7,66 +7,66 @@
     <div class="metric-cards">
         <div class="metric-card">
             <h3><?php echo number_format($dashboard_metrics['total_customers']); ?></h3>
-            <p>Total Customers</p>
+            <p><?php echo __('total_customers'); ?></p>
         </div>
         
         <div class="metric-card <?php echo $dashboard_metrics['unassigned_customers'] > 0 ? 'warning' : 'success'; ?>">
             <h3><?php echo number_format($dashboard_metrics['unassigned_customers']); ?></h3>
-            <p>Unassigned Customers</p>
+            <p><?php echo __('unassigned_customers'); ?></p>
         </div>
         
         <div class="metric-card">
             <h3><?php echo number_format($dashboard_metrics['active_users']); ?></h3>
-            <p>Users with Assignments</p>
+            <p><?php echo __('users_with_assignments'); ?></p>
         </div>
         
         <div class="metric-card">
             <h3><?php echo number_format($dashboard_metrics['total_users']); ?></h3>
-            <p>Total Users</p>
+            <p><?php echo __('total_users'); ?></p>
         </div>
         
         <div class="metric-card">
             <h3><?php echo number_format($dashboard_metrics['recent_activities']); ?></h3>
-            <p>Activities (Last 7 Days)</p>
+            <p><?php echo __('activities_last_7_days'); ?></p>
         </div>
         
         <div class="metric-card <?php echo $dashboard_metrics['overdue_followups'] > 0 ? 'danger' : 'success'; ?>">
             <h3><?php echo number_format($dashboard_metrics['overdue_followups']); ?></h3>
-            <p>Overdue Follow-ups</p>
+            <p><?php echo __('overdue_followups'); ?></p>
         </div>
     </div>
 
     <!-- Quick Actions -->
     <div class="quick-actions">
-        <h4>Quick Actions</h4>
+        <h4><?php echo __('quick_actions'); ?></h4>
         <div class="action-buttons">
             <?php if ($dashboard_metrics['unassigned_customers'] > 0): ?>
                 <button class="btn btn-primary" onclick="showBulkAssignModal()">
                     <i class="fas fa-users"></i>
-                    Assign Unassigned Customers (<?php echo $dashboard_metrics['unassigned_customers']; ?>)
+                    <?php echo __('assign_unassigned_customers', ['{count}' => $dashboard_metrics['unassigned_customers']]); ?>
                 </button>
             <?php endif; ?>
             
             <button class="btn btn-secondary" onclick="showBalanceWorkloadModal()">
                 <i class="fas fa-balance-scale"></i>
-                Balance User Workloads
+                <?php echo __('balance_user_workloads'); ?>
             </button>
             
             <?php if ($dashboard_metrics['overdue_followups'] > 0): ?>
                 <a href="?tab=performance&filter=overdue" class="btn btn-warning">
                     <i class="fas fa-exclamation-triangle"></i>
-                    Manage Overdue Follow-ups (<?php echo $dashboard_metrics['overdue_followups']; ?>)
+                    <?php echo __('manage_overdue_followups', ['{count}' => $dashboard_metrics['overdue_followups']]); ?>
                 </a>
             <?php endif; ?>
             
             <a href="?tab=reports" class="btn btn-info">
                 <i class="fas fa-chart-bar"></i>
-                Generate Reports
+                <?php echo __('generate_reports'); ?>
             </a>
             
             <button class="btn btn-success" onclick="refreshDashboard()">
                 <i class="fas fa-sync-alt"></i>
-                Refresh Data
+                <?php echo __('refresh_data'); ?>
             </button>
         </div>
     </div>
@@ -77,16 +77,14 @@
         <?php if ($dashboard_metrics['unassigned_customers'] > 10): ?>
         <div class="alert alert-warning">
             <i class="fas fa-exclamation-triangle"></i>
-            <strong>Attention:</strong> You have <?php echo $dashboard_metrics['unassigned_customers']; ?> unassigned customers. 
-            Consider bulk assignment to improve coverage.
+            <strong><?php echo __('attention'); ?>:</strong> <?php echo __('unassigned_customers_warning', ['{count}' => $dashboard_metrics['unassigned_customers']]); ?>
         </div>
         <?php endif; ?>
         
         <?php if ($dashboard_metrics['overdue_followups'] > 5): ?>
         <div class="alert alert-danger">
             <i class="fas fa-clock"></i>
-            <strong>Urgent:</strong> <?php echo $dashboard_metrics['overdue_followups']; ?> follow-ups are overdue. 
-            Immediate attention required.
+            <strong><?php echo __('urgent'); ?>:</strong> <?php echo __('overdue_followups_warning', ['{count}' => $dashboard_metrics['overdue_followups']]); ?>
         </div>
         <?php endif; ?>
     </div>
@@ -96,14 +94,14 @@
     <div class="dashboard-grid">
         <!-- User Distribution Chart -->
         <div class="dashboard-section">
-            <h4>Customer Distribution by User</h4>
+            <h4><?php echo __('customer_distribution_by_user'); ?></h4>
             <div class="distribution-chart">
                 <?php if (!empty($dashboard_metrics['user_distribution'])): ?>
                     <?php foreach ($dashboard_metrics['user_distribution'] as $user): ?>
                         <div class="user-bar">
                             <div class="user-info">
                                 <span class="username"><?php echo htmlspecialchars($user['username']); ?></span>
-                                <span class="count"><?php echo $user['customer_count']; ?> customers</span>
+                                <span class="count"><?php echo __('customers_count', ['{count}' => $user['customer_count']]); ?></span>
                             </div>
                             <div class="progress-bar">
                                 <?php 
@@ -118,14 +116,14 @@
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <p class="no-data">No assignments found.</p>
+                    <p class="no-data"><?php echo __('no_assignments_found'); ?></p>
                 <?php endif; ?>
             </div>
         </div>
 
         <!-- Recent Activity Feed -->
         <div class="dashboard-section">
-            <h4>Recent Assignment Activity</h4>
+            <h4><?php echo __('recent_assignment_activity'); ?></h4>
             <div class="activity-feed">
                 <?php if (!empty($dashboard_metrics['recent_assignments'])): ?>
                     <?php foreach (array_slice($dashboard_metrics['recent_assignments'], 0, 8) as $assignment): ?>
@@ -133,9 +131,9 @@
                             <div class="activity-content">
                                 <strong><?php echo htmlspecialchars($assignment['company_name']); ?></strong>
                                 <?php if ($assignment['username']): ?>
-                                    assigned to <span class="user-tag"><?php echo htmlspecialchars($assignment['username']); ?></span>
+                                    <?php echo __('assigned_to'); ?> <span class="user-tag"><?php echo htmlspecialchars($assignment['username']); ?></span>
                                 <?php else: ?>
-                                    <span class="text-muted">unassigned</span>
+                                    <span class="text-muted"><?php echo __('unassigned'); ?></span>
                                 <?php endif; ?>
                             </div>
                             <div class="activity-time">
@@ -146,11 +144,11 @@
                     
                     <?php if (count($dashboard_metrics['recent_assignments']) > 8): ?>
                         <div class="activity-item view-more">
-                            <a href="?tab=reports">View more activity...</a>
+                            <a href="?tab=reports"><?php echo __('view_more_activity'); ?></a>
                         </div>
                     <?php endif; ?>
                 <?php else: ?>
-                    <p class="no-data">No recent assignments found.</p>
+                    <p class="no-data"><?php echo __('no_recent_assignments_found'); ?></p>
                 <?php endif; ?>
             </div>
         </div>
@@ -158,14 +156,14 @@
 
     <!-- Performance Summary Grid -->
     <div class="performance-summary">
-        <h4>Performance Summary</h4>
+        <h4><?php echo __('performance_summary'); ?></h4>
         <div class="performance-grid">
             <div class="performance-card">
                 <div class="performance-icon">
                     <i class="fas fa-chart-line"></i>
                 </div>
                 <div class="performance-content">
-                    <h5>Assignment Efficiency</h5>
+                    <h5><?php echo __('assignment_efficiency'); ?></h5>
                     <p class="performance-value">
                         <?php 
                         $efficiency = $dashboard_metrics['total_customers'] > 0 
@@ -175,7 +173,7 @@
                         ?>
                     </p>
                     <p class="performance-trend <?php echo $efficiency >= 95 ? 'trend-up' : 'trend-down'; ?>">
-                        <?php echo $efficiency >= 95 ? '↗ Excellent' : '↘ Needs attention'; ?>
+                        <?php echo $efficiency >= 95 ? '↗ ' . __('excellent') : '↘ ' . __('needs_attention'); ?>
                     </p>
                 </div>
             </div>
@@ -185,7 +183,7 @@
                     <i class="fas fa-users"></i>
                 </div>
                 <div class="performance-content">
-                    <h5>User Utilization</h5>
+                    <h5><?php echo __('user_utilization'); ?></h5>
                     <p class="performance-value">
                         <?php 
                         $utilization = $dashboard_metrics['total_users'] > 0 
@@ -195,7 +193,7 @@
                         ?>
                     </p>
                     <p class="performance-trend <?php echo $utilization >= 80 ? 'trend-up' : 'trend-down'; ?>">
-                        <?php echo $utilization >= 80 ? '↗ Good utilization' : '↘ Under-utilized'; ?>
+                        <?php echo $utilization >= 80 ? '↗ ' . __('good_utilization') : '↘ ' . __('under_utilized'); ?>
                     </p>
                 </div>
             </div>
@@ -205,12 +203,12 @@
                     <i class="fas fa-clock"></i>
                 </div>
                 <div class="performance-content">
-                    <h5>Follow-up Health</h5>
+                    <h5><?php echo __('followup_health'); ?></h5>
                     <p class="performance-value">
-                        <?php echo $dashboard_metrics['overdue_followups'] == 0 ? 'Excellent' : $dashboard_metrics['overdue_followups'] . ' overdue'; ?>
+                        <?php echo $dashboard_metrics['overdue_followups'] == 0 ? __('excellent') : $dashboard_metrics['overdue_followups'] . ' ' . __('overdue'); ?>
                     </p>
                     <p class="performance-trend <?php echo $dashboard_metrics['overdue_followups'] == 0 ? 'trend-up' : 'trend-down'; ?>">
-                        <?php echo $dashboard_metrics['overdue_followups'] == 0 ? '↗ On track' : '↘ Action required'; ?>
+                        <?php echo $dashboard_metrics['overdue_followups'] == 0 ? '↗ ' . __('on_track') : '↘ ' . __('action_required'); ?>
                     </p>
                 </div>
             </div>
@@ -219,10 +217,10 @@
 
     <!-- System Status -->
     <div class="system-status">
-        <h4>System Status</h4>
+        <h4><?php echo __('system_status'); ?></h4>
         <div class="status-grid">
             <div class="status-item <?php echo $dashboard_metrics['unassigned_customers'] == 0 ? 'status-good' : 'status-warning'; ?>">
-                <span class="status-label">Assignment Coverage</span>
+                <span class="status-label"><?php echo __('assignment_coverage'); ?></span>
                 <span class="status-value">
                     <?php 
                     $coverage = $dashboard_metrics['total_customers'] > 0 
@@ -234,15 +232,15 @@
             </div>
             
             <div class="status-item <?php echo $dashboard_metrics['overdue_followups'] == 0 ? 'status-good' : 'status-danger'; ?>">
-                <span class="status-label">Follow-up Health</span>
+                <span class="status-label"><?php echo __('followup_health'); ?></span>
                 <span class="status-value">
-                    <?php echo $dashboard_metrics['overdue_followups'] == 0 ? 'Good' : $dashboard_metrics['overdue_followups'] . ' overdue'; ?>
+                    <?php echo $dashboard_metrics['overdue_followups'] == 0 ? __('good') : $dashboard_metrics['overdue_followups'] . ' ' . __('overdue'); ?>
                 </span>
             </div>
             
             <div class="status-item status-good">
-                <span class="status-label">System Status</span>
-                <span class="status-value">Operational</span>
+                <span class="status-label"><?php echo __('system_status'); ?></span>
+                <span class="status-value"><?php echo __('operational'); ?></span>
             </div>
         </div>
     </div>

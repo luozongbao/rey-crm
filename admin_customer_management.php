@@ -6,7 +6,7 @@ require_once 'includes/functions.php';
 requireLogin();
 requireAdmin();
 
-$page_title = 'Customer & User Management';
+$page_title = __('customer_user_management');
 $current_page = 'admin_customer_management';
 
 // Get current tab
@@ -24,9 +24,9 @@ include 'includes/header.php';
 
 <div class="container">
     <div class="header">
-        <h1 class="page-title">Customer & User Management</h1>
+        <h1 class="page-title"><?php echo __('customer_user_management'); ?></h1>
         <div class="header-actions">
-            <a href="dashboard.php" class="btn btn-secondary">Back to Dashboard</a>
+            <a href="dashboard.php" class="btn btn-secondary"><?php echo __('back_to_dashboard'); ?></a>
         </div>
     </div>
 
@@ -34,15 +34,15 @@ include 'includes/header.php';
     <div class="tab-navigation">
         <nav class="nav nav-tabs">
             <a class="nav-link <?php echo $active_tab === 'dashboard' ? 'active' : ''; ?>" 
-               href="?tab=dashboard">Dashboard</a>
+               href="?tab=dashboard"><?php echo __('dashboard'); ?></a>
             <a class="nav-link <?php echo $active_tab === 'bulk_assignment' ? 'active' : ''; ?>" 
-               href="?tab=bulk_assignment">Bulk Assignment</a>
+               href="?tab=bulk_assignment"><?php echo __('bulk_assignment'); ?></a>
             <a class="nav-link <?php echo $active_tab === 'user_overview' ? 'active' : ''; ?>" 
-               href="?tab=user_overview">User Overview</a>
+               href="?tab=user_overview"><?php echo __('user_overview'); ?></a>
             <a class="nav-link <?php echo $active_tab === 'performance' ? 'active' : ''; ?>" 
-               href="?tab=performance">Performance</a>
+               href="?tab=performance"><?php echo __('performance'); ?></a>
             <a class="nav-link <?php echo $active_tab === 'reports' ? 'active' : ''; ?>" 
-               href="?tab=reports">Reports</a>
+               href="?tab=reports"><?php echo __('reports'); ?></a>
         </nav>
     </div>
 

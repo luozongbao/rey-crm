@@ -17,10 +17,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'])) {
         } elseif ($action_type === 'auto_distribute') {
             $bulk_result = autoDistributeCustomers($customer_ids, $assignment_reason);
         } else {
-            $bulk_result = ['success' => false, 'message' => 'Please select a valid action.'];
+            $bulk_result = ['success' => false, 'message' => __('please_select_valid_action')];
         }
     } else {
-        $bulk_result = ['success' => false, 'message' => 'Please select at least one customer.'];
+        $bulk_result = ['success' => false, 'message' => __('please_select_at_least_one_customer')];
     }
 }
 
@@ -89,24 +89,24 @@ $locations = getAllLocations(); // Use existing function signature
 
     <!-- Filters Section -->
     <div class="filters-section">
-        <h4>Filter Customers</h4>
+        <h4><?php echo __('filter_customers'); ?></h4>
         <form method="GET" class="filter-form">
             <input type="hidden" name="tab" value="bulk_assignment">
             
             <div class="filter-row">
                 <div class="filter-group">
-                    <label for="filter">Assignment Status:</label>
+                    <label for="filter"><?php echo __('assignment_status'); ?>:</label>
                     <select name="filter" id="filter" class="form-control">
-                        <option value="all" <?php echo $filter_assigned === 'all' ? 'selected' : ''; ?>>All Customers</option>
-                        <option value="unassigned" <?php echo $filter_assigned === 'unassigned' ? 'selected' : ''; ?>>Unassigned Only</option>
-                        <option value="assigned" <?php echo $filter_assigned === 'assigned' ? 'selected' : ''; ?>>Assigned Only</option>
+                        <option value="all" <?php echo $filter_assigned === 'all' ? 'selected' : ''; ?>><?php echo __('all_customers'); ?></option>
+                        <option value="unassigned" <?php echo $filter_assigned === 'unassigned' ? 'selected' : ''; ?>><?php echo __('unassigned_only'); ?></option>
+                        <option value="assigned" <?php echo $filter_assigned === 'assigned' ? 'selected' : ''; ?>><?php echo __('assigned_only'); ?></option>
                     </select>
                 </div>
                 
                 <div class="filter-group">
-                    <label for="filter_status">Customer Status:</label>
+                    <label for="filter_status"><?php echo __('customer_status'); ?>:</label>
                     <select name="filter_status" id="filter_status" class="form-control">
-                        <option value="">All Statuses</option>
+                        <option value=""><?php echo __('all_statuses'); ?></option>
                         <?php foreach ($customer_statuses as $status): ?>
                             <option value="<?php echo $status; ?>" <?php echo $filter_status === $status ? 'selected' : ''; ?>>
                                 <?php echo $status; ?>
@@ -116,9 +116,9 @@ $locations = getAllLocations(); // Use existing function signature
                 </div>
                 
                 <div class="filter-group">
-                    <label for="filter_location">Location:</label>
+                    <label for="filter_location"><?php echo __('location'); ?>:</label>
                     <select name="filter_location" id="filter_location" class="form-control">
-                        <option value="">All Locations</option>
+                        <option value=""><?php echo __('all_locations'); ?></option>
                         <?php foreach ($locations as $location): ?>
                             <option value="<?php echo $location; ?>" <?php echo $filter_location === $location ? 'selected' : ''; ?>>
                                 <?php echo $location; ?>
@@ -128,8 +128,8 @@ $locations = getAllLocations(); // Use existing function signature
                 </div>
                 
                 <div class="filter-group">
-                    <button type="submit" class="btn btn-primary">Apply Filters</button>
-                    <a href="?tab=bulk_assignment" class="btn btn-secondary">Clear</a>
+                    <button type="submit" class="btn btn-primary"><?php echo __('apply_filters'); ?></button>
+                    <a href="?tab=bulk_assignment" class="btn btn-secondary"><?php echo __('clear'); ?></a>
                 </div>
             </div>
         </form>
@@ -138,16 +138,16 @@ $locations = getAllLocations(); // Use existing function signature
     <!-- Bulk Assignment Form -->
     <form method="POST" id="bulk-assignment-form">
         <div class="bulk-actions">
-            <h4>Bulk Assignment Actions</h4>
+            <h4><?php echo __('bulk_assignment_actions'); ?></h4>
             <div class="action-tabs">
                 <button type="button" class="action-tab active" data-action="assign">
-                    <i class="fas fa-user-plus"></i> Assign to User
+                    <i class="fas fa-user-plus"></i> <?php echo __('assign_to_user'); ?>
                 </button>
                 <button type="button" class="action-tab" data-action="unassign">
-                    <i class="fas fa-user-minus"></i> Unassign Users
+                    <i class="fas fa-user-minus"></i> <?php echo __('unassign_users'); ?>
                 </button>
                 <button type="button" class="action-tab" data-action="auto_distribute">
-                    <i class="fas fa-random"></i> Auto Distribute
+                    <i class="fas fa-random"></i> <?php echo __('auto_distribute'); ?>
                 </button>
             </div>
             
@@ -157,16 +157,16 @@ $locations = getAllLocations(); // Use existing function signature
             <div class="action-panel" id="assign-panel">
                 <div class="action-row">
                     <div class="action-group">
-                        <label for="assign_to_user">Assign Selected To:</label>
+                        <label for="assign_to_user"><?php echo __('assign_selected_to'); ?>:</label>
                         <select name="assign_to_user" id="assign_to_user" class="form-control">
-                            <option value="">-- Select User --</option>
+                            <option value="">-- <?php echo __('select_user'); ?> --</option>
                             <?php foreach ($users as $user): ?>
                                 <option value="<?php echo $user['user_id']; ?>">
                                     <?php echo htmlspecialchars($user['username']); ?>
                                     <?php 
                                     // Show current workload
                                     $workload = getUserWorkload($user['user_id']);
-                                    echo " ({$workload} customers)";
+                                    echo " ({$workload} " . __('customers') . ")";
                                     ?>
                                 </option>
                             <?php endforeach; ?>
@@ -174,15 +174,15 @@ $locations = getAllLocations(); // Use existing function signature
                     </div>
                     
                     <div class="action-group">
-                        <label for="assignment_reason">Reason (Optional):</label>
+                        <label for="assignment_reason"><?php echo __('reason_optional'); ?>:</label>
                         <input type="text" name="assignment_reason" id="assignment_reason" 
-                               class="form-control" placeholder="e.g., Load balancing, Geographic assignment">
+                               class="form-control" placeholder="<?php echo __('assignment_reason_placeholder'); ?>">
                     </div>
                     
                     <div class="action-group">
                         <button type="submit" name="bulk_action" class="btn btn-primary" id="assign-btn" disabled>
                             <i class="fas fa-user-plus"></i>
-                            Assign Selected (<span class="selected-count">0</span>)
+                            <?php echo __('assign_selected_count'); ?>
                         </button>
                     </div>
                 </div>
@@ -192,21 +192,21 @@ $locations = getAllLocations(); // Use existing function signature
             <div class="action-panel" id="unassign-panel" style="display: none;">
                 <div class="action-row">
                     <div class="action-group">
-                        <label for="unassign_reason">Reason for Unassignment:</label>
+                        <label for="unassign_reason"><?php echo __('reason_for_unassignment'); ?>:</label>
                         <input type="text" name="assignment_reason" class="form-control" 
-                               placeholder="e.g., User unavailable, Reassignment needed">
+                               placeholder="<?php echo __('unassignment_reason_placeholder'); ?>">
                     </div>
                     
                     <div class="action-group">
                         <button type="submit" name="bulk_action" class="btn btn-warning" id="unassign-btn" disabled>
                             <i class="fas fa-user-minus"></i>
-                            Unassign Selected (<span class="selected-count">0</span>)
+                            <?php echo __('unassign_selected_count'); ?>
                         </button>
                     </div>
                 </div>
                 <div class="action-info">
                     <i class="fas fa-info-circle"></i>
-                    <small>This will remove user assignments from selected customers. They will become unassigned.</small>
+                    <small><?php echo __('unassign_info_text'); ?></small>
                 </div>
             </div>
             
@@ -214,35 +214,35 @@ $locations = getAllLocations(); // Use existing function signature
             <div class="action-panel" id="auto_distribute-panel" style="display: none;">
                 <div class="action-row">
                     <div class="action-group">
-                        <label>Distribution Method:</label>
+                        <label><?php echo __('distribution_method'); ?>:</label>
                         <div class="distribution-options">
                             <label class="radio-label">
                                 <input type="radio" name="distribution_method" value="round_robin" checked>
-                                Round Robin (Equal distribution)
+                                <?php echo __('round_robin_distribution'); ?>
                             </label>
                             <label class="radio-label">
                                 <input type="radio" name="distribution_method" value="workload_based">
-                                Workload Based (Balance existing assignments)
+                                <?php echo __('workload_based_distribution'); ?>
                             </label>
                         </div>
                     </div>
                     
                     <div class="action-group">
-                        <label for="auto_reason">Reason:</label>
+                        <label for="auto_reason"><?php echo __('reason'); ?>:</label>
                         <input type="text" name="assignment_reason" class="form-control" 
-                               placeholder="e.g., Automatic load balancing">
+                               placeholder="<?php echo __('auto_distribution_reason_placeholder'); ?>">
                     </div>
                     
                     <div class="action-group">
                         <button type="submit" name="bulk_action" class="btn btn-success" id="auto-distribute-btn" disabled>
                             <i class="fas fa-random"></i>
-                            Auto Distribute (<span class="selected-count">0</span>)
+                            <?php echo __('auto_distribute_count'); ?>
                         </button>
                     </div>
                 </div>
                 <div class="action-info">
                     <i class="fas fa-info-circle"></i>
-                    <small>This will automatically distribute selected customers among available users.</small>
+                    <small><?php echo __('auto_distribute_info_text'); ?></small>
                 </div>
             </div>
         </div>
@@ -250,11 +250,11 @@ $locations = getAllLocations(); // Use existing function signature
         <!-- Customer Selection Table -->
         <div class="customer-table-section">
             <div class="table-header">
-                <h4>Customers (<?php echo count($customers); ?> found)</h4>
+                <h4><?php echo __('customers_found_count', ['{count}' => count($customers)]); ?></h4>
                 <div class="selection-controls">
-                    <button type="button" id="select-all" class="btn btn-sm btn-outline-primary">Select All</button>
-                    <button type="button" id="select-none" class="btn btn-sm btn-outline-secondary">Select None</button>
-                    <button type="button" id="select-unassigned" class="btn btn-sm btn-outline-warning">Select Unassigned</button>
+                    <button type="button" id="select-all" class="btn btn-sm btn-outline-primary"><?php echo __('select_all'); ?></button>
+                    <button type="button" id="select-none" class="btn btn-sm btn-outline-secondary"><?php echo __('select_none'); ?></button>
+                    <button type="button" id="select-unassigned" class="btn btn-sm btn-outline-warning"><?php echo __('select_unassigned'); ?></button>
                 </div>
             </div>
             
@@ -266,13 +266,13 @@ $locations = getAllLocations(); // Use existing function signature
                                 <th width="50">
                                     <input type="checkbox" id="select-all-checkbox" class="form-check-input">
                                 </th>
-                                <th>Company Name</th>
-                                <th>Location</th>
-                                <th>Status</th>
-                                <th>Currently Assigned To</th>
-                                <th>Workload</th>
-                                <th>Created</th>
-                                <th>Actions</th>
+                                <th><?php echo __('company_name'); ?></th>
+                                <th><?php echo __('location'); ?></th>
+                                <th><?php echo __('status'); ?></th>
+                                <th><?php echo __('currently_assigned_to'); ?></th>
+                                <th><?php echo __('workload'); ?></th>
+                                <th><?php echo __('created'); ?></th>
+                                <th><?php echo __('actions'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -292,7 +292,7 @@ $locations = getAllLocations(); // Use existing function signature
                                     <td>
                                         <?php 
                                         $location_parts = array_filter([$customer['province'], $customer['country']]);
-                                        echo !empty($location_parts) ? htmlspecialchars(implode(', ', $location_parts)) : 'N/A';
+                                        echo !empty($location_parts) ? htmlspecialchars(implode(', ', $location_parts)) : __('not_available');
                                         ?>
                                     </td>
                                     <td>
@@ -304,14 +304,14 @@ $locations = getAllLocations(); // Use existing function signature
                                         <?php if ($customer['assigned_to_username']): ?>
                                             <span class="user-badge"><?php echo htmlspecialchars($customer['assigned_to_username']); ?></span>
                                         <?php else: ?>
-                                            <span class="text-muted">Unassigned</span>
+                                            <span class="text-muted"><?php echo __('unassigned'); ?></span>
                                         <?php endif; ?>
                                     </td>
                                     <td>
                                         <?php if ($customer['assigned_user_id']): ?>
                                             <?php $userWorkload = getUserWorkload($customer['assigned_user_id']); ?>
                                             <span class="workload-indicator">
-                                                <?php echo $userWorkload; ?> customers
+                                                <?php echo __('customers_count', ['{count}' => $userWorkload]); ?>
                                             </span>
                                         <?php else: ?>
                                             <span class="text-muted">-</span>
@@ -348,8 +348,8 @@ $locations = getAllLocations(); // Use existing function signature
                 </div>
             <?php else: ?>
                 <div class="no-customers">
-                    <p>No customers found matching the selected filters.</p>
-                    <a href="?tab=bulk_assignment" class="btn btn-primary">Clear Filters</a>
+                    <p><?php echo __('no_customers_found_matching_filters'); ?></p>
+                    <a href="?tab=bulk_assignment" class="btn btn-primary"><?php echo __('clear_filters'); ?></a>
                 </div>
             <?php endif; ?>
         </div>
