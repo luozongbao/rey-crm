@@ -615,6 +615,7 @@ return [
     'summary' => '概要',
     'history' => '历史记录',
     'total_customers' => '客户总数',
+    'new_customers_created' => '新开发客户',
     'active_customers' => '活跃客户',
     'prospects' => '潜在客户',
     'recent_activities' => '最近活动',

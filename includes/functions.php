@@ -2160,10 +2160,12 @@ function getUserWorkloadStats($user_id = null) {
                     COUNT(DISTINCT CASE WHEN c.status = 'Active' THEN c.customer_id END) as active_customers,
                     COUNT(DISTINCT CASE WHEN c.status = 'Prospect' THEN c.customer_id END) as prospect_customers,
                     COUNT(DISTINCT CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND ah.follow_up_datetime IS NOT NULL THEN c.customer_id END) as overdue_followups,
-                    COUNT(CASE WHEN ah.action_datetime >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as recent_activities
+                    COUNT(CASE WHEN ah.action_datetime >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as recent_activities,
+                    COUNT(DISTINCT CASE WHEN c2.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN c2.customer_id END) as new_customers_created
                 FROM users u
                 LEFT JOIN customers c ON u.user_id = c.assigned_user_id
                 LEFT JOIN action_history ah ON c.customer_id = ah.customer_id
+                LEFT JOIN customers c2 ON u.user_id = c2.created_by_user_id
                 WHERE u.user_id = ?
                 GROUP BY u.user_id, u.username
             ");
@@ -2178,10 +2180,12 @@ function getUserWorkloadStats($user_id = null) {
                     COUNT(DISTINCT c.customer_id) as customer_count,
                     COUNT(DISTINCT CASE WHEN c.status = 'Active' THEN c.customer_id END) as active_customers,
                     COUNT(DISTINCT CASE WHEN c.status = 'Prospect' THEN c.customer_id END) as prospect_customers,
-                    MAX(ah.action_datetime) as last_activity
+                    MAX(ah.action_datetime) as last_activity,
+                    COUNT(DISTINCT CASE WHEN c2.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN c2.customer_id END) as new_customers_created
                 FROM users u
                 LEFT JOIN customers c ON u.user_id = c.assigned_user_id
                 LEFT JOIN action_history ah ON c.customer_id = ah.customer_id
+                LEFT JOIN customers c2 ON u.user_id = c2.created_by_user_id
                 GROUP BY u.user_id, u.username
                 ORDER BY customer_count DESC
             ");

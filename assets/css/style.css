@@ -851,6 +851,31 @@ body.dark-mode .status-closedwon,
   color: var(--primary-dark);
 }
 
+/* Performance badges */
+.activity-badge {
+  background-color: var(--primary-light);
+  color: var(--primary);
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.new-customers-badge {
+  background-color: var(--success-light);
+  color: var(--success);
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Card icon styles for new customers */
+.card-icon.new-customers {
+  background-color: var(--success-light);
+  color: var(--success);
+}
+
 /* Dashboard */
 .dashboard-grid {
   display: grid;

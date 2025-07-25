@@ -217,6 +217,16 @@ function reassignCustomer($customer_id, $new_user_id, $reason = '') {
                             </div>
                             
                             <div class="summary-card">
+                                <div class="card-icon new-customers">
+                                    <i class="fas fa-user-plus"></i>
+                                </div>
+                                <div class="card-content">
+                                    <div class="card-value"><?php echo $user_details['new_customers_created'] ?? 0; ?></div>
+                                    <div class="card-label"><?php echo __('new_customers_created'); ?></div>
+                                </div>
+                            </div>
+                            
+                            <div class="summary-card">
                                 <div class="card-icon activities">
                                     <i class="fas fa-clock"></i>
                                 </div>

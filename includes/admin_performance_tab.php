@@ -28,123 +28,312 @@ if (!empty($start_date) && !empty($end_date)) {
 
 // Get performance metrics
 try {
-    // Activity metrics by user - using correct table structure
-    $stmt = $pdo->query("
-        SELECT 
-            u.username,
-            u.user_id,
-            COUNT(DISTINCT c.customer_id) as customers_assigned,
-            COUNT(ah.history_id) as total_activities,
-            COUNT(CASE WHEN ah.action LIKE '%email%' OR ah.action LIKE '%Email%' THEN 1 END) as emails_sent,
-            COUNT(CASE WHEN ah.action LIKE '%call%' OR ah.action LIKE '%Call%' OR ah.action LIKE '%phone%' THEN 1 END) as calls_made,
-            COUNT(CASE WHEN ah.action LIKE '%meeting%' OR ah.action LIKE '%Meeting%' THEN 1 END) as meetings_held,
-            COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL AND ah.action_datetime $date_filter THEN 1 END) as followups_scheduled,
-            MAX(ah.action_datetime) as last_activity_date
-        FROM users u
-        LEFT JOIN customers c ON u.user_id = c.assigned_user_id
-        LEFT JOIN action_history ah ON c.customer_id = ah.customer_id AND ah.action_datetime $date_filter
-        GROUP BY u.user_id, u.username
-        ORDER BY total_activities DESC
-    ");
+    // Activity metrics by user - using correct table structure with new customers count
+    if (!empty($start_date) && !empty($end_date)) {
+        // Custom date range - use prepared statements
+        $query = "
+            SELECT 
+                u.username,
+                u.user_id,
+                COUNT(DISTINCT c.customer_id) as customers_assigned,
+                COUNT(ah.history_id) as total_activities,
+                COUNT(CASE WHEN ah.action LIKE '%email%' OR ah.action LIKE '%Email%' THEN 1 END) as emails_sent,
+                COUNT(CASE WHEN ah.action LIKE '%call%' OR ah.action LIKE '%Call%' OR ah.action LIKE '%phone%' THEN 1 END) as calls_made,
+                COUNT(CASE WHEN ah.action LIKE '%meeting%' OR ah.action LIKE '%Meeting%' THEN 1 END) as meetings_held,
+                COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL AND ah.action_datetime BETWEEN ? AND ? THEN 1 END) as followups_scheduled,
+                MAX(ah.action_datetime) as last_activity_date,
+                COALESCE(nc.new_customers_created, 0) as new_customers_created
+            FROM users u
+            LEFT JOIN customers c ON u.user_id = c.assigned_user_id
+            LEFT JOIN action_history ah ON c.customer_id = ah.customer_id AND ah.action_datetime BETWEEN ? AND ?
+            LEFT JOIN (
+                SELECT created_by_user_id, COUNT(*) as new_customers_created
+                FROM customers c2 
+                WHERE created_by_user_id IS NOT NULL AND c2.created_at BETWEEN ? AND ?
+                GROUP BY created_by_user_id
+            ) nc ON u.user_id = nc.created_by_user_id
+            GROUP BY u.user_id, u.username
+            ORDER BY total_activities DESC
+        ";
+        $params = [$start_date . ' 00:00:00', $end_date . ' 23:59:59', $start_date . ' 00:00:00', $end_date . ' 23:59:59', $start_date . ' 00:00:00', $end_date . ' 23:59:59'];
+    } else {
+        // Quick range selection
+        $days = intval($date_range);
+        $query = "
+            SELECT 
+                u.username,
+                u.user_id,
+                COUNT(DISTINCT c.customer_id) as customers_assigned,
+                COUNT(ah.history_id) as total_activities,
+                COUNT(CASE WHEN ah.action LIKE '%email%' OR ah.action LIKE '%Email%' THEN 1 END) as emails_sent,
+                COUNT(CASE WHEN ah.action LIKE '%call%' OR ah.action LIKE '%Call%' OR ah.action LIKE '%phone%' THEN 1 END) as calls_made,
+                COUNT(CASE WHEN ah.action LIKE '%meeting%' OR ah.action LIKE '%Meeting%' THEN 1 END) as meetings_held,
+                COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL AND ah.action_datetime >= DATE_SUB(NOW(), INTERVAL $days DAY) THEN 1 END) as followups_scheduled,
+                MAX(ah.action_datetime) as last_activity_date,
+                COALESCE(nc.new_customers_created, 0) as new_customers_created
+            FROM users u
+            LEFT JOIN customers c ON u.user_id = c.assigned_user_id
+            LEFT JOIN action_history ah ON c.customer_id = ah.customer_id AND ah.action_datetime >= DATE_SUB(NOW(), INTERVAL $days DAY)
+            LEFT JOIN (
+                SELECT created_by_user_id, COUNT(*) as new_customers_created
+                FROM customers c2 
+                WHERE created_by_user_id IS NOT NULL AND c2.created_at >= DATE_SUB(NOW(), INTERVAL $days DAY)
+                GROUP BY created_by_user_id
+            ) nc ON u.user_id = nc.created_by_user_id
+            GROUP BY u.user_id, u.username
+            ORDER BY total_activities DESC
+        ";
+        $params = [];
+    }
+    
+    $stmt = $pdo->prepare($query);
+    $stmt->execute($params);
     $user_performance = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Top performers (users with most activities)
     $top_performers = array_slice($user_performance, 0, 5);
 
     // System-wide metrics
-    $stmt = $pdo->query("
-        SELECT 
-            COUNT(DISTINCT customer_id) as active_customers,
-            COUNT(*) as total_activities,
-            COUNT(CASE WHEN action LIKE '%email%' OR action LIKE '%Email%' THEN 1 END) as total_emails,
-            COUNT(CASE WHEN action LIKE '%call%' OR action LIKE '%Call%' OR action LIKE '%phone%' THEN 1 END) as total_calls,
-            AVG(CASE WHEN follow_up_datetime IS NOT NULL THEN 
-                DATEDIFF(follow_up_datetime, action_datetime) END) as avg_followup_days
-        FROM action_history 
-        WHERE action_datetime $date_filter
-    ");
+    if (!empty($start_date) && !empty($end_date)) {
+        $system_query = "
+            SELECT 
+                COUNT(DISTINCT customer_id) as active_customers,
+                COUNT(*) as total_activities,
+                COUNT(CASE WHEN action LIKE '%email%' OR action LIKE '%Email%' THEN 1 END) as total_emails,
+                COUNT(CASE WHEN action LIKE '%call%' OR action LIKE '%Call%' OR action LIKE '%phone%' THEN 1 END) as total_calls,
+                AVG(CASE WHEN follow_up_datetime IS NOT NULL THEN 
+                    DATEDIFF(follow_up_datetime, action_datetime) END) as avg_followup_days
+            FROM action_history 
+            WHERE action_datetime BETWEEN ? AND ?
+        ";
+        $system_params = [$start_date . ' 00:00:00', $end_date . ' 23:59:59'];
+    } else {
+        $days = intval($date_range);
+        $system_query = "
+            SELECT 
+                COUNT(DISTINCT customer_id) as active_customers,
+                COUNT(*) as total_activities,
+                COUNT(CASE WHEN action LIKE '%email%' OR action LIKE '%Email%' THEN 1 END) as total_emails,
+                COUNT(CASE WHEN action LIKE '%call%' OR action LIKE '%Call%' OR action LIKE '%phone%' THEN 1 END) as total_calls,
+                AVG(CASE WHEN follow_up_datetime IS NOT NULL THEN 
+                    DATEDIFF(follow_up_datetime, action_datetime) END) as avg_followup_days
+            FROM action_history 
+            WHERE action_datetime >= DATE_SUB(NOW(), INTERVAL $days DAY)
+        ";
+        $system_params = [];
+    }
+    
+    $stmt = $pdo->prepare($system_query);
+    $stmt->execute($system_params);
     $system_metrics = $stmt->fetch(PDO::FETCH_ASSOC);
 
+    // Get total new customers created in the period
+    if (!empty($start_date) && !empty($end_date)) {
+        $new_customers_query = "SELECT COUNT(*) as total_new_customers FROM customers WHERE created_at BETWEEN ? AND ?";
+        $new_customers_params = [$start_date . ' 00:00:00', $end_date . ' 23:59:59'];
+    } else {
+        $days = intval($date_range);
+        $new_customers_query = "SELECT COUNT(*) as total_new_customers FROM customers WHERE created_at >= DATE_SUB(NOW(), INTERVAL $days DAY)";
+        $new_customers_params = [];
+    }
+    
+    $stmt = $pdo->prepare($new_customers_query);
+    $stmt->execute($new_customers_params);
+    $new_customers_total = $stmt->fetch(PDO::FETCH_ASSOC);
+    $system_metrics['total_new_customers'] = $new_customers_total['total_new_customers'] ?? 0;
+
     // Daily activity trend
-    $stmt = $pdo->query("
-        SELECT 
-            DATE(ah.action_datetime) as activity_date,
-            COUNT(*) as daily_activities,
-            COUNT(DISTINCT ah.customer_id) as customers_contacted,
-            COUNT(DISTINCT c.assigned_user_id) as active_users
-        FROM action_history ah
-        LEFT JOIN customers c ON ah.customer_id = c.customer_id
-        WHERE ah.action_datetime $date_filter
-        GROUP BY DATE(ah.action_datetime)
-        ORDER BY activity_date DESC
-        LIMIT 30
-    ");
+    if (!empty($start_date) && !empty($end_date)) {
+        $daily_query = "
+            SELECT 
+                DATE(ah.action_datetime) as activity_date,
+                COUNT(*) as daily_activities,
+                COUNT(DISTINCT ah.customer_id) as customers_contacted,
+                COUNT(DISTINCT c.assigned_user_id) as active_users
+            FROM action_history ah
+            LEFT JOIN customers c ON ah.customer_id = c.customer_id
+            WHERE ah.action_datetime BETWEEN ? AND ?
+            GROUP BY DATE(ah.action_datetime)
+            ORDER BY activity_date DESC
+            LIMIT 30
+        ";
+        $daily_params = [$start_date . ' 00:00:00', $end_date . ' 23:59:59'];
+    } else {
+        $days = intval($date_range);
+        $daily_query = "
+            SELECT 
+                DATE(ah.action_datetime) as activity_date,
+                COUNT(*) as daily_activities,
+                COUNT(DISTINCT ah.customer_id) as customers_contacted,
+                COUNT(DISTINCT c.assigned_user_id) as active_users
+            FROM action_history ah
+            LEFT JOIN customers c ON ah.customer_id = c.customer_id
+            WHERE ah.action_datetime >= DATE_SUB(NOW(), INTERVAL $days DAY)
+            GROUP BY DATE(ah.action_datetime)
+            ORDER BY activity_date DESC
+            LIMIT 30
+        ";
+        $daily_params = [];
+    }
+    
+    $stmt = $pdo->prepare($daily_query);
+    $stmt->execute($daily_params);
     $daily_trends = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Customer conversion funnel
-    $stmt = $pdo->query("
-        SELECT 
-            status,
-            COUNT(*) as count,
-            AVG(DATEDIFF(NOW(), created_at)) as avg_days_in_status
-        FROM customers 
-        WHERE created_at $date_filter OR updated_at $date_filter
-        GROUP BY status
-        ORDER BY 
-            CASE status 
-                WHEN 'Prospect' THEN 1 
-                WHEN 'Active' THEN 2 
-                WHEN 'Inactive' THEN 3 
-                ELSE 4 
-            END
-    ");
+    if (!empty($start_date) && !empty($end_date)) {
+        $funnel_query = "
+            SELECT 
+                status,
+                COUNT(*) as count,
+                AVG(DATEDIFF(NOW(), created_at)) as avg_days_in_status
+            FROM customers 
+            WHERE (created_at BETWEEN ? AND ? OR updated_at BETWEEN ? AND ?)
+            GROUP BY status
+            ORDER BY 
+                CASE status 
+                    WHEN 'Prospect' THEN 1 
+                    WHEN 'Active' THEN 2 
+                    WHEN 'Inactive' THEN 3 
+                    ELSE 4 
+                END
+        ";
+        $funnel_params = [$start_date . ' 00:00:00', $end_date . ' 23:59:59', $start_date . ' 00:00:00', $end_date . ' 23:59:59'];
+    } else {
+        $days = intval($date_range);
+        $funnel_query = "
+            SELECT 
+                status,
+                COUNT(*) as count,
+                AVG(DATEDIFF(NOW(), created_at)) as avg_days_in_status
+            FROM customers 
+            WHERE (created_at >= DATE_SUB(NOW(), INTERVAL $days DAY) OR updated_at >= DATE_SUB(NOW(), INTERVAL $days DAY))
+            GROUP BY status
+            ORDER BY 
+                CASE status 
+                    WHEN 'Prospect' THEN 1 
+                    WHEN 'Active' THEN 2 
+                    WHEN 'Inactive' THEN 3 
+                    ELSE 4 
+                END
+        ";
+        $funnel_params = [];
+    }
+    
+    $stmt = $pdo->prepare($funnel_query);
+    $stmt->execute($funnel_params);
     $conversion_funnel = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Response time analytics
-    $stmt = $pdo->query("
-        SELECT 
-            AVG(TIMESTAMPDIFF(HOUR, c.created_at, first_activity.action_datetime)) as avg_first_response_hours,
-            COUNT(CASE WHEN TIMESTAMPDIFF(HOUR, c.created_at, first_activity.action_datetime) <= 24 THEN 1 END) as quick_responses_24h,
-            COUNT(CASE WHEN TIMESTAMPDIFF(HOUR, c.created_at, first_activity.action_datetime) > 72 THEN 1 END) as slow_responses_72h,
-            COUNT(DISTINCT c.customer_id) as total_customers_with_activity
-        FROM customers c
-        LEFT JOIN (
-            SELECT customer_id, MIN(action_datetime) as action_datetime
-            FROM action_history 
-            WHERE action_datetime $date_filter
-            GROUP BY customer_id
-        ) first_activity ON c.customer_id = first_activity.customer_id
-        WHERE c.created_at $date_filter AND first_activity.action_datetime IS NOT NULL
-    ");
+    if (!empty($start_date) && !empty($end_date)) {
+        $response_query = "
+            SELECT 
+                AVG(TIMESTAMPDIFF(HOUR, c.created_at, first_activity.action_datetime)) as avg_first_response_hours,
+                COUNT(CASE WHEN TIMESTAMPDIFF(HOUR, c.created_at, first_activity.action_datetime) <= 24 THEN 1 END) as quick_responses_24h,
+                COUNT(CASE WHEN TIMESTAMPDIFF(HOUR, c.created_at, first_activity.action_datetime) > 72 THEN 1 END) as slow_responses_72h,
+                COUNT(DISTINCT c.customer_id) as total_customers_with_activity
+            FROM customers c
+            LEFT JOIN (
+                SELECT customer_id, MIN(action_datetime) as action_datetime
+                FROM action_history 
+                WHERE action_datetime BETWEEN ? AND ?
+                GROUP BY customer_id
+            ) first_activity ON c.customer_id = first_activity.customer_id
+            WHERE c.created_at BETWEEN ? AND ? AND first_activity.action_datetime IS NOT NULL
+        ";
+        $response_params = [$start_date . ' 00:00:00', $end_date . ' 23:59:59', $start_date . ' 00:00:00', $end_date . ' 23:59:59'];
+    } else {
+        $days = intval($date_range);
+        $response_query = "
+            SELECT 
+                AVG(TIMESTAMPDIFF(HOUR, c.created_at, first_activity.action_datetime)) as avg_first_response_hours,
+                COUNT(CASE WHEN TIMESTAMPDIFF(HOUR, c.created_at, first_activity.action_datetime) <= 24 THEN 1 END) as quick_responses_24h,
+                COUNT(CASE WHEN TIMESTAMPDIFF(HOUR, c.created_at, first_activity.action_datetime) > 72 THEN 1 END) as slow_responses_72h,
+                COUNT(DISTINCT c.customer_id) as total_customers_with_activity
+            FROM customers c
+            LEFT JOIN (
+                SELECT customer_id, MIN(action_datetime) as action_datetime
+                FROM action_history 
+                WHERE action_datetime >= DATE_SUB(NOW(), INTERVAL $days DAY)
+                GROUP BY customer_id
+            ) first_activity ON c.customer_id = first_activity.customer_id
+            WHERE c.created_at >= DATE_SUB(NOW(), INTERVAL $days DAY) AND first_activity.action_datetime IS NOT NULL
+        ";
+        $response_params = [];
+    }
+    
+    $stmt = $pdo->prepare($response_query);
+    $stmt->execute($response_params);
     $response_metrics = $stmt->fetch(PDO::FETCH_ASSOC);
 
     // Follow-up management metrics
-    $stmt = $pdo->query("
-        SELECT 
-            u.username,
-            u.user_id,
-            COUNT(CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as user_overdue_count,
-            COUNT(CASE WHEN ah.follow_up_datetime >= NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as user_upcoming_count,
-            COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL THEN 1 END) as user_total_followups,
-            AVG(TIMESTAMPDIFF(DAY, ah.action_datetime, ah.follow_up_datetime)) as user_avg_followup_interval
-        FROM action_history ah
-        JOIN customers c ON ah.customer_id = c.customer_id
-        JOIN users u ON c.assigned_user_id = u.user_id
-        WHERE ah.action_datetime $date_filter
-        GROUP BY u.user_id, u.username
-        ORDER BY user_overdue_count DESC
-    ");
+    if (!empty($start_date) && !empty($end_date)) {
+        $followup_query = "
+            SELECT 
+                u.username,
+                u.user_id,
+                COUNT(CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as user_overdue_count,
+                COUNT(CASE WHEN ah.follow_up_datetime >= NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as user_upcoming_count,
+                COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL THEN 1 END) as user_total_followups,
+                AVG(TIMESTAMPDIFF(DAY, ah.action_datetime, ah.follow_up_datetime)) as user_avg_followup_interval
+            FROM action_history ah
+            JOIN customers c ON ah.customer_id = c.customer_id
+            JOIN users u ON c.assigned_user_id = u.user_id
+            WHERE ah.action_datetime BETWEEN ? AND ?
+            GROUP BY u.user_id, u.username
+            ORDER BY user_overdue_count DESC
+        ";
+        $followup_params = [$start_date . ' 00:00:00', $end_date . ' 23:59:59'];
+    } else {
+        $days = intval($date_range);
+        $followup_query = "
+            SELECT 
+                u.username,
+                u.user_id,
+                COUNT(CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as user_overdue_count,
+                COUNT(CASE WHEN ah.follow_up_datetime >= NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as user_upcoming_count,
+                COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL THEN 1 END) as user_total_followups,
+                AVG(TIMESTAMPDIFF(DAY, ah.action_datetime, ah.follow_up_datetime)) as user_avg_followup_interval
+            FROM action_history ah
+            JOIN customers c ON ah.customer_id = c.customer_id
+            JOIN users u ON c.assigned_user_id = u.user_id
+            WHERE ah.action_datetime >= DATE_SUB(NOW(), INTERVAL $days DAY)
+            GROUP BY u.user_id, u.username
+            ORDER BY user_overdue_count DESC
+        ";
+        $followup_params = [];
+    }
+    
+    $stmt = $pdo->prepare($followup_query);
+    $stmt->execute($followup_params);
     $followup_metrics = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // System-wide follow-up summary
-    $stmt = $pdo->query("
-        SELECT 
-            COUNT(CASE WHEN follow_up_datetime < NOW() AND follow_up_datetime IS NOT NULL THEN 1 END) as total_overdue,
-            COUNT(CASE WHEN follow_up_datetime >= NOW() AND follow_up_datetime IS NOT NULL THEN 1 END) as total_upcoming,
-            COUNT(CASE WHEN follow_up_datetime IS NOT NULL THEN 1 END) as total_scheduled
-        FROM action_history 
-        WHERE action_datetime $date_filter
-    ");
+    if (!empty($start_date) && !empty($end_date)) {
+        $summary_query = "
+            SELECT 
+                COUNT(CASE WHEN follow_up_datetime < NOW() AND follow_up_datetime IS NOT NULL THEN 1 END) as total_overdue,
+                COUNT(CASE WHEN follow_up_datetime >= NOW() AND follow_up_datetime IS NOT NULL THEN 1 END) as total_upcoming,
+                COUNT(CASE WHEN follow_up_datetime IS NOT NULL THEN 1 END) as total_scheduled
+            FROM action_history 
+            WHERE action_datetime BETWEEN ? AND ?
+        ";
+        $summary_params = [$start_date . ' 00:00:00', $end_date . ' 23:59:59'];
+    } else {
+        $days = intval($date_range);
+        $summary_query = "
+            SELECT 
+                COUNT(CASE WHEN follow_up_datetime < NOW() AND follow_up_datetime IS NOT NULL THEN 1 END) as total_overdue,
+                COUNT(CASE WHEN follow_up_datetime >= NOW() AND follow_up_datetime IS NOT NULL THEN 1 END) as total_upcoming,
+                COUNT(CASE WHEN follow_up_datetime IS NOT NULL THEN 1 END) as total_scheduled
+            FROM action_history 
+            WHERE action_datetime >= DATE_SUB(NOW(), INTERVAL $days DAY)
+        ";
+        $summary_params = [];
+    }
+    
+    $stmt = $pdo->prepare($summary_query);
+    $stmt->execute($summary_params);
     $followup_summary = $stmt->fetch(PDO::FETCH_ASSOC);
     $total_overdue = $followup_summary['total_overdue'] ?? 0;
     $total_upcoming = $followup_summary['total_upcoming'] ?? 0;
@@ -262,6 +451,16 @@ try {
                 <div class="metric-label"><?php echo __('avg_response_time'); ?></div>
             </div>
         </div>
+        
+        <div class="metric-card">
+            <div class="metric-icon new-customers">
+                <i class="fas fa-user-plus"></i>
+            </div>
+            <div class="metric-content">
+                <div class="metric-value"><?php echo number_format($system_metrics['total_new_customers']); ?></div>
+                <div class="metric-label"><?php echo __('new_customers_created'); ?></div>
+            </div>
+        </div>
     </div>
 
     <div class="performance-layout">
@@ -280,7 +479,8 @@ try {
                                 <div class="performer-name"><?php echo htmlspecialchars($performer['username']); ?></div>
                                 <div class="performer-stats">
                                     <?php echo $performer['total_activities']; ?> <?php echo __('activities'); ?> • 
-                                    <?php echo $performer['customers_assigned']; ?> <?php echo __('customers'); ?>
+                                    <?php echo $performer['customers_assigned']; ?> <?php echo __('customers'); ?> •
+                                    <?php echo $performer['new_customers_created']; ?> <?php echo __('new_customers_created'); ?>
                                 </div>
                             </div>
                             <div class="performer-score">
@@ -300,6 +500,7 @@ try {
                             <tr>
                                 <th><?php echo __('user'); ?></th>
                                 <th><?php echo __('customers'); ?></th>
+                                <th><?php echo __('new_customers_created'); ?></th>
                                 <th><?php echo __('activities'); ?></th>
                                 <th><?php echo __('emails_sent'); ?></th>
                                 <th><?php echo __('calls_made'); ?></th>
@@ -315,6 +516,9 @@ try {
                                         <strong><?php echo htmlspecialchars($user['username']); ?></strong>
                                     </td>
                                     <td><?php echo $user['customers_assigned']; ?></td>
+                                    <td>
+                                        <span class="new-customers-badge"><?php echo $user['new_customers_created']; ?></span>
+                                    </td>
                                     <td>
                                         <span class="activity-badge"><?php echo $user['total_activities']; ?></span>
                                     </td>
@@ -742,6 +946,7 @@ try {
 .metric-icon.calls { background: #fd7e14; }
 .metric-icon.followups { background: #20c997; }
 .metric-icon.response { background: #6610f2; }
+.metric-icon.new-customers { background: #17a2b8; }
 
 .metric-content {
     flex: 1;

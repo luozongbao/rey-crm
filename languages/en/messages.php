@@ -467,6 +467,7 @@ return [
     'summary' => 'Summary',
     'history' => 'History',
     'total_customers' => 'Total Customers',
+    'new_customers_created' => 'New Customers Created',
     'active_customers' => 'Active Customers',
     'prospects' => 'Prospects',
     'recent_activities' => 'Recent Activities',
