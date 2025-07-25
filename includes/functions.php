@@ -2512,4 +2512,299 @@ function getAssignmentDistribution() {
     }
 }
 
+// Dashboard redesign functions
+
+/**
+ * Get customer statistics based on user role
+ */
+function getDashboardCustomerStats($user_id = null, $show_all = false) {
+    global $pdo;
+    
+    try {
+        $whereClause = '';
+        $params = [];
+        
+        if (!$show_all && $user_id) {
+            $whereClause = 'WHERE c.assigned_user_id = :user_id';
+            $params[':user_id'] = $user_id;
+        }
+        
+        $sql = "SELECT 
+                    COUNT(*) as total_customers,
+                    COUNT(CASE WHEN c.status IN ('Active Customer', 'New Customer') THEN 1 END) as active_customers,
+                    COUNT(CASE WHEN c.status = 'Prospect' THEN 1 END) as prospects,
+                    COUNT(CASE WHEN c.status = 'Qualified' THEN 1 END) as qualified,
+                    COUNT(CASE WHEN c.status IN ('Lost Customer', 'Closed Lost') THEN 1 END) as lost_customers,
+                    COUNT(DISTINCT ah.customer_id) as contacted_customers
+                FROM customers c
+                LEFT JOIN action_history ah ON c.customer_id = ah.customer_id
+                $whereClause";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        
+        $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stats['not_contacted'] = $stats['total_customers'] - $stats['contacted_customers'];
+        $stats['contact_rate'] = $stats['total_customers'] > 0 ? 
+            round(($stats['contacted_customers'] / $stats['total_customers']) * 100) : 0;
+        
+        return $stats;
+    } catch (PDOException $e) {
+        logError("Error getting dashboard customer stats: " . $e->getMessage());
+        return [
+            'total_customers' => 0,
+            'active_customers' => 0,
+            'prospects' => 0,
+            'qualified' => 0,
+            'lost_customers' => 0,
+            'contacted_customers' => 0,
+            'not_contacted' => 0,
+            'contact_rate' => 0
+        ];
+    }
+}
+
+/**
+ * Get customer list for dashboard (limited/summary view)
+ */
+function getDashboardCustomers($limit = 10, $user_id = null, $show_all = false, $view_mode = 'recent') {
+    global $pdo;
+    
+    try {
+        $whereClause = '';
+        $params = [];
+        
+        if (!$show_all && $user_id) {
+            $whereClause = 'WHERE c.assigned_user_id = :user_id';
+            $params[':user_id'] = $user_id;
+        } elseif ($view_mode === 'unassigned') {
+            $whereClause = 'WHERE c.assigned_user_id IS NULL';
+        }
+        
+        $orderClause = '';
+        switch ($view_mode) {
+            case 'recent':
+                $orderClause = 'ORDER BY c.created_at DESC';
+                break;
+            case 'last_contact':
+                $orderClause = 'ORDER BY last_contact DESC, c.created_at DESC';
+                break;
+            case 'no_contact':
+                $orderClause = 'ORDER BY CASE WHEN last_contact IS NULL THEN 0 ELSE 1 END, c.created_at DESC';
+                break;
+            default:
+                $orderClause = 'ORDER BY c.created_at DESC';
+        }
+        
+        $sql = "SELECT 
+                    c.customer_id,
+                    c.company_name,
+                    c.status,
+                    c.contact_email,
+                    c.contact_phone,
+                    c.assigned_user_id,
+                    c.created_at,
+                    u.username as assigned_username,
+                    MAX(ah.action_datetime) as last_contact,
+                    COUNT(ah.history_id) as activity_count,
+                    CONCAT_WS(', ', 
+                        NULLIF(TRIM(c.province), ''),
+                        NULLIF(TRIM(c.country), '')
+                    ) as location
+                FROM customers c
+                LEFT JOIN users u ON c.assigned_user_id = u.user_id
+                LEFT JOIN action_history ah ON c.customer_id = ah.customer_id
+                $whereClause
+                GROUP BY c.customer_id, c.company_name, c.status, c.contact_email, 
+                         c.contact_phone, c.assigned_user_id, c.created_at, u.username
+                $orderClause
+                LIMIT :limit";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logError("Error getting dashboard customers: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get user performance stats (admin only)
+ */
+function getUserPerformanceStats() {
+    global $pdo;
+    
+    try {
+        $sql = "SELECT 
+                    u.user_id,
+                    u.username,
+                    COUNT(c.customer_id) as total_customers,
+                    COUNT(CASE WHEN c.status IN ('Active Customer', 'New Customer') THEN 1 END) as active_customers,
+                    COUNT(DISTINCT ah.customer_id) as contacted_customers,
+                    COUNT(CASE WHEN ah.action_datetime >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) as recent_activities
+                FROM users u
+                LEFT JOIN customers c ON u.user_id = c.assigned_user_id
+                LEFT JOIN action_history ah ON c.customer_id = ah.customer_id
+                WHERE u.role != 'admin'
+                GROUP BY u.user_id, u.username
+                HAVING total_customers > 0
+                ORDER BY active_customers DESC, total_customers DESC
+                LIMIT 5";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logError("Error getting user performance stats: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get customers by assignment status (admin only)
+ */
+function getCustomersByAssignment() {
+    global $pdo;
+    
+    try {
+        $sql = "SELECT 
+                    COUNT(*) as total_customers,
+                    COUNT(CASE WHEN assigned_user_id IS NOT NULL THEN 1 END) as assigned_customers,
+                    COUNT(CASE WHEN assigned_user_id IS NULL THEN 1 END) as unassigned_customers
+                FROM customers";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute();
+        
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logError("Error getting customers by assignment: " . $e->getMessage());
+        return [
+            'total_customers' => 0,
+            'assigned_customers' => 0,
+            'unassigned_customers' => 0
+        ];
+    }
+}
+
+/**
+ * Get dashboard follow-ups (role-aware)
+ */
+function getDashboardFollowups($limit = 5, $user_id = null, $show_all = false) {
+    global $pdo;
+    
+    try {
+        $whereClause = 'WHERE ah.follow_up_datetime IS NOT NULL AND ah.follow_up_datetime >= NOW()';
+        $params = [];
+        
+        if (!$show_all && $user_id) {
+            $whereClause .= ' AND c.assigned_user_id = :user_id';
+            $params[':user_id'] = $user_id;
+        }
+        
+        $sql = "SELECT 
+                    ah.history_id,
+                    ah.follow_up_datetime,
+                    ah.next_step,
+                    c.company_name,
+                    c.customer_id,
+                    cp.name as contact_name,
+                    u.username as assigned_username
+                FROM action_history ah
+                JOIN customers c ON ah.customer_id = c.customer_id
+                LEFT JOIN contact_persons cp ON ah.contact_id = cp.contact_id
+                LEFT JOIN users u ON c.assigned_user_id = u.user_id
+                $whereClause
+                ORDER BY ah.follow_up_datetime ASC
+                LIMIT :limit";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logError("Error getting dashboard followups: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get dashboard recent activities (role-aware)
+ */
+function getDashboardActivities($limit = 5, $user_id = null, $show_all = false) {
+    global $pdo;
+    
+    try {
+        $whereClause = '';
+        $params = [];
+        
+        if (!$show_all && $user_id) {
+            $whereClause = 'WHERE c.assigned_user_id = :user_id';
+            $params[':user_id'] = $user_id;
+        }
+        
+        $sql = "SELECT 
+                    ah.history_id,
+                    ah.action_datetime,
+                    ah.action,
+                    ah.contact_channel,
+                    c.company_name,
+                    c.customer_id,
+                    cp.name as contact_name,
+                    u.username as assigned_username
+                FROM action_history ah
+                JOIN customers c ON ah.customer_id = c.customer_id
+                LEFT JOIN contact_persons cp ON ah.contact_id = cp.contact_id
+                LEFT JOIN users u ON c.assigned_user_id = u.user_id
+                $whereClause
+                ORDER BY ah.action_datetime DESC
+                LIMIT :limit";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logError("Error getting dashboard activities: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Check if user can edit a specific customer
+ */
+function canEditCustomer($customer_id) {
+    global $pdo;
+    
+    if (isAdmin()) {
+        return true;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("SELECT assigned_user_id FROM customers WHERE customer_id = ?");
+        $stmt->execute([$customer_id]);
+        $customer = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        return $customer && $customer['assigned_user_id'] == $_SESSION['user_id'];
+    } catch (PDOException $e) {
+        logError("Error checking edit permission: " . $e->getMessage());
+        return false;
+    }
+}
+
 ?>
