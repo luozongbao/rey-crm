@@ -63,15 +63,15 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 
     // Write data rows
     foreach ($activities as $activity) {
-        $location = $activity['province'] ? htmlspecialchars($activity['province']) : '';
+        $location = $activity['province'] ? $activity['province'] : '';
         
         $row = [
-            htmlspecialchars($activity['company_name']),
+            $activity['company_name'],
             $location,
-            htmlspecialchars(__($activity['customer_status'])),
-            htmlspecialchars($activity['action']),
+            __($activity['customer_status']),
+            $activity['action'],
             formatDateTimeCompact($activity['action_datetime']),
-            htmlspecialchars($activity['response'])
+            $activity['response']
         ];
         
         fputcsv($output, $row);
