@@ -136,6 +136,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     }
 }
 
+// Handle test email
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_test_email'])) {
+    header('Content-Type: application/json');
+    
+    try {
+        // Check if user has configured email settings
+        if (empty($user['smtp_username']) || empty($user['smtp_password']) || 
+            empty($user['smtp_from_email']) || empty($user['smtp_from_name'])) {
+            echo json_encode(['success' => false, 'message' => 'Please configure your email settings first.']);
+            exit;
+        }
+        
+        // Validate the test email recipient
+        $test_email = trim($_POST['test_email'] ?? '');
+        if (empty($test_email) || !filter_var($test_email, FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(['success' => false, 'message' => 'Please enter a valid email address.']);
+            exit;
+        }
+        
+        // Prepare test email content
+        $subject = "Test Email from Rey CRM - " . $user['smtp_from_name'];
+        $body = "<html><body>
+                    <h2>Email Configuration Test</h2>
+                    <p>Hello!</p>
+                    <p>This is a test email from your Rey CRM system to verify that your personal email settings are configured correctly.</p>
+                    <p><strong>Configuration Details:</strong></p>
+                    <ul>
+                        <li><strong>SMTP Server:</strong> " . htmlspecialchars($user['smtp_host'] ?: getSMTPSettings()['smtp_host']) . "</li>
+                        <li><strong>Port:</strong> " . htmlspecialchars($user['smtp_port'] ?: getSMTPSettings()['smtp_port']) . "</li>
+                        <li><strong>Encryption:</strong> " . htmlspecialchars(strtoupper($user['smtp_encryption'] ?: getSMTPSettings()['smtp_encryption'])) . "</li>
+                        <li><strong>From Email:</strong> " . htmlspecialchars($user['smtp_from_email']) . "</li>
+                        <li><strong>From Name:</strong> " . htmlspecialchars($user['smtp_from_name']) . "</li>
+                    </ul>
+                    <p><strong>Test sent at:</strong> " . date('Y-m-d H:i:s') . "</p>
+                    <p>If you received this email, your settings are working correctly!</p>
+                    <p><em>No action is required.</em></p>
+                 </body></html>";
+        
+        // Send test email using user's SMTP settings
+        $result = sendUserEmail($user_id, $test_email, $subject, $body);
+        
+        echo json_encode($result);
+        exit;
+        
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Failed to send test email: ' . $e->getMessage()]);
+        exit;
+    }
+}
+
 // Handle email settings updates
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_email_settings'])) {
     $smtp_host = trim($_POST['smtp_host'] ?? '');
@@ -323,6 +373,29 @@ require_once 'includes/header.php';
                         <button type="submit" name="update_email_settings" class="btn btn-primary"><?php echo __('update_email_settings'); ?></button>
                     </div>
                 </form>
+                
+                <!-- Test Email Section -->
+                <div class="test-email-section" style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+                    <h4 style="margin-bottom: 15px; color: #333;"><?php echo __('test_email_settings'); ?></h4>
+                    <p class="form-text text-muted" style="margin-bottom: 15px;">Send a test email to verify your email settings are working correctly.</p>
+                    
+                    <div class="test-email-form">
+                        <div class="form-group">
+                            <label for="test_email_recipient"><?php echo __('recipient_email'); ?>:</label>
+                            <input type="email" id="test_email_recipient" class="form-input" 
+                                   placeholder="<?php echo htmlspecialchars($user['email']); ?>" 
+                                   value="<?php echo htmlspecialchars($user['email']); ?>" 
+                                   style="margin-bottom: 10px;">
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" id="send_test_email_btn" class="btn btn-secondary">
+                                <span class="btn-text"><?php echo __('send_test_email'); ?></span>
+                                <span class="btn-spinner" style="display: none;">Sending...</span>
+                            </button>
+                        </div>
+                        <div id="test_email_result" style="margin-top: 10px;"></div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -384,6 +457,85 @@ require_once 'includes/header.php';
                 return false;
             }
             return true;
+        });
+        
+        // Test email functionality
+        const sendTestEmailBtn = document.getElementById('send_test_email_btn');
+        const testEmailInput = document.getElementById('test_email_recipient');
+        const testEmailResult = document.getElementById('test_email_result');
+        const btnText = sendTestEmailBtn.querySelector('.btn-text');
+        const btnSpinner = sendTestEmailBtn.querySelector('.btn-spinner');
+        
+        sendTestEmailBtn.addEventListener('click', function() {
+            const testEmail = testEmailInput.value.trim();
+            
+            // Clear previous results
+            testEmailResult.innerHTML = '';
+            
+            // Validate email input
+            if (!testEmail) {
+                showTestResult('Please enter an email address.', 'error');
+                return;
+            }
+            
+            // Basic email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(testEmail)) {
+                showTestResult('Please enter a valid email address.', 'error');
+                return;
+            }
+            
+            // Show loading state
+            sendTestEmailBtn.disabled = true;
+            btnText.style.display = 'none';
+            btnSpinner.style.display = 'inline';
+            
+            // Send AJAX request
+            const formData = new FormData();
+            formData.append('send_test_email', '1');
+            formData.append('test_email', testEmail);
+            
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showTestResult('Test email sent successfully! Check your inbox.', 'success');
+                } else {
+                    showTestResult(data.message || 'Failed to send test email.', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showTestResult('An error occurred while sending the test email.', 'error');
+            })
+            .finally(() => {
+                // Reset button state
+                sendTestEmailBtn.disabled = false;
+                btnText.style.display = 'inline';
+                btnSpinner.style.display = 'none';
+            });
+        });
+        
+        function showTestResult(message, type) {
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            testEmailResult.innerHTML = '<div class="alert ' + alertClass + '">' + message + '</div>';
+            
+            // Auto-hide success messages after 5 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    testEmailResult.innerHTML = '';
+                }, 5000);
+            }
+        }
+        
+        // Allow Enter key to trigger test email
+        testEmailInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendTestEmailBtn.click();
+            }
         });
     });
 </script>

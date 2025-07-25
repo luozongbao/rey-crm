@@ -13,6 +13,11 @@ if (!file_exists(__DIR__ . '/config.php') && basename($_SERVER['PHP_SELF']) !== 
 
 require_once 'config.php';
 
+// Load Composer autoloader for PHPMailer and other dependencies
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+}
+
 function getAllCustomers() {
     global $pdo;
     $stmt = $pdo->query("SELECT c.*, 
