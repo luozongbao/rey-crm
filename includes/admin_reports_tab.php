@@ -1116,17 +1116,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 }
 
-/* Report Scheduling Styles */
+    /* Report Scheduling Styles */
     .report-scheduling {
         margin: 30px 0;
         padding: 25px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
         border-radius: 15px;
         color: white;
-        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-    }
-
-    .report-scheduling h4 {
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3) !important;
+        border: none !important;
+    }    .report-scheduling h4 {
         color: white;
         margin-bottom: 20px;
         text-align: center;
@@ -1202,10 +1201,11 @@ document.addEventListener('DOMContentLoaded', function() {
     .advanced-export {
         margin: 30px 0;
         padding: 25px;
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
         border-radius: 15px;
         color: white;
-        box-shadow: 0 8px 25px rgba(240, 147, 251, 0.3);
+        box-shadow: 0 8px 25px rgba(240, 147, 251, 0.3) !important;
+        border: none !important;
     }
 
     .advanced-export h4 {
@@ -1299,6 +1299,21 @@ document.addEventListener('DOMContentLoaded', function() {
             flex-direction: column;
             text-align: center;
         }
+    }
+
+    /* Dark mode overrides to ensure gradients work */
+    body.dark-mode .report-scheduling {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        color: white !important;
+        border: none !important;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3) !important;
+    }
+
+    body.dark-mode .advanced-export {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+        color: white !important;
+        border: none !important;
+        box-shadow: 0 8px 25px rgba(240, 147, 251, 0.3) !important;
     }
 }
 </style>
