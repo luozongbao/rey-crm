@@ -964,6 +964,7 @@ return [
     'customers' => '客户',
     'active' => '活跃',
     'recent_activities' => '最近活动',
+    'clear_filters' => '清除筛选',
 
     // Add more messages as needed
 ];

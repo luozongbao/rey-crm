@@ -2517,33 +2517,61 @@ function getAssignmentDistribution() {
 /**
  * Get customer statistics based on user role
  */
-function getDashboardCustomerStats($user_id = null, $show_all = false) {
+function getDashboardCustomerStats($user_id = null, $show_all = false, $user_filter = null, $status_filter = null) {
     global $pdo;
     
     try {
         $whereClause = '';
         $params = [];
+        $conditions = [];
         
+        // Handle view mode filtering
         if (!$show_all && $user_id) {
-            $whereClause = 'WHERE c.assigned_user_id = :user_id';
+            $conditions[] = 'assigned_user_id = :user_id';
             $params[':user_id'] = $user_id;
         }
         
+        // Handle additional filters for admin
+        if ($show_all) {
+            if ($user_filter) {
+                $conditions[] = 'assigned_user_id = :user_filter';
+                $params[':user_filter'] = $user_filter;
+            }
+            if ($status_filter) {
+                $conditions[] = 'status = :status_filter';
+                $params[':status_filter'] = $status_filter;
+            }
+        }
+        
+        if (!empty($conditions)) {
+            $whereClause = 'WHERE ' . implode(' AND ', $conditions);
+        }
+        
+        // Get basic customer counts first
         $sql = "SELECT 
                     COUNT(*) as total_customers,
-                    COUNT(CASE WHEN c.status IN ('Active Customer', 'New Customer') THEN 1 END) as active_customers,
-                    COUNT(CASE WHEN c.status = 'Prospect' THEN 1 END) as prospects,
-                    COUNT(CASE WHEN c.status = 'Qualified' THEN 1 END) as qualified,
-                    COUNT(CASE WHEN c.status IN ('Lost Customer', 'Closed Lost') THEN 1 END) as lost_customers,
-                    COUNT(DISTINCT ah.customer_id) as contacted_customers
-                FROM customers c
-                LEFT JOIN action_history ah ON c.customer_id = ah.customer_id
+                    COUNT(CASE WHEN status IN ('Active Customer', 'New Customer') THEN 1 END) as active_customers,
+                    COUNT(CASE WHEN status = 'Prospect' THEN 1 END) as prospects,
+                    COUNT(CASE WHEN status = 'Qualified' THEN 1 END) as qualified,
+                    COUNT(CASE WHEN status IN ('Lost Customer', 'Closed Lost') THEN 1 END) as lost_customers
+                FROM customers
                 $whereClause";
         
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
-        
         $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        // Get contacted customers count separately to avoid JOIN inflation
+        $contactedSql = "SELECT COUNT(DISTINCT c.customer_id) as contacted_customers
+                         FROM customers c
+                         INNER JOIN action_history ah ON c.customer_id = ah.customer_id
+                         $whereClause";
+        
+        $contactedStmt = $pdo->prepare($contactedSql);
+        $contactedStmt->execute($params);
+        $contactedResult = $contactedStmt->fetch(PDO::FETCH_ASSOC);
+        
+        $stats['contacted_customers'] = $contactedResult['contacted_customers'];
         $stats['not_contacted'] = $stats['total_customers'] - $stats['contacted_customers'];
         $stats['contact_rate'] = $stats['total_customers'] > 0 ? 
             round(($stats['contacted_customers'] / $stats['total_customers']) * 100) : 0;
@@ -2567,18 +2595,36 @@ function getDashboardCustomerStats($user_id = null, $show_all = false) {
 /**
  * Get customer list for dashboard (limited/summary view)
  */
-function getDashboardCustomers($limit = 10, $user_id = null, $show_all = false, $view_mode = 'recent') {
+function getDashboardCustomers($limit = 10, $user_id = null, $show_all = false, $view_mode = 'recent', $user_filter = null, $status_filter = null) {
     global $pdo;
     
     try {
-        $whereClause = '';
+        $conditions = [];
         $params = [];
         
+        // Handle view mode filtering
         if (!$show_all && $user_id) {
-            $whereClause = 'WHERE c.assigned_user_id = :user_id';
+            $conditions[] = 'c.assigned_user_id = :user_id';
             $params[':user_id'] = $user_id;
         } elseif ($view_mode === 'unassigned') {
-            $whereClause = 'WHERE c.assigned_user_id IS NULL';
+            $conditions[] = 'c.assigned_user_id IS NULL';
+        }
+        
+        // Handle additional filters for admin
+        if ($show_all) {
+            if ($user_filter) {
+                $conditions[] = 'c.assigned_user_id = :user_filter';
+                $params[':user_filter'] = $user_filter;
+            }
+            if ($status_filter) {
+                $conditions[] = 'c.status = :status_filter';
+                $params[':status_filter'] = $status_filter;
+            }
+        }
+        
+        $whereClause = '';
+        if (!empty($conditions)) {
+            $whereClause = 'WHERE ' . implode(' AND ', $conditions);
         }
         
         $orderClause = '';

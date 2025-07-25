@@ -9,10 +9,23 @@ $currentUserId = $_SESSION['user_id'];
 
 // Handle view mode for admin users
 $viewMode = 'my'; // Default view mode
+$userFilter = null;
+$statusFilter = null;
+
 if ($isAdmin && isset($_GET['view'])) {
     $validViews = ['my', 'all', 'unassigned'];
     if (in_array($_GET['view'], $validViews)) {
         $viewMode = $_GET['view'];
+    }
+}
+
+// Handle filters for admin users
+if ($isAdmin && ($viewMode === 'all' || $viewMode === 'unassigned')) {
+    if (isset($_GET['user_filter']) && !empty($_GET['user_filter'])) {
+        $userFilter = (int)$_GET['user_filter'];
+    }
+    if (isset($_GET['status_filter']) && !empty($_GET['status_filter'])) {
+        $statusFilter = $_GET['status_filter'];
     }
 }
 
@@ -24,8 +37,8 @@ try {
     // Load dashboard data based on role
     if ($isAdmin) {
         // Admin dashboard data
-        $customerStats = getDashboardCustomerStats($userId, $showAll);
-        $customerData = getDashboardCustomers(15, $userId, $showAll, 'recent');
+        $customerStats = getDashboardCustomerStats($userId, $showAll, $userFilter, $statusFilter);
+        $customerData = getDashboardCustomers(15, $userId, $showAll, $viewMode, $userFilter, $statusFilter);
         $upcomingFollowups = getDashboardFollowups(5, $userId, $showAll);
         $recentActivities = getDashboardActivities(5, $userId, $showAll);
         $userPerformance = getUserPerformanceStats();
@@ -370,7 +383,8 @@ require_once 'includes/header.php';
 .user-info strong {
     display: block;
     margin-bottom: 5px;
-    color: #2c3e50;
+    color: #1a202c;
+    font-weight: 600;
 }
 
 .user-stats {
@@ -422,9 +436,10 @@ require_once 'includes/header.php';
 }
 
 .followup-content strong, .activity-content strong {
-    color: #2c3e50;
+    color: #1a202c;
     display: block;
     margin-bottom: 5px;
+    font-weight: 600;
 }
 
 .assigned-to {
@@ -538,6 +553,24 @@ require_once 'includes/header.php';
         gap: 15px;
         text-align: center;
     }
+}
+
+/* Dark mode improvements */
+body.dark-mode .followup-content strong,
+body.dark-mode .activity-content strong,
+body.dark-mode .user-info strong {
+    color: #f1f5f9 !important;
+}
+
+body.dark-mode .performance-item {
+    background: #334155;
+    border-left-color: #60a5fa;
+}
+
+body.dark-mode .followup-item,
+body.dark-mode .activity-item {
+    background: #334155;
+    border-left-color: #60a5fa;
 }
 </style>
 

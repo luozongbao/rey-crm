@@ -926,6 +926,7 @@ return [
     'customers' => 'customers',
     'active' => 'active',
     'recent_activities' => 'recent activities',
+    'clear_filters' => 'Clear Filters',
 
     // Add more messages as needed
 ];

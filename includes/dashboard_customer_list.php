@@ -32,6 +32,7 @@ $isAdmin = isAdmin();
             <form method="GET" class="filter-form">
                 <input type="hidden" name="view" value="<?php echo htmlspecialchars($viewMode); ?>">
                 
+                <?php if ($viewMode === 'all'): ?>
                 <select name="user_filter" onchange="this.form.submit()">
                     <option value=""><?php echo __('all_users'); ?></option>
                     <?php foreach ($allUsers as $user): ?>
@@ -41,6 +42,7 @@ $isAdmin = isAdmin();
                     </option>
                     <?php endforeach; ?>
                 </select>
+                <?php endif; ?>
                 
                 <select name="status_filter" onchange="this.form.submit()">
                     <option value=""><?php echo __('all_statuses'); ?></option>
@@ -51,6 +53,12 @@ $isAdmin = isAdmin();
                     </option>
                     <?php endforeach; ?>
                 </select>
+                
+                <?php if (isset($_GET['user_filter']) || isset($_GET['status_filter'])): ?>
+                <a href="?view=<?php echo htmlspecialchars($viewMode); ?>" class="btn btn-sm btn-secondary">
+                    <?php echo __('clear_filters'); ?>
+                </a>
+                <?php endif; ?>
             </form>
         </div>
         <?php endif; ?>
@@ -199,6 +207,14 @@ $isAdmin = isAdmin();
     display: flex;
     gap: 10px;
     align-items: center;
+    flex-wrap: wrap;
+}
+
+.filter-form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
 .filter-form select {
@@ -206,6 +222,18 @@ $isAdmin = isAdmin();
     border: 1px solid #ddd;
     border-radius: 4px;
     background: white;
+    min-width: 120px;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    border-color: #6c757d;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+    border-color: #545b62;
 }
 
 .customer-list-container {
@@ -236,21 +264,27 @@ $isAdmin = isAdmin();
 }
 
 .dashboard-customer-table tr:hover {
-    background: #f8f9fa;
+    background: #f1f5f9;
+}
+
+.dashboard-customer-table tr:hover .customer-info strong {
+    color: #0f172a;
 }
 
 .customer-info strong {
-    color: #2c3e50;
+    color: #1a202c;
     font-size: 14px;
+    font-weight: 600;
 }
 
 .customer-info small {
-    color: #6c757d;
+    color: #4a5568;
     font-size: 12px;
 }
 
 .customer-info .location {
-    color: #17a2b8;
+    color: #2b6cb0;
+    font-weight: 500;
 }
 
 .status-badge {
@@ -406,27 +440,43 @@ $isAdmin = isAdmin();
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
     .customer-list-container {
-        background: #2c3e50;
-        color: #ecf0f1;
+        background: #1e293b;
+        color: #f1f5f9;
     }
     
     .dashboard-customer-table th {
-        background: #34495e;
-        color: #ecf0f1;
-        border-bottom-color: #4a5568;
+        background: #334155;
+        color: #f1f5f9;
+        border-bottom-color: #475569;
     }
     
     .dashboard-customer-table td {
-        border-bottom-color: #4a5568;
+        border-bottom-color: #475569;
     }
     
     .dashboard-customer-table tr:hover {
-        background: #34495e;
+        background: #334155;
+    }
+    
+    .customer-info strong {
+        color: #f1f5f9 !important;
+    }
+    
+    .customer-info small {
+        color: #cbd5e1;
+    }
+    
+    .customer-info .location {
+        color: #60a5fa;
     }
     
     .customer-list-footer {
-        background: #34495e;
-        border-top-color: #4a5568;
+        background: #334155;
+        border-top-color: #475569;
+    }
+    
+    .showing-count {
+        color: #cbd5e1;
     }
 }
 </style>
