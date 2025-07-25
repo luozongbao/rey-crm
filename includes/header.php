@@ -21,6 +21,9 @@ if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) !== 'login.ph
     <title><?php echo __('rey_crm'); ?></title>
     <link rel="stylesheet" href="/assets/css/style.css">
     <link rel="stylesheet" href="/assets/css/language.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/assets/js/timezone.js?v=2.0" defer></script>
     <script src="/assets/js/language.js" defer></script>
     <!-- Language support CSS -->
@@ -53,27 +56,60 @@ if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) !== 'login.ph
                                 <?php echo __('dashboard'); ?>
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a href="/customers.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'customers.php' ? 'active' : ''; ?>">
+                        
+                        <!-- Customer Management Dropdown -->
+                        <li class="nav-item dropdown">
+                            <a href="#" class="nav-link dropdown-toggle <?php echo in_array(basename($_SERVER['PHP_SELF']), ['customers.php', 'customer_form.php']) ? 'active' : ''; ?>">
                                 <?php echo __('customers'); ?>
+                                <svg class="dropdown-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
                             </a>
+                            <ul class="dropdown-menu">
+                                <li><a href="/customers.php" class="dropdown-link"><?php echo __('all_customers'); ?></a></li>
+                                <li><a href="/customer_form.php" class="dropdown-link"><?php echo __('add_customer'); ?></a></li>
+                            </ul>
                         </li>
-                        <li class="nav-item">
-                            <a href="/all_activities.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'all_activities.php' ? 'active' : ''; ?>">
-                                <?php echo __('all_activities'); ?>
+                        
+                        <!-- Activities & Follow-ups Dropdown -->
+                        <li class="nav-item dropdown">
+                            <a href="#" class="nav-link dropdown-toggle <?php echo in_array(basename($_SERVER['PHP_SELF']), ['all_activities.php', 'all_followups.php', 'history_form.php']) ? 'active' : ''; ?>">
+                                <?php echo __('activities'); ?>
+                                <svg class="dropdown-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
                             </a>
+                            <ul class="dropdown-menu">
+                                <li><a href="/all_activities.php" class="dropdown-link"><?php echo __('all_activities'); ?></a></li>
+                                <li><a href="/all_followups.php" class="dropdown-link"><?php echo __('followups'); ?></a></li>
+                                <!-- <li><a href="/history_form.php" class="dropdown-link"><?php echo __('add_activity'); ?></a></li> -->
+                            </ul>
                         </li>
-                        <li class="nav-item">
-                            <a href="/all_followups.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'all_followups.php' ? 'active' : ''; ?>">
-                                <?php echo __('followups'); ?>
+                        
+                        <!-- Email Management Dropdown -->
+                        <li class="nav-item dropdown">
+                            <a href="#" class="nav-link dropdown-toggle <?php echo in_array(basename($_SERVER['PHP_SELF']), ['email_projects.php', 'email_project_form.php', 'send_email.php', 'email_history.php']) ? 'active' : ''; ?>">
+                                <?php echo __('email_management'); ?>
+                                <svg class="dropdown-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
                             </a>
+                            <ul class="dropdown-menu">
+                                <li><a href="/email_projects.php" class="dropdown-link"><?php echo __('email_projects'); ?></a></li>
+                                <!-- <li><a href="/send_email.php" class="dropdown-link"><?php echo __('send_email'); ?></a></li> -->
+                                <li><a href="/email_history.php" class="dropdown-link"><?php echo __('email_history'); ?></a></li>
+                            </ul>
                         </li>
-                        <li class="nav-item">
-                            <a href="/email_projects.php" class="nav-link <?php echo in_array(basename($_SERVER['PHP_SELF']), ['email_projects.php', 'email_project_form.php', 'send_email.php', 'email_history.php']) ? 'active' : ''; ?>">
-                                <?php echo __('email_projects'); ?>
-                            </a>
-                        </li>
+                        
                         <?php if (isAdmin()): ?>
+                        <!-- Admin Dashboard -->
+                        <li class="nav-item">
+                            <a href="/admin_customer_management.php" class="nav-link admin-link <?php echo basename($_SERVER['PHP_SELF']) === 'admin_customer_management.php' ? 'active' : ''; ?>">
+                                <?php echo __('admin_dashboard'); ?>
+                            </a>
+                        </li>
+                        
+                        <!-- Settings -->
                         <li class="nav-item">
                             <a href="/settings.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'settings.php' ? 'active' : ''; ?>">
                                 <?php echo __('settings'); ?>
@@ -122,11 +158,14 @@ if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) !== 'login.ph
             const mainNav = document.querySelector('.main-nav');
             const darkModeToggle = document.getElementById('dark-mode-toggle');
             const darkModeIcon = document.getElementById('dark-mode-icon');
+            
             // Set initial mode from localStorage
             if (localStorage.getItem('darkMode') === 'enabled') {
                 document.body.classList.add('dark-mode');
                 if (darkModeIcon) darkModeIcon.textContent = '☀️';
             }
+            
+            // Mobile menu toggle
             if (mobileMenuButton && mainNav) {
                 mobileMenuButton.addEventListener('click', function() {
                     mainNav.classList.toggle('show');
@@ -135,6 +174,7 @@ if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) !== 'login.ph
                     );
                 });
             }
+            
             // Dark mode toggle logic
             if (darkModeToggle) {
                 darkModeToggle.addEventListener('click', function() {
@@ -142,6 +182,71 @@ if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) !== 'login.ph
                     const enabled = document.body.classList.contains('dark-mode');
                     localStorage.setItem('darkMode', enabled ? 'enabled' : 'disabled');
                     darkModeIcon.textContent = enabled ? '☀️' : '🌙';
+                });
+            }
+            
+            // Dropdown functionality
+            const dropdowns = document.querySelectorAll('.nav-item.dropdown');
+            console.log('Found dropdowns:', dropdowns.length);
+            
+            dropdowns.forEach((dropdown, index) => {
+                const toggle = dropdown.querySelector('.dropdown-toggle');
+                const menu = dropdown.querySelector('.dropdown-menu');
+                
+                console.log(`Dropdown ${index}:`, { dropdown, toggle, menu });
+                
+                if (toggle && menu) {
+                    // Add hover listeners for desktop
+                    dropdown.addEventListener('mouseenter', function() {
+                        console.log('Mouse enter dropdown:', index);
+                        if (window.innerWidth > 768) {
+                            dropdown.classList.add('show');
+                        }
+                    });
+                    
+                    dropdown.addEventListener('mouseleave', function() {
+                        console.log('Mouse leave dropdown:', index);
+                        if (window.innerWidth > 768) {
+                            dropdown.classList.remove('show');
+                        }
+                    });
+                    
+                    // Click toggle for mobile and desktop
+                    toggle.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        console.log('Dropdown clicked:', index, 'Width:', window.innerWidth);
+                        
+                        // Close other dropdowns
+                        dropdowns.forEach(otherDropdown => {
+                            if (otherDropdown !== dropdown) {
+                                otherDropdown.classList.remove('show');
+                            }
+                        });
+                        
+                        // Toggle current dropdown
+                        dropdown.classList.toggle('show');
+                        console.log('Dropdown show class:', dropdown.classList.contains('show'));
+                    });
+                }
+            });
+            
+            // Close dropdowns when clicking outside (mobile only)
+            document.addEventListener('click', function(e) {
+                if (window.innerWidth <= 768) {
+                    if (!e.target.closest('.nav-item.dropdown')) {
+                        dropdowns.forEach(dropdown => {
+                            dropdown.classList.remove('show');
+                        });
+                    }
+                }
+            });
+            
+            // Close dropdowns on mobile when nav is closed
+            if (mobileMenuButton) {
+                mobileMenuButton.addEventListener('click', function() {
+                    dropdowns.forEach(dropdown => {
+                        dropdown.classList.remove('show');
+                    });
                 });
             }
         });

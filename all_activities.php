@@ -9,6 +9,15 @@ $customer_status = $_GET['customer_status'] ?? '';
 $date_from = $_GET['date_from'] ?? date('Y-m-d', strtotime("-1 month"));
 $date_to = $_GET['date_to'] ?? date('Y-m-d');
 
+// Handle show_only_mine checkbox logic properly
+if (count($_GET) > 0) {
+    // This is a form submission - respect the checkbox state
+    $showOnlyMine = isset($_GET['show_only_mine']) && $_GET['show_only_mine'] == '1';
+} else {
+    // This is a fresh page load - default to checked
+    $showOnlyMine = true;
+}
+
 // Validate dates - ensure date_from is not after date_to
 if (strtotime($date_from) > strtotime($date_to)) {
     // If dates are invalid, reset to default values
@@ -26,14 +35,14 @@ $validOrders = ['asc', 'desc'];
 $sort = in_array($sort, $validSorts) ? $sort : 'action_datetime';
 $order = in_array($order, $validOrders) ? $order : 'desc';
 
-// Get all customers for filter dropdown
-$customers = getAllCustomers();
+// Get customers for filter dropdown (respecting the filter)
+$customers = getMyCustomers($showOnlyMine);
 
 // Get customer status options for filter dropdown
 $customerStatusOptions = getCustomerStatusOptions();
 
 // Get filtered activities
-$activities = getFilteredActivities($customer_id, $date_from, $date_to, $sort, $order, $customer_status);
+$activities = getFilteredActivities($customer_id, $date_from, $date_to, $sort, $order, $customer_status, $showOnlyMine);
 
 require_once 'includes/header.php';
 ?>
@@ -107,6 +116,14 @@ require_once 'includes/header.php';
                         <option value="desc" <?= $order == 'desc' ? 'selected' : '' ?>><?= __('newest_first') ?></option>
                         <option value="asc" <?= $order == 'asc' ? 'selected' : '' ?>><?= __('oldest_first') ?></option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="show_only_mine" value="1" 
+                               <?= $showOnlyMine ? 'checked' : '' ?>
+                               onchange="this.form.submit()">
+                        <?= __('show_only_my_customers') ?>
+                    </label>
                 </div>
             </div>
             <!-- </div> -->

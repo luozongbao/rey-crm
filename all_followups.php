@@ -7,8 +7,17 @@ requireLogin();
 // Get filter parameters
 $customer_id = $_GET['customer_id'] ?? '';
 $customer_status = $_GET['customer_status'] ?? '';
-$date_from = $_GET['date_from'] ?? date('Y-m-d');
-$date_to = $_GET['date_to'] ?? date('Y-m-d', strtotime('+1 month'));
+$date_from = $_GET['date_from'] ?? date('Y-m-d', strtotime("-1 month"));
+$date_to = $_GET['date_to'] ?? date('Y-m-d');
+
+// Handle show_only_mine checkbox logic properly
+if (count($_GET) > 0) {
+    // This is a form submission - respect the checkbox state
+    $showOnlyMine = isset($_GET['show_only_mine']) && $_GET['show_only_mine'] == '1';
+} else {
+    // This is a fresh page load - default to checked
+    $showOnlyMine = true;
+}
 
 // Validate dates - ensure date_from is not after date_to
 if (strtotime($date_from) > strtotime($date_to)) {
@@ -18,23 +27,23 @@ if (strtotime($date_from) > strtotime($date_to)) {
 }
 
 $sort = $_GET['sort'] ?? 'follow_up_datetime';
-$order = $_GET['order'] ?? 'asc';
+$order = $_GET['order'] ?? 'desc';
 
 // Validate parameters
 $validSorts = ['company_name', 'follow_up_datetime', 'action_datetime', 'customer_status'];
 $validOrders = ['asc', 'desc'];
 
 $sort = in_array($sort, $validSorts) ? $sort : 'follow_up_datetime';
-$order = in_array($order, $validOrders) ? $order : 'asc';
+$order = in_array($order, $validOrders) ? $order : 'desc';
 
-// Get all customers for filter dropdown
-$customers = getAllCustomers();
+// Get customers for filter dropdown (respecting the filter)
+$customers = getMyCustomers($showOnlyMine);
 
 // Get customer status options for filter dropdown
 $customerStatusOptions = getCustomerStatusOptions();
 
 // Get filtered follow-ups
-$followups = getFilteredFollowups($customer_id, $date_from, $date_to, $sort, $order, $customer_status);
+$followups = getFilteredFollowups($customer_id, $date_from, $date_to, $sort, $order, $customer_status, $showOnlyMine);
 
 require_once 'includes/header.php';
 ?>
@@ -93,8 +102,8 @@ require_once 'includes/header.php';
             <div class="form-row">
                 <div class="form-group">
                     <label for="sort_by"><?= __('sort_by') ?>:</label>
-                    <select name="sort_by" id="sort_by" onchange="this.form.submit()">
-                        <option value="followup_date" <?= $sort_by == 'followup_date' ? 'selected' : '' ?>><?= __('followup_date') ?></option>
+                    <select name="sort" id="sort" onchange="this.form.submit()">
+                        <option value="followup_datetime" <?= $sort_by == 'followup_datetime' ? 'selected' : '' ?>><?= __('followup_date') ?></option>
                         <option value="company_name" <?= $sort_by == 'company_name' ? 'selected' : '' ?>><?= __('customer_name') ?></option>
                         <option value="customer_status" <?= $sort_by == 'customer_status' ? 'selected' : '' ?>><?= __('customer_status') ?></option>
                     </select>
@@ -103,11 +112,21 @@ require_once 'includes/header.php';
                 <div class="form-group">
                     <label for="order"><?= __('order') ?>:</label>
                     <select name="order" id="order" onchange="this.form.submit()">
-                        <option value="ASC" <?= $order == 'ASC' ? 'selected' : '' ?>><?= __('ascending') ?></option>
-                        <option value="DESC" <?= $order == 'DESC' ? 'selected' : '' ?>><?= __('descending') ?></option>
+                        <option value="asc" <?= $order == 'asc' ? 'selected' : '' ?>><?= __('ascending') ?></option>
+                        <option value="desc" <?= $order == 'desc' ? 'selected' : '' ?>><?= __('descending') ?></option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="show_only_mine" value="1" 
+                               <?= $showOnlyMine ? 'checked' : '' ?>
+                               onchange="this.form.submit()">
+                        <?= __('show_only_my_customers') ?>
+                    </label>
+                </div>                
             </div>
+            
+
         </form>
 
         <!-- Follow-ups Table -->

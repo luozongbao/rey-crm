@@ -27,6 +27,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
         'notes' => $_POST['notes'] ?? null
     ];
     
+    // Add assignment field if user can assign and field is present
+    if (isset($_POST['assigned_user_id']) && canAssignCustomer($customer_id)) {
+        // Convert empty string to NULL for database
+        $assigned_user_id = $_POST['assigned_user_id'];
+        $data['assigned_user_id'] = ($assigned_user_id === '' || $assigned_user_id === null) ? null : $assigned_user_id;
+    }
+    
     // Validate email if provided
     if (!empty($data['contact_email'])) {
         $email_validation = validate_cc_emails($data['contact_email']);
@@ -42,45 +49,43 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
             // Start transaction
             $pdo->beginTransaction();
             
-            // Insert customer
-            $stmt = $pdo->prepare("INSERT INTO customers 
-                                  (company_name, address, country, province, company_type, contact_phone, contact_email, website, status, notes) 
-                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute(array_values($data));
-            $customer_id = $pdo->lastInsertId();
-            
-            // Create main contact
-            $mainContact = [
-                'customer_id' => $customer_id,
-                'name' => 'Company Main Contact',
-                'title' => 'Primary Contact',
-                'role' => 'Main Contact',
-                'contact_number' => $_POST['contact_phone'] ?? null,
-                'contact_email' => $_POST['contact_email'] ?? null,
-                'notes' => 'Automatically created as main contact'
-            ];
-            
-            $stmt = $pdo->prepare("INSERT INTO contact_persons 
-                                  (customer_id, name, title, role, contact_number, contact_email, notes) 
-                                  VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute(array_values($mainContact));
-            
-            // Commit transaction
-            $pdo->commit();
-            
-            header("Location: customers.php?restore=1");
-            exit;
+            // Use the addCustomer function which handles assignment
+            if (addCustomer($data)) {
+                $customer_id = $pdo->lastInsertId();
+                
+                // Create main contact
+                $mainContact = [
+                    'customer_id' => $customer_id,
+                    'name' => 'Company Main Contact',
+                    'title' => 'Primary Contact',
+                    'role' => 'Main Contact',
+                    'contact_number' => $_POST['contact_phone'] ?? null,
+                    'contact_email' => $_POST['contact_email'] ?? null,
+                    'notes' => 'Automatically created as main contact'
+                ];
+                
+                $stmt = $pdo->prepare("INSERT INTO contact_persons 
+                                      (customer_id, name, title, role, contact_number, contact_email, notes) 
+                                      VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute(array_values($mainContact));
+                
+                // Commit transaction
+                $pdo->commit();
+                
+                header("Location: customers.php?restore=1");
+                exit;
+            } else {
+                $pdo->rollBack();
+                die("Error adding customer");
+            }
         } else {
-            $stmt = $pdo->prepare("UPDATE customers SET 
-                                  company_name = ?, address = ?, country = ?, province = ?, 
-                                  company_type = ?, contact_phone = ?, contact_email = ?, 
-                                  website = ?, status = ?, notes = ? 
-                                  WHERE customer_id = ?");
-            $data[] = $customer_id;
-            $stmt->execute(array_values($data));
-            
-            header("Location: customers.php?restore=1");
-            exit;
+            // Use the updateCustomer function which handles assignment
+            if (updateCustomer($customer_id, $data)) {
+                header("Location: customers.php?restore=1");
+                exit;
+            } else {
+                die("Error updating customer");
+            }
         }
     } catch (PDOException $e) {
         if ($action == 'add' && isset($pdo)) {
@@ -141,6 +146,58 @@ require_once 'includes/header.php';
                         <?php endforeach; ?>
                     </select>
                 </div>
+                
+                <?php if (canAssignCustomer($customer_id)): ?>
+                <div class="form-group">
+                    <label for="assigned_user_id"><?php echo __('assigned_to'); ?>:</label>
+                    <div class="assignment-controls">
+                        <select id="assigned_user_id" name="assigned_user_id" <?php echo $isViewMode ? 'disabled' : ''; ?>>
+                            <option value=""><?php echo __('unassigned'); ?></option>
+                            <?php
+                            $users = getAllUsers();
+                            foreach ($users as $user):
+                                $selected = '';
+                                if ($customer) {
+                                    $selected = ($customer['assigned_user_id'] == $user['user_id']) ? 'selected' : '';
+                                } else {
+                                    // For new customers, default to current user
+                                    $selected = ($_SESSION['user_id'] == $user['user_id']) ? 'selected' : '';
+                                }
+                            ?>
+                                <option value="<?php echo $user['user_id']; ?>" <?php echo $selected; ?>>
+                                    <?php echo htmlspecialchars($user['username']); ?>
+                                    <?php 
+                                    // Show current workload
+                                    $workload = getUserWorkload($user['user_id']);
+                                    echo " ({$workload} customers)";
+                                    ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        
+                        <?php if ($customer && $customer['assigned_user_id'] && !$isViewMode): ?>
+                            <button type="button" class="btn btn-warning btn-sm" id="unassign-btn" 
+                                    title="<?php echo __('unassign_customer'); ?>">
+                                <i class="fas fa-user-minus"></i> <?php echo __('unassign'); ?>
+                            </button>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <?php if ($customer && $customer['assigned_user_id']): ?>
+                        <div class="assignment-info">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i>
+                                Currently assigned to: <strong><?php echo htmlspecialchars($customer['assigned_username'] ?? 'Unknown'); ?></strong>
+                            </small>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                <?php elseif ($customer): ?>
+                <div class="form-group">
+                    <label><?php echo __('assigned_to'); ?>:</label>
+                    <p class="read-only"><?php echo htmlspecialchars($customer['assigned_to_username'] ?? __('unassigned')); ?></p>
+                </div>
+                <?php endif; ?>
             </div>
 
             <!-- Row 2: Province and Country -->
@@ -382,6 +439,75 @@ function isValidEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
 }
+
+// Unassign functionality
+const unassignBtn = document.getElementById('unassign-btn');
+if (unassignBtn) {
+    unassignBtn.addEventListener('click', function() {
+        if (confirm('<?php echo addslashes(__('confirm_unassign_customer')); ?>')) {
+            // Immediate AJAX unassign
+            const customerId = <?php echo $customer_id; ?>;
+            
+            // Disable button and show loading
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <?php echo addslashes(__('unassigning')); ?>...';
+            
+            fetch('ajax_handlers/customer_unassign.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    customer_id: customerId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the UI immediately
+                    const assignmentSelect = document.getElementById('assigned_user_id');
+                    assignmentSelect.value = '';
+                    
+                    // Hide the unassign button
+                    this.style.display = 'none';
+                    
+                    // Update the assignment info
+                    const assignmentInfo = document.querySelector('.assignment-info');
+                    if (assignmentInfo) {
+                        assignmentInfo.innerHTML = '<small class="text-success"><i class="fas fa-check-circle"></i> Customer successfully unassigned.</small>';
+                    }
+                    
+                    // Show success message
+                    alert('<?php echo addslashes(__('success')); ?>: ' + data.message);
+                } else {
+                    // Re-enable button on error
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fas fa-user-minus"></i> <?php echo addslashes(__('unassign')); ?>';
+                    alert('<?php echo addslashes(__('error')); ?>: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Re-enable button on error
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-user-minus"></i> <?php echo addslashes(__('unassign')); ?>';
+                alert('<?php echo addslashes(__('error')); ?>: An error occurred while unassigning the customer.');
+            });
+        }
+    });
+}
+
+// Show/hide unassign button based on selection
+const assignmentSelect = document.getElementById('assigned_user_id');
+if (assignmentSelect && unassignBtn) {
+    assignmentSelect.addEventListener('change', function() {
+        if (this.value === '') {
+            unassignBtn.style.display = 'none';
+        } else if (this.value !== '<?php echo $customer['assigned_user_id'] ?? ''; ?>') {
+            unassignBtn.style.display = 'none';
+        }
+    });
+}
 </script>
 
 <style>
@@ -414,6 +540,38 @@ function isValidEmail(email) {
     font-size: 0.875em;
     color: #6c757d;
     margin-top: 0.25rem;
+}
+
+/* Assignment controls styles */
+.assignment-controls {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.assignment-controls select {
+    flex: 1;
+}
+
+.assignment-controls .btn {
+    white-space: nowrap;
+}
+
+.assignment-info {
+    margin-top: 5px;
+}
+
+.assignment-info small {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+@media (max-width: 768px) {
+    .assignment-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
 }
 </style>
 
