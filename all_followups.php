@@ -64,15 +64,15 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 
     // Write data rows
     foreach ($followups as $followup) {
-        $location = $followup['province'] ? htmlspecialchars($followup['province']) : '';
+        $location = $followup['province'] ? $followup['province'] : '';
         
         $row = [
-            htmlspecialchars($followup['company_name']),
+            $followup['company_name'],
             $location,
-            htmlspecialchars(__($followup['customer_status'])),
-            htmlspecialchars($followup['action']),
+            __($followup['customer_status']),
+            $followup['action'],
             formatDateTimeCompact($followup['follow_up_datetime']),
-            htmlspecialchars($followup['next_step'])
+            $followup['next_step']
         ];
         
         fputcsv($output, $row);
