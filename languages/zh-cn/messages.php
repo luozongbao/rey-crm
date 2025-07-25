@@ -271,6 +271,7 @@ return [
     'project_name' => '项目名称',
     'cc' => '抄送',
     'created' => '创建时间',
+    'created_by' => '创建者',
     'confirm_delete_email_project' => '您确定要删除此邮件项目吗？',
     'email_project_deleted_successfully' => '邮件项目删除成功',
     'error_deleting_email_project' => '删除邮件项目时出错。',
@@ -574,6 +575,7 @@ return [
     
     // Assignment functionality
     'unassigned' => '未分配',
+    'unknown' => '未知',
     'unassign' => '取消分配',
     'unassigning' => '取消分配中',
     'unassign_customer' => '取消分配客户',
@@ -788,6 +790,9 @@ return [
     'report_type' => '报表类型',
     'select_report_type' => '-- 选择报表类型 --',
     'user_performance_reports' => '用户绩效报表',
+    'user_performance' => '用户绩效',
+    'best_performers' => '最佳表现者',
+    'track_team_performance_for' => '跟踪团队在{period}的绩效',
     'customer_reports' => '客户报表',
     'activity_reports' => '活动报表',
     'management_reports' => '管理报表',

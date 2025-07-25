@@ -6,29 +6,39 @@ $date_range = $_GET['range'] ?? '30'; // days
 $start_date = $_GET['start_date'] ?? '';
 $end_date = $_GET['end_date'] ?? '';
 
-// Calculate date range
+// Calculate date range based on parameters
 if (!empty($start_date) && !empty($end_date)) {
-    $date_filter = "BETWEEN '$start_date' AND '$end_date'";
+    // Custom date range
+    $date_filter = "BETWEEN '$start_date 00:00:00' AND '$end_date 23:59:59'";
     $period_label = "Custom Range ($start_date to $end_date)";
+    $filter_start = $start_date;
+    $filter_end = $end_date;
 } else {
+    // Quick range selection
     $days = intval($date_range);
+    $filter_start = date('Y-m-d', strtotime("-$days days"));
+    $filter_end = date('Y-m-d');
     $date_filter = ">= DATE_SUB(NOW(), INTERVAL $days DAY)";
     $period_label = "Last $days Days";
+    
+    // Set the date inputs to reflect the quick range
+    $start_date = $filter_start;
+    $end_date = $filter_end;
 }
 
 // Get performance metrics
 try {
-    // Activity metrics by user
+    // Activity metrics by user - using correct table structure
     $stmt = $pdo->query("
         SELECT 
             u.username,
             u.user_id,
             COUNT(DISTINCT c.customer_id) as customers_assigned,
-            COUNT(ah.activity_id) as total_activities,
-            COUNT(CASE WHEN ah.activity_type = 'email' THEN 1 END) as emails_sent,
-            COUNT(CASE WHEN ah.activity_type = 'call' THEN 1 END) as calls_made,
-            COUNT(CASE WHEN ah.activity_type = 'meeting' THEN 1 END) as meetings_held,
-            COUNT(CASE WHEN ah.follow_up_datetime $date_filter THEN 1 END) as followups_completed,
+            COUNT(ah.history_id) as total_activities,
+            COUNT(CASE WHEN ah.action LIKE '%email%' OR ah.action LIKE '%Email%' THEN 1 END) as emails_sent,
+            COUNT(CASE WHEN ah.action LIKE '%call%' OR ah.action LIKE '%Call%' OR ah.action LIKE '%phone%' THEN 1 END) as calls_made,
+            COUNT(CASE WHEN ah.action LIKE '%meeting%' OR ah.action LIKE '%Meeting%' THEN 1 END) as meetings_held,
+            COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL AND ah.action_datetime $date_filter THEN 1 END) as followups_scheduled,
             MAX(ah.action_datetime) as last_activity_date
         FROM users u
         LEFT JOIN customers c ON u.user_id = c.assigned_user_id
@@ -38,7 +48,7 @@ try {
     ");
     $user_performance = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Top performers
+    // Top performers (users with most activities)
     $top_performers = array_slice($user_performance, 0, 5);
 
     // System-wide metrics
@@ -46,8 +56,8 @@ try {
         SELECT 
             COUNT(DISTINCT customer_id) as active_customers,
             COUNT(*) as total_activities,
-            COUNT(CASE WHEN activity_type = 'email' THEN 1 END) as total_emails,
-            COUNT(CASE WHEN activity_type = 'call' THEN 1 END) as total_calls,
+            COUNT(CASE WHEN action LIKE '%email%' OR action LIKE '%Email%' THEN 1 END) as total_emails,
+            COUNT(CASE WHEN action LIKE '%call%' OR action LIKE '%Call%' OR action LIKE '%phone%' THEN 1 END) as total_calls,
             AVG(CASE WHEN follow_up_datetime IS NOT NULL THEN 
                 DATEDIFF(follow_up_datetime, action_datetime) END) as avg_followup_days
         FROM action_history 
@@ -58,13 +68,14 @@ try {
     // Daily activity trend
     $stmt = $pdo->query("
         SELECT 
-            DATE(action_datetime) as activity_date,
+            DATE(ah.action_datetime) as activity_date,
             COUNT(*) as daily_activities,
-            COUNT(DISTINCT customer_id) as customers_contacted,
-            COUNT(DISTINCT user_id) as active_users
-        FROM action_history 
-        WHERE action_datetime $date_filter
-        GROUP BY DATE(action_datetime)
+            COUNT(DISTINCT ah.customer_id) as customers_contacted,
+            COUNT(DISTINCT c.assigned_user_id) as active_users
+        FROM action_history ah
+        LEFT JOIN customers c ON ah.customer_id = c.customer_id
+        WHERE ah.action_datetime $date_filter
+        GROUP BY DATE(ah.action_datetime)
         ORDER BY activity_date DESC
         LIMIT 30
     ");
@@ -110,13 +121,12 @@ try {
     // Follow-up management metrics
     $stmt = $pdo->query("
         SELECT 
-            COUNT(CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as overdue_followups,
-            COUNT(CASE WHEN ah.follow_up_datetime >= NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as upcoming_followups,
-            COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL THEN 1 END) as total_followups_scheduled,
-            AVG(TIMESTAMPDIFF(DAY, ah.action_datetime, ah.follow_up_datetime)) as avg_followup_interval,
             u.username,
             u.user_id,
-            COUNT(CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as user_overdue_count
+            COUNT(CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as user_overdue_count,
+            COUNT(CASE WHEN ah.follow_up_datetime >= NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as user_upcoming_count,
+            COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL THEN 1 END) as user_total_followups,
+            AVG(TIMESTAMPDIFF(DAY, ah.action_datetime, ah.follow_up_datetime)) as user_avg_followup_interval
         FROM action_history ah
         JOIN customers c ON ah.customer_id = c.customer_id
         JOIN users u ON c.assigned_user_id = u.user_id
@@ -127,9 +137,18 @@ try {
     $followup_metrics = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // System-wide follow-up summary
-    $total_overdue = array_sum(array_column($followup_metrics, 'overdue_followups'));
-    $total_upcoming = array_sum(array_column($followup_metrics, 'upcoming_followups'));
-    $total_scheduled = array_sum(array_column($followup_metrics, 'total_followups_scheduled'));
+    $stmt = $pdo->query("
+        SELECT 
+            COUNT(CASE WHEN follow_up_datetime < NOW() AND follow_up_datetime IS NOT NULL THEN 1 END) as total_overdue,
+            COUNT(CASE WHEN follow_up_datetime >= NOW() AND follow_up_datetime IS NOT NULL THEN 1 END) as total_upcoming,
+            COUNT(CASE WHEN follow_up_datetime IS NOT NULL THEN 1 END) as total_scheduled
+        FROM action_history 
+        WHERE action_datetime $date_filter
+    ");
+    $followup_summary = $stmt->fetch(PDO::FETCH_ASSOC);
+    $total_overdue = $followup_summary['total_overdue'] ?? 0;
+    $total_upcoming = $followup_summary['total_upcoming'] ?? 0;
+    $total_scheduled = $followup_summary['total_scheduled'] ?? 0;
 
 } catch (PDOException $e) {
     logError("Error getting performance metrics: " . $e->getMessage());
@@ -1336,3 +1355,46 @@ try {
     }
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle quick range selection to update date inputs
+    const rangeSelect = document.querySelector('select[name="range"]');
+    const startDateInput = document.querySelector('input[name="start_date"]');
+    const endDateInput = document.querySelector('input[name="end_date"]');
+    
+    if (rangeSelect && startDateInput && endDateInput) {
+        rangeSelect.addEventListener('change', function() {
+            const days = parseInt(this.value);
+            if (days > 0) {
+                const endDate = new Date();
+                const startDate = new Date();
+                startDate.setDate(endDate.getDate() - days);
+                
+                // Format dates as YYYY-MM-DD
+                const formatDate = (date) => {
+                    return date.getFullYear() + '-' + 
+                           String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                           String(date.getDate()).padStart(2, '0');
+                };
+                
+                startDateInput.value = formatDate(startDate);
+                endDateInput.value = formatDate(endDate);
+            }
+        });
+        
+        // Clear range selection when custom dates are changed
+        startDateInput.addEventListener('change', function() {
+            if (this.value) {
+                rangeSelect.value = '';
+            }
+        });
+        
+        endDateInput.addEventListener('change', function() {
+            if (this.value) {
+                rangeSelect.value = '';
+            }
+        });
+    }
+});
+</script>

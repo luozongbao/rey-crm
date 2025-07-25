@@ -1968,10 +1968,10 @@ function getUserWorkloadStats($user_id = null) {
                 SELECT 
                     u.user_id,
                     u.username,
-                    COUNT(c.customer_id) as customer_count,
-                    COUNT(CASE WHEN c.status = 'Active' THEN 1 END) as active_customers,
-                    COUNT(CASE WHEN c.status = 'Prospect' THEN 1 END) as prospect_customers,
-                    COUNT(CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as overdue_followups,
+                    COUNT(DISTINCT c.customer_id) as customer_count,
+                    COUNT(DISTINCT CASE WHEN c.status = 'Active' THEN c.customer_id END) as active_customers,
+                    COUNT(DISTINCT CASE WHEN c.status = 'Prospect' THEN c.customer_id END) as prospect_customers,
+                    COUNT(DISTINCT CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime IS NOT NULL THEN c.customer_id END) as overdue_followups,
                     COUNT(CASE WHEN ah.action_datetime >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as recent_activities
                 FROM users u
                 LEFT JOIN customers c ON u.user_id = c.assigned_user_id
@@ -1987,9 +1987,9 @@ function getUserWorkloadStats($user_id = null) {
                 SELECT 
                     u.user_id,
                     u.username,
-                    COUNT(c.customer_id) as customer_count,
-                    COUNT(CASE WHEN c.status = 'Active' THEN 1 END) as active_customers,
-                    COUNT(CASE WHEN c.status = 'Prospect' THEN 1 END) as prospect_customers,
+                    COUNT(DISTINCT c.customer_id) as customer_count,
+                    COUNT(DISTINCT CASE WHEN c.status = 'Active' THEN c.customer_id END) as active_customers,
+                    COUNT(DISTINCT CASE WHEN c.status = 'Prospect' THEN c.customer_id END) as prospect_customers,
                     MAX(ah.action_datetime) as last_activity
                 FROM users u
                 LEFT JOIN customers c ON u.user_id = c.assigned_user_id
@@ -2256,9 +2256,9 @@ function getPerformanceMetrics($user_ids = [], $date_range = []) {
                 COUNT(DISTINCT c.customer_id) as customer_count,
                 COUNT(DISTINCT ah.history_id) as total_activities,
                 COUNT(DISTINCT CASE WHEN ah.action_datetime BETWEEN ? AND ? THEN ah.history_id END) as recent_activities,
-                COUNT(CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as overdue_followups,
-                COUNT(CASE WHEN c.status = 'Active' THEN 1 END) as active_customers,
-                COUNT(CASE WHEN c.status = 'Prospect' THEN 1 END) as prospect_customers,
+                COUNT(DISTINCT CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime IS NOT NULL THEN c.customer_id END) as overdue_followups,
+                COUNT(DISTINCT CASE WHEN c.status = 'Active' THEN c.customer_id END) as active_customers,
+                COUNT(DISTINCT CASE WHEN c.status = 'Prospect' THEN c.customer_id END) as prospect_customers,
                 MAX(ah.action_datetime) as last_activity_date,
                 AVG(CASE WHEN c.status = 'Active' THEN 1 ELSE 0 END) * 100 as conversion_rate
             FROM users u

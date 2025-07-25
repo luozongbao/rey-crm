@@ -43,287 +43,289 @@ function generateReport($type, $start_date, $end_date, $user_filter = '') {
         $user_params[] = $user_filter;
     }
     
-    switch ($type) {
-        case 'user_activity':
-            $sql = "SELECT 
-                        u.username,
-                        COUNT(DISTINCT c.customer_id) as customers_managed,
-                        COUNT(ah.activity_id) as total_activities,
-                        COUNT(CASE WHEN ah.activity_type = 'email' THEN 1 END) as emails_sent,
-                        COUNT(CASE WHEN ah.activity_type = 'call' THEN 1 END) as calls_made,
-                        COUNT(CASE WHEN ah.activity_type = 'meeting' THEN 1 END) as meetings_held,
-                        MIN(ah.action_datetime) as first_activity,
-                        MAX(ah.action_datetime) as last_activity
-                    FROM users u
-                    LEFT JOIN customers c ON u.user_id = c.assigned_user_id
-                    LEFT JOIN action_history ah ON c.customer_id = ah.customer_id 
-                        AND ah.action_datetime BETWEEN ? AND ?
-                    WHERE 1=1 $user_condition
-                    GROUP BY u.user_id, u.username
-                    ORDER BY total_activities DESC";
-            break;
-            
-        case 'customer_status':
-            $sql = "SELECT 
-                        c.company_name,
-                        c.contact_email,
-                        c.status,
-                        u.username as assigned_to,
-                        c.created_at,
-                        c.updated_at,
-                        COUNT(ah.activity_id) as activity_count,
-                        MAX(ah.action_datetime) as last_activity,
-                        (SELECT follow_up_datetime FROM action_history 
-                         WHERE customer_id = c.customer_id AND follow_up_datetime > NOW() 
-                         ORDER BY follow_up_datetime ASC LIMIT 1) as next_followup
-                    FROM customers c
-                    LEFT JOIN users u ON c.assigned_user_id = u.user_id
-                    LEFT JOIN action_history ah ON c.customer_id = ah.customer_id
-                        AND ah.action_datetime BETWEEN ? AND ?
-                    WHERE c.created_at >= ? OR c.updated_at BETWEEN ? AND ?
-                    $user_condition
-                    GROUP BY c.customer_id
-                    ORDER BY c.updated_at DESC";
-            $user_params = array_merge([$start_date, $end_date, $start_date, $start_date, $end_date], $user_params);
-            break;
-            
-        case 'activity_summary':
-            $sql = "SELECT 
-                        DATE(ah.action_datetime) as activity_date,
-                        ah.activity_type,
-                        COUNT(*) as count,
-                        COUNT(DISTINCT ah.customer_id) as unique_customers,
-                        COUNT(DISTINCT ah.user_id) as unique_users
-                    FROM action_history ah
-                    LEFT JOIN customers c ON ah.customer_id = c.customer_id
-                    LEFT JOIN users u ON ah.user_id = u.user_id
-                    WHERE ah.action_datetime BETWEEN ? AND ?
-                    $user_condition
-                    GROUP BY DATE(ah.action_datetime), ah.activity_type
-                    ORDER BY activity_date DESC, ah.activity_type";
-            break;
-            
-        case 'assignment_history':
-            $sql = "SELECT 
-                        c.company_name,
-                        u_old.username as previous_user,
-                        u_new.username as new_user,
-                        ah.notes,
-                        ah.action_datetime as assignment_date,
-                        u_admin.username as assigned_by
-                    FROM action_history ah
-                    JOIN customers c ON ah.customer_id = c.customer_id
-                    LEFT JOIN users u_old ON ah.notes LIKE CONCAT('%from ', u_old.username, '%')
-                    LEFT JOIN users u_new ON ah.notes LIKE CONCAT('%to ', u_new.username, '%')
-                    LEFT JOIN users u_admin ON ah.user_id = u_admin.user_id
-                    WHERE ah.activity_type IN ('assignment', 'reassignment')
-                        AND ah.action_datetime BETWEEN ? AND ?
-                    $user_condition
-                    ORDER BY ah.action_datetime DESC";
-            break;
-            
-        case 'user_performance':
-            $sql = "SELECT 
-                        u.username,
-                        COUNT(DISTINCT c.customer_id) as customers_assigned,
-                        COUNT(ah.history_id) as total_activities,
-                        COUNT(CASE WHEN ah.action LIKE '%email%' THEN 1 END) as emails_sent,
-                        COUNT(CASE WHEN ah.action LIKE '%call%' THEN 1 END) as calls_made,
-                        COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL THEN 1 END) as followups_scheduled,
-                        COUNT(CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as overdue_followups,
-                        AVG(CASE WHEN c.status = 'Active' THEN 1 ELSE 0 END) * 100 as conversion_rate,
-                        ROUND(COUNT(ah.history_id) / GREATEST(COUNT(DISTINCT c.customer_id), 1), 2) as activity_per_customer,
-                        MAX(ah.action_datetime) as last_activity_date
-                    FROM users u
-                    LEFT JOIN customers c ON u.user_id = c.assigned_user_id
-                    LEFT JOIN action_history ah ON c.customer_id = ah.customer_id 
-                        AND ah.action_datetime BETWEEN ? AND ?
-                    WHERE u.role != 'admin' $user_condition
-                    GROUP BY u.user_id, u.username
-                    ORDER BY total_activities DESC";
-            break;
-            
-        case 'follow_up_performance':
-            $sql = "SELECT 
-                        u.username,
-                        COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL THEN 1 END) as total_followups,
-                        COUNT(CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as overdue_followups,
-                        COUNT(CASE WHEN ah.follow_up_datetime >= NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as upcoming_followups,
-                        AVG(TIMESTAMPDIFF(DAY, ah.action_datetime, ah.follow_up_datetime)) as avg_followup_interval,
-                        COUNT(CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) / 
-                            GREATEST(COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL THEN 1 END), 1) * 100 as overdue_percentage
-                    FROM users u
-                    LEFT JOIN customers c ON u.user_id = c.assigned_user_id
-                    LEFT JOIN action_history ah ON c.customer_id = ah.customer_id 
-                        AND ah.action_datetime BETWEEN ? AND ?
-                    WHERE u.role != 'admin' $user_condition
-                    GROUP BY u.user_id, u.username
-                    HAVING total_followups > 0
-                    ORDER BY overdue_percentage DESC";
-            break;
-            
-        case 'customer_conversion':
-            $sql = "SELECT 
-                        c.company_name,
-                        c.contact_email,
-                        u.username as assigned_to,
-                        c.created_at,
-                        c.status,
-                        DATEDIFF(NOW(), c.created_at) as days_in_system,
-                        COUNT(ah.history_id) as total_activities,
-                        MIN(ah.action_datetime) as first_contact,
-                        MAX(ah.action_datetime) as last_contact
-                    FROM customers c
-                    LEFT JOIN users u ON c.assigned_user_id = u.user_id
-                    LEFT JOIN action_history ah ON c.customer_id = ah.customer_id
-                        AND ah.action_datetime BETWEEN ? AND ?
-                    WHERE (c.created_at BETWEEN ? AND ? OR c.updated_at BETWEEN ? AND ?)
-                    $user_condition
-                    GROUP BY c.customer_id
-                    ORDER BY days_in_system DESC";
-            $user_params = array_merge([$start_date, $end_date, $start_date, $end_date, $start_date, $end_date], $user_params);
-            break;
-            
-        case 'inactive_customers':
-            $sql = "SELECT 
-                        c.company_name,
-                        c.contact_email,
-                        c.status,
-                        u.username as assigned_to,
-                        c.created_at,
-                        last_activity.last_activity_date,
-                        DATEDIFF(NOW(), COALESCE(last_activity.last_activity_date, c.created_at)) as days_since_activity,
-                        COUNT(ah.history_id) as total_activities
-                    FROM customers c
-                    LEFT JOIN users u ON c.assigned_user_id = u.user_id
-                    LEFT JOIN action_history ah ON c.customer_id = ah.customer_id
-                    LEFT JOIN (
-                        SELECT customer_id, MAX(action_datetime) as last_activity_date
-                        FROM action_history 
-                        GROUP BY customer_id
-                    ) last_activity ON c.customer_id = last_activity.customer_id
-                    WHERE (last_activity.last_activity_date IS NULL OR last_activity.last_activity_date < DATE_SUB(NOW(), INTERVAL 30 DAY))
-                    $user_condition
-                    GROUP BY c.customer_id
-                    ORDER BY days_since_activity DESC";
-            break;
-            
-        case 'response_time':
-            $sql = "SELECT 
-                        c.company_name,
-                        u.username as assigned_to,
-                        c.created_at,
-                        first_response.first_response_date,
-                        TIMESTAMPDIFF(HOUR, c.created_at, first_response.first_response_date) as response_time_hours,
-                        CASE 
-                            WHEN TIMESTAMPDIFF(HOUR, c.created_at, first_response.first_response_date) <= 24 THEN 'Quick (≤24h)'
-                            WHEN TIMESTAMPDIFF(HOUR, c.created_at, first_response.first_response_date) <= 72 THEN 'Standard (24-72h)'
-                            ELSE 'Slow (>72h)'
-                        END as response_category
-                    FROM customers c
-                    LEFT JOIN users u ON c.assigned_user_id = u.user_id
-                    LEFT JOIN (
-                        SELECT customer_id, MIN(action_datetime) as first_response_date
-                        FROM action_history 
-                        WHERE action_datetime BETWEEN ? AND ?
-                        GROUP BY customer_id
-                    ) first_response ON c.customer_id = first_response.customer_id
-                    WHERE c.created_at BETWEEN ? AND ? 
-                    AND first_response.first_response_date IS NOT NULL
-                    $user_condition
-                    ORDER BY response_time_hours ASC";
-            $user_params = array_merge([$start_date, $end_date, $start_date, $end_date], $user_params);
-            break;
-            
-        case 'communication_frequency':
-            $sql = "SELECT 
-                        c.company_name,
-                        u.username as assigned_to,
-                        COUNT(ah.history_id) as total_communications,
-                        COUNT(CASE WHEN ah.action LIKE '%email%' THEN 1 END) as emails,
-                        COUNT(CASE WHEN ah.action LIKE '%call%' THEN 1 END) as calls,
-                        COUNT(CASE WHEN ah.action LIKE '%meeting%' THEN 1 END) as meetings,
-                        ROUND(COUNT(ah.history_id) / GREATEST(DATEDIFF(?, ?), 1), 2) as avg_communications_per_day,
-                        MIN(ah.action_datetime) as first_communication,
-                        MAX(ah.action_datetime) as last_communication
-                    FROM customers c
-                    LEFT JOIN users u ON c.assigned_user_id = u.user_id
-                    LEFT JOIN action_history ah ON c.customer_id = ah.customer_id 
-                        AND ah.action_datetime BETWEEN ? AND ?
-                    WHERE 1=1 $user_condition
-                    GROUP BY c.customer_id
-                    HAVING total_communications > 0
-                    ORDER BY total_communications DESC";
-            $user_params = array_merge([$end_date, $start_date, $start_date, $end_date], $user_params);
-            break;
-            
-        case 'assignment_distribution':
-            $sql = "SELECT 
-                        u.username,
-                        COUNT(c.customer_id) as total_customers,
-                        COUNT(CASE WHEN c.status = 'Active' THEN 1 END) as active_customers,
-                        COUNT(CASE WHEN c.status = 'Prospect' THEN 1 END) as prospect_customers,
-                        COUNT(CASE WHEN c.status = 'Inactive' THEN 1 END) as inactive_customers,
-                        ROUND(COUNT(c.customer_id) / (SELECT COUNT(*) FROM customers WHERE assigned_user_id IS NOT NULL) * 100, 2) as percentage_of_total,
-                        COUNT(CASE WHEN c.created_at BETWEEN ? AND ? THEN 1 END) as new_assignments_period
-                    FROM users u
-                    LEFT JOIN customers c ON u.user_id = c.assigned_user_id
-                    WHERE u.role != 'admin' $user_condition
-                    GROUP BY u.user_id, u.username
-                    ORDER BY total_customers DESC";
-            break;
-            
-        case 'workload_balance':
-            $sql = "SELECT 
-                        u.username,
-                        COUNT(c.customer_id) as customer_count,
-                        COUNT(recent_activity.customer_id) as active_workload,
-                        COUNT(upcoming_followups.customer_id) as pending_followups,
-                        ROUND(COUNT(c.customer_id) / (SELECT AVG(customer_count) FROM (
-                            SELECT COUNT(*) as customer_count 
-                            FROM customers 
-                            WHERE assigned_user_id IS NOT NULL 
-                            GROUP BY assigned_user_id
-                        ) avg_calc), 2) as workload_ratio,
-                        CASE 
-                            WHEN COUNT(c.customer_id) > (SELECT AVG(customer_count) * 1.2 FROM (
-                                SELECT COUNT(*) as customer_count 
-                                FROM customers 
-                                WHERE assigned_user_id IS NOT NULL 
-                                GROUP BY assigned_user_id
-                            ) avg_calc) THEN 'Overloaded'
-                            WHEN COUNT(c.customer_id) < (SELECT AVG(customer_count) * 0.8 FROM (
-                                SELECT COUNT(*) as customer_count 
-                                FROM customers 
-                                WHERE assigned_user_id IS NOT NULL 
-                                GROUP BY assigned_user_id
-                            ) avg_calc) THEN 'Underutilized'
-                            ELSE 'Balanced'
-                        END as balance_status
-                    FROM users u
-                    LEFT JOIN customers c ON u.user_id = c.assigned_user_id
-                    LEFT JOIN (
-                        SELECT DISTINCT customer_id 
-                        FROM action_history 
-                        WHERE action_datetime >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-                    ) recent_activity ON c.customer_id = recent_activity.customer_id
-                    LEFT JOIN (
-                        SELECT DISTINCT customer_id 
-                        FROM action_history 
-                        WHERE follow_up_datetime >= NOW()
-                    ) upcoming_followups ON c.customer_id = upcoming_followups.customer_id
-                    WHERE u.role != 'admin' $user_condition
-                    GROUP BY u.user_id, u.username
-                    ORDER BY workload_ratio DESC";
-            break;
-            
-        default:
-            return [];
-    }
-    
-    $params = empty($user_params) ? [$start_date, $end_date] : array_merge([$start_date, $end_date], $user_params);
-    
     try {
+        switch ($type) {
+            case 'user_activity':
+                $sql = "SELECT 
+                            u.username,
+                            COUNT(ah.history_id) as total_activities,
+                            COUNT(DISTINCT ah.customer_id) as customers_contacted,
+                            COUNT(CASE WHEN ah.action LIKE '%email%' OR ah.action LIKE '%Email%' THEN 1 END) as emails_sent,
+                            COUNT(CASE WHEN ah.action LIKE '%call%' OR ah.action LIKE '%Call%' OR ah.action LIKE '%phone%' THEN 1 END) as calls_made,
+                            MIN(ah.action_datetime) as first_activity,
+                            MAX(ah.action_datetime) as last_activity,
+                            COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL THEN 1 END) as followups_scheduled
+                        FROM users u
+                        LEFT JOIN customers c ON u.user_id = c.assigned_user_id
+                        LEFT JOIN action_history ah ON c.customer_id = ah.customer_id 
+                            AND ah.action_datetime BETWEEN ? AND ?
+                        WHERE u.role != 'admin' $user_condition
+                        GROUP BY u.user_id, u.username
+                        ORDER BY total_activities DESC";
+                $params = array_merge([$start_date, $end_date], $user_params);
+                break;
+                
+            case 'customer_status':
+                $sql = "SELECT 
+                            c.status,
+                            COUNT(*) as count,
+                            ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM customers), 2) as percentage,
+                            AVG(DATEDIFF(NOW(), c.created_at)) as avg_days_in_system,
+                            COUNT(CASE WHEN c.assigned_user_id IS NOT NULL THEN 1 END) as assigned_count,
+                            COUNT(CASE WHEN c.assigned_user_id IS NULL THEN 1 END) as unassigned_count
+                        FROM customers c
+                        WHERE c.created_at BETWEEN ? AND ?
+                        $user_condition
+                        GROUP BY c.status
+                        ORDER BY count DESC";
+                $params = array_merge([$start_date, $end_date], $user_params);
+                break;
+                
+            case 'activity_summary':
+                $sql = "SELECT 
+                            ah.action as activity_type,
+                            COUNT(*) as activity_count,
+                            COUNT(DISTINCT ah.customer_id) as unique_customers,
+                            COUNT(DISTINCT c.assigned_user_id) as users_involved,
+                            CASE 
+                                WHEN ah.action LIKE '%email%' OR ah.action LIKE '%Email%' THEN 'Email'
+                                WHEN ah.action LIKE '%call%' OR ah.action LIKE '%Call%' OR ah.action LIKE '%phone%' THEN 'Call'
+                                WHEN ah.action LIKE '%meeting%' OR ah.action LIKE '%Meeting%' THEN 'Meeting'
+                                WHEN ah.action LIKE '%follow%' OR ah.action LIKE '%Follow%' THEN 'Follow-up'
+                                ELSE 'Other'
+                            END as activity_type,
+                            AVG(CASE WHEN ah.follow_up_datetime IS NOT NULL 
+                                THEN TIMESTAMPDIFF(DAY, ah.action_datetime, ah.follow_up_datetime) END) as avg_followup_days
+                        FROM action_history ah
+                        JOIN customers c ON ah.customer_id = c.customer_id
+                        WHERE ah.action_datetime BETWEEN ? AND ?
+                        $user_condition
+                        GROUP BY activity_type
+                        ORDER BY activity_count DESC";
+                $params = array_merge([$start_date, $end_date], $user_params);
+                break;
+                
+            case 'assignment_history':
+                $sql = "SELECT 
+                            c.company_name,
+                            ah.action,
+                            ah.notes,
+                            ah.action_datetime as assignment_date,
+                            u.username as current_assignee
+                        FROM action_history ah
+                        JOIN customers c ON ah.customer_id = c.customer_id
+                        LEFT JOIN users u ON c.assigned_user_id = u.user_id
+                        WHERE (ah.action LIKE '%assign%' OR ah.action LIKE '%unassign%')
+                            AND ah.action_datetime BETWEEN ? AND ?
+                        $user_condition
+                        ORDER BY ah.action_datetime DESC";
+                $params = array_merge([$start_date, $end_date], $user_params);
+                break;
+                
+            case 'user_performance':
+                $sql = "SELECT 
+                            u.username,
+                            COUNT(DISTINCT c.customer_id) as customers_assigned,
+                            COUNT(ah.history_id) as total_activities,
+                            COUNT(CASE WHEN ah.action LIKE '%email%' OR ah.action LIKE '%Email%' THEN 1 END) as emails_sent,
+                            COUNT(CASE WHEN ah.action LIKE '%call%' OR ah.action LIKE '%Call%' OR ah.action LIKE '%phone%' THEN 1 END) as calls_made,
+                            COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL THEN 1 END) as followups_scheduled,
+                            COUNT(CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as overdue_followups,
+                            AVG(CASE WHEN c.status = 'Active' THEN 1 ELSE 0 END) * 100 as conversion_rate,
+                            ROUND(COUNT(ah.history_id) / GREATEST(COUNT(DISTINCT c.customer_id), 1), 2) as activity_per_customer,
+                            MAX(ah.action_datetime) as last_activity_date
+                        FROM users u
+                        LEFT JOIN customers c ON u.user_id = c.assigned_user_id
+                        LEFT JOIN action_history ah ON c.customer_id = ah.customer_id 
+                            AND ah.action_datetime BETWEEN ? AND ?
+                        WHERE 1=1 $user_condition
+                        GROUP BY u.user_id, u.username
+                        ORDER BY total_activities DESC";
+                $params = array_merge([$start_date, $end_date], $user_params);
+                break;
+                
+            case 'follow_up_performance':
+                $sql = "SELECT 
+                            u.username,
+                            COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL THEN 1 END) as total_followups,
+                            COUNT(CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as overdue_followups,
+                            COUNT(CASE WHEN ah.follow_up_datetime >= NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as upcoming_followups,
+                            AVG(TIMESTAMPDIFF(DAY, ah.action_datetime, ah.follow_up_datetime)) as avg_followup_interval,
+                            ROUND(COUNT(CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) / 
+                                GREATEST(COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL THEN 1 END), 1) * 100, 2) as overdue_percentage
+                        FROM users u
+                        LEFT JOIN customers c ON u.user_id = c.assigned_user_id
+                        LEFT JOIN action_history ah ON c.customer_id = ah.customer_id 
+                            AND ah.action_datetime BETWEEN ? AND ?
+                        WHERE 1=1 $user_condition
+                        GROUP BY u.user_id, u.username
+                        HAVING total_followups > 0
+                        ORDER BY overdue_percentage DESC";
+                $params = array_merge([$start_date, $end_date], $user_params);
+                break;
+                
+            case 'customer_conversion':
+                $sql = "SELECT 
+                            c.company_name,
+                            c.contact_email,
+                            u.username as assigned_to,
+                            c.created_at,
+                            c.status,
+                            DATEDIFF(NOW(), c.created_at) as days_in_system,
+                            COUNT(ah.history_id) as total_activities,
+                            MIN(ah.action_datetime) as first_contact,
+                            MAX(ah.action_datetime) as last_contact
+                        FROM customers c
+                        LEFT JOIN users u ON c.assigned_user_id = u.user_id
+                        LEFT JOIN action_history ah ON c.customer_id = ah.customer_id
+                            AND ah.action_datetime BETWEEN ? AND ?
+                        WHERE (c.created_at BETWEEN ? AND ? OR c.updated_at BETWEEN ? AND ?)
+                        $user_condition
+                        GROUP BY c.customer_id
+                        ORDER BY days_in_system DESC";
+                $params = array_merge([$start_date, $end_date, $start_date, $end_date, $start_date, $end_date], $user_params);
+                break;
+                
+            case 'inactive_customers':
+                $sql = "SELECT 
+                            c.company_name,
+                            c.contact_email,
+                            c.status,
+                            u.username as assigned_to,
+                            c.created_at,
+                            last_activity.last_activity_date,
+                            DATEDIFF(NOW(), COALESCE(last_activity.last_activity_date, c.created_at)) as days_since_activity,
+                            COUNT(ah.history_id) as total_activities
+                        FROM customers c
+                        LEFT JOIN users u ON c.assigned_user_id = u.user_id
+                        LEFT JOIN action_history ah ON c.customer_id = ah.customer_id
+                        LEFT JOIN (
+                            SELECT customer_id, MAX(action_datetime) as last_activity_date
+                            FROM action_history 
+                            GROUP BY customer_id
+                        ) last_activity ON c.customer_id = last_activity.customer_id
+                        WHERE (last_activity.last_activity_date IS NULL OR last_activity.last_activity_date < DATE_SUB(NOW(), INTERVAL 30 DAY))
+                        $user_condition
+                        GROUP BY c.customer_id
+                        ORDER BY days_since_activity DESC";
+                $params = array_merge([], $user_params);
+                break;
+                
+            case 'response_time':
+                $sql = "SELECT 
+                            c.company_name,
+                            u.username as assigned_to,
+                            c.created_at,
+                            first_response.first_response_date,
+                            TIMESTAMPDIFF(HOUR, c.created_at, first_response.first_response_date) as response_time_hours,
+                            CASE 
+                                WHEN TIMESTAMPDIFF(HOUR, c.created_at, first_response.first_response_date) <= 24 THEN 'Quick (≤24h)'
+                                WHEN TIMESTAMPDIFF(HOUR, c.created_at, first_response.first_response_date) <= 72 THEN 'Standard (24-72h)'
+                                ELSE 'Slow (>72h)'
+                            END as response_category
+                        FROM customers c
+                        LEFT JOIN users u ON c.assigned_user_id = u.user_id
+                        LEFT JOIN (
+                            SELECT customer_id, MIN(action_datetime) as first_response_date
+                            FROM action_history 
+                            WHERE action_datetime BETWEEN ? AND ?
+                            GROUP BY customer_id
+                        ) first_response ON c.customer_id = first_response.customer_id
+                        WHERE c.created_at BETWEEN ? AND ? 
+                        AND first_response.first_response_date IS NOT NULL
+                        $user_condition
+                        ORDER BY response_time_hours ASC";
+                $params = array_merge([$start_date, $end_date, $start_date, $end_date], $user_params);
+                break;
+                
+            case 'communication_frequency':
+                $sql = "SELECT 
+                            c.company_name,
+                            u.username as assigned_to,
+                            COUNT(ah.history_id) as total_communications,
+                            COUNT(CASE WHEN ah.action LIKE '%email%' THEN 1 END) as emails,
+                            COUNT(CASE WHEN ah.action LIKE '%call%' THEN 1 END) as calls,
+                            COUNT(CASE WHEN ah.action LIKE '%meeting%' THEN 1 END) as meetings,
+                            ROUND(COUNT(ah.history_id) / GREATEST(DATEDIFF(?, ?), 1), 2) as avg_communications_per_day,
+                            MIN(ah.action_datetime) as first_communication,
+                            MAX(ah.action_datetime) as last_communication
+                        FROM customers c
+                        LEFT JOIN users u ON c.assigned_user_id = u.user_id
+                        LEFT JOIN action_history ah ON c.customer_id = ah.customer_id 
+                            AND ah.action_datetime BETWEEN ? AND ?
+                        WHERE 1=1 $user_condition
+                        GROUP BY c.customer_id
+                        HAVING total_communications > 0
+                        ORDER BY total_communications DESC";
+                $params = array_merge([$end_date, $start_date, $start_date, $end_date], $user_params);
+                break;
+                
+            case 'assignment_distribution':
+                $sql = "SELECT 
+                            u.username,
+                            COUNT(c.customer_id) as total_customers,
+                            COUNT(CASE WHEN c.status = 'Active' THEN 1 END) as active_customers,
+                            COUNT(CASE WHEN c.status = 'Prospect' THEN 1 END) as prospect_customers,
+                            COUNT(CASE WHEN c.status = 'Inactive' THEN 1 END) as inactive_customers,
+                            ROUND(COUNT(c.customer_id) / (SELECT COUNT(*) FROM customers WHERE assigned_user_id IS NOT NULL) * 100, 2) as percentage_of_total,
+                            COUNT(CASE WHEN c.created_at BETWEEN ? AND ? THEN 1 END) as new_assignments_period
+                        FROM users u
+                        LEFT JOIN customers c ON u.user_id = c.assigned_user_id
+                        WHERE u.role != 'admin' $user_condition
+                        GROUP BY u.user_id, u.username
+                        ORDER BY total_customers DESC";
+                $params = array_merge([$start_date, $end_date], $user_params);
+                break;
+                
+            case 'workload_balance':
+                $sql = "SELECT 
+                            u.username,
+                            COUNT(c.customer_id) as customer_count,
+                            COUNT(recent_activity.customer_id) as active_workload,
+                            COUNT(upcoming_followups.customer_id) as pending_followups,
+                            ROUND(COUNT(c.customer_id) / (SELECT AVG(customer_count) FROM (
+                                SELECT COUNT(*) as customer_count 
+                                FROM customers 
+                                WHERE assigned_user_id IS NOT NULL 
+                                GROUP BY assigned_user_id
+                            ) avg_calc), 2) as workload_ratio,
+                            CASE 
+                                WHEN COUNT(c.customer_id) > (SELECT AVG(customer_count) * 1.2 FROM (
+                                    SELECT COUNT(*) as customer_count 
+                                    FROM customers 
+                                    WHERE assigned_user_id IS NOT NULL 
+                                    GROUP BY assigned_user_id
+                                ) avg_calc) THEN 'Overloaded'
+                                WHEN COUNT(c.customer_id) < (SELECT AVG(customer_count) * 0.8 FROM (
+                                    SELECT COUNT(*) as customer_count 
+                                    FROM customers 
+                                    WHERE assigned_user_id IS NOT NULL 
+                                    GROUP BY assigned_user_id
+                                ) avg_calc) THEN 'Underutilized'
+                                ELSE 'Balanced'
+                            END as balance_status
+                        FROM users u
+                        LEFT JOIN customers c ON u.user_id = c.assigned_user_id
+                        LEFT JOIN (
+                            SELECT DISTINCT customer_id 
+                            FROM action_history 
+                            WHERE action_datetime >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                        ) recent_activity ON c.customer_id = recent_activity.customer_id
+                        LEFT JOIN (
+                            SELECT DISTINCT customer_id 
+                            FROM action_history 
+                            WHERE follow_up_datetime >= NOW()
+                        ) upcoming_followups ON c.customer_id = upcoming_followups.customer_id
+                        WHERE u.role != 'admin' $user_condition
+                        GROUP BY u.user_id, u.username
+                        ORDER BY workload_ratio DESC";
+                $params = array_merge([], $user_params);
+                break;
+                
+            default:
+                return [];
+        }
+        
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         return [
@@ -331,6 +333,7 @@ function generateReport($type, $start_date, $end_date, $user_filter = '') {
             'data' => $stmt->fetchAll(PDO::FETCH_ASSOC),
             'params' => ['start_date' => $start_date, 'end_date' => $end_date, 'user_filter' => $user_filter]
         ];
+        
     } catch (PDOException $e) {
         logError("Error generating report: " . $e->getMessage());
         return [];
@@ -598,10 +601,10 @@ $users = getAllUsers();
                                         <?php foreach ($row as $key => $value): ?>
                                             <td>
                                                 <?php 
-                                                if (in_array($key, ['first_activity', 'last_activity', 'created_at', 'updated_at', 'assignment_date', 'next_followup', 'activity_date'])) {
-                                                    echo $value ? formatDateTimeCompact($value) : 'N/A';
+                                                if (in_array($key, ['first_activity', 'last_activity', 'created_at', 'updated_at', 'assignment_date', 'next_followup', 'activity_date', 'first_contact', 'last_contact', 'last_activity_date', 'action_datetime'])) {
+                                                    echo $value ? date('Y-m-d H:i', strtotime($value)) : 'N/A';
                                                 } elseif (is_numeric($value)) {
-                                                    echo number_format($value);
+                                                    echo number_format($value, 2);
                                                 } else {
                                                     echo htmlspecialchars($value ?? 'N/A');
                                                 }
@@ -632,7 +635,7 @@ $users = getAllUsers();
         </div>
     </div>
 
-    <!-- Pre-defined Report Links -->
+    <!-- Quick Reports -->
     <div class="quick-reports">
         <h4><?php echo __('quick_reports'); ?></h4>
         <div class="quick-report-grid">
@@ -682,24 +685,6 @@ $users = getAllUsers();
                     <form method="POST" style="display: inline;">
                         <input type="hidden" name="report_type" value="customer_status">
                         <input type="hidden" name="start_date" value="<?php echo date('Y-m-d', strtotime('-90 days')); ?>">
-                        <input type="hidden" name="end_date" value="<?php echo date('Y-m-d'); ?>">
-                        <input type="hidden" name="user_filter" value="">
-                        <input type="hidden" name="format" value="view">
-                        <button type="submit" name="generate_report" class="btn btn-outline-primary btn-sm"><?php echo __('generate'); ?></button>
-                    </form>
-                </div>
-            </div>
-            
-            <div class="quick-report-card">
-                <div class="card-icon">
-                    <i class="fas fa-exchange-alt"></i>
-                </div>
-                <div class="card-content">
-                    <h5><?php echo __('assignment_changes'); ?></h5>
-                    <p><?php echo __('customer_assignment_history_30_days'); ?></p>
-                    <form method="POST" style="display: inline;">
-                        <input type="hidden" name="report_type" value="assignment_history">
-                        <input type="hidden" name="start_date" value="<?php echo date('Y-m-d', strtotime('-30 days')); ?>">
                         <input type="hidden" name="end_date" value="<?php echo date('Y-m-d'); ?>">
                         <input type="hidden" name="user_filter" value="">
                         <input type="hidden" name="format" value="view">
@@ -936,6 +921,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .form-actions .btn {
     justify-content: center;
+    padding: 12px 20px;
+    font-weight: 500;
 }
 
 /* Report Display */
@@ -1075,143 +1062,6 @@ document.addEventListener('DOMContentLoaded', function() {
     line-height: 1.4;
 }
 
-/* Report Scheduling */
-.report-scheduling {
-    margin-top: 40px;
-    background: white;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    padding: 25px;
-}
-
-.report-scheduling h4 {
-    margin: 0 0 20px 0;
-    color: #495057;
-}
-
-.scheduling-layout {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 30px;
-}
-
-.schedule-form h5,
-.scheduled-reports-list h5 {
-    margin: 0 0 15px 0;
-    color: #495057;
-    font-size: 1rem;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #e9ecef;
-}
-
-.form-row-inline {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-    align-items: end;
-}
-
-.form-row-inline .form-group:last-child {
-    grid-column: span 2;
-}
-
-.schedule-placeholder {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 30px;
-    text-align: center;
-    color: #6c757d;
-    background: #f8f9fa;
-    border-radius: 6px;
-}
-
-.schedule-placeholder i {
-    font-size: 2rem;
-    margin-bottom: 10px;
-    opacity: 0.5;
-}
-
-.schedule-placeholder p {
-    margin: 0;
-    font-size: 0.9rem;
-}
-
-/* Advanced Export Options */
-.advanced-export {
-    margin-top: 40px;
-}
-
-.advanced-export h4 {
-    margin: 0 0 20px 0;
-    color: #495057;
-}
-
-.export-options-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px;
-}
-
-.export-option {
-    background: white;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    padding: 20px;
-    display: flex;
-    gap: 15px;
-    align-items: flex-start;
-    transition: box-shadow 0.2s ease;
-}
-
-.export-option:hover {
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-.export-option .option-icon {
-    width: 50px;
-    height: 50px;
-    background: #17a2b8;
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    flex-shrink: 0;
-}
-
-.export-option .option-content {
-    flex: 1;
-}
-
-.export-option h5 {
-    margin: 0 0 8px 0;
-    color: #495057;
-    font-size: 1rem;
-}
-
-.export-option p {
-    margin: 0 0 15px 0;
-    color: #6c757d;
-    font-size: 0.9rem;
-    line-height: 1.4;
-}
-
-/* Enhanced Form Actions */
-.form-actions {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
-}
-
-.form-actions .btn {
-    justify-content: center;
-    padding: 12px 20px;
-    font-weight: 500;
-}
-
 .btn-info {
     background-color: #17a2b8;
     border-color: #17a2b8;
@@ -1224,16 +1074,6 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 /* Responsive Design */
-@media (max-width: 1200px) {
-    .scheduling-layout {
-        grid-template-columns: 1fr;
-    }
-    
-    .export-options-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
 @media (max-width: 1024px) {
     .reports-layout {
         grid-template-columns: 1fr;
@@ -1249,18 +1089,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     .quick-report-grid {
         grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .export-options-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .form-row-inline {
-        grid-template-columns: 1fr;
-    }
-    
-    .form-row-inline .form-group:last-child {
-        grid-column: span 1;
     }
 }
 
@@ -1285,6 +1113,192 @@ document.addEventListener('DOMContentLoaded', function() {
     .quick-report-card {
         flex-direction: column;
         text-align: center;
+    }
+}
+
+/* Report Scheduling Styles */
+    .report-scheduling {
+        margin: 30px 0;
+        padding: 25px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 15px;
+        color: white;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .report-scheduling h4 {
+        color: white;
+        margin-bottom: 20px;
+        text-align: center;
+        font-weight: 600;
+    }
+
+    .scheduling-layout {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 25px;
+        align-items: start;
+    }
+
+    .schedule-form {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 20px;
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
+    }
+
+    .schedule-form h5 {
+        color: white;
+        margin-bottom: 15px;
+        font-weight: 500;
+    }
+
+    .schedule-report-form .form-row-inline {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr auto;
+        gap: 15px;
+        align-items: end;
+    }
+
+    .schedule-report-form .form-group label {
+        color: white;
+        font-weight: 500;
+        margin-bottom: 5px;
+        display: block;
+    }
+
+    .schedule-report-form .form-control {
+        background: rgba(255, 255, 255, 0.9);
+        border: none;
+        color: #333;
+    }
+
+    .scheduled-reports-list {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 20px;
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
+    }
+
+    .scheduled-reports-list h5 {
+        color: white;
+        margin-bottom: 15px;
+        font-weight: 500;
+    }
+
+    .schedule-placeholder {
+        text-align: center;
+        color: rgba(255, 255, 255, 0.8);
+        padding: 20px;
+    }
+
+    .schedule-placeholder i {
+        font-size: 2em;
+        margin-bottom: 10px;
+        opacity: 0.6;
+    }
+
+    /* Advanced Export Styles */
+    .advanced-export {
+        margin: 30px 0;
+        padding: 25px;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        border-radius: 15px;
+        color: white;
+        box-shadow: 0 8px 25px rgba(240, 147, 251, 0.3);
+    }
+
+    .advanced-export h4 {
+        color: white;
+        margin-bottom: 20px;
+        text-align: center;
+        font-weight: 600;
+    }
+
+    .export-options-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+    }
+
+    .export-option {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 20px;
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
+        display: flex;
+        align-items: flex-start;
+        gap: 15px;
+        transition: transform 0.3s ease;
+    }
+
+    .export-option:hover {
+        transform: translateY(-3px);
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    .option-icon {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 15px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 50px;
+        height: 50px;
+    }
+
+    .option-icon i {
+        font-size: 1.2em;
+        color: white;
+    }
+
+    .option-content h5 {
+        color: white;
+        margin-bottom: 8px;
+        font-weight: 500;
+        font-size: 1.1em;
+    }
+
+    .option-content p {
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 12px;
+        font-size: 0.9em;
+        line-height: 1.4;
+    }
+
+    .option-content .btn {
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        font-size: 0.85em;
+        transition: all 0.3s ease;
+    }
+
+    .option-content .btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.5);
+        transform: scale(1.05);
+    }
+
+    /* Responsive Design for New Sections */
+    @media (max-width: 768px) {
+        .scheduling-layout {
+            grid-template-columns: 1fr;
+        }
+        
+        .schedule-report-form .form-row-inline {
+            grid-template-columns: 1fr;
+        }
+        
+        .export-options-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .export-option {
+            flex-direction: column;
+            text-align: center;
+        }
     }
 }
 </style>

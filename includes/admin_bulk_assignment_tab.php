@@ -54,9 +54,10 @@ if (!empty($filter_location)) {
 }
 
 // Get filtered customers
-$sql = "SELECT c.*, u.username as assigned_to_username 
+$sql = "SELECT c.*, u.username as assigned_to_username, uc.username as created_by_username 
         FROM customers c 
-        LEFT JOIN users u ON c.assigned_user_id = u.user_id";
+        LEFT JOIN users u ON c.assigned_user_id = u.user_id
+        LEFT JOIN users uc ON c.created_by_user_id = uc.user_id";
 
 if (!empty($conditions)) {
     $sql .= " WHERE " . implode(" AND ", $conditions);
@@ -270,7 +271,7 @@ $locations = getAllLocations(); // Use existing function signature
                                 <th><?php echo __('location'); ?></th>
                                 <th><?php echo __('status'); ?></th>
                                 <th><?php echo __('currently_assigned_to'); ?></th>
-                                <th><?php echo __('workload'); ?></th>
+                                <th><?php echo __('created_by'); ?></th>
                                 <th><?php echo __('created'); ?></th>
                                 <th><?php echo __('actions'); ?></th>
                             </tr>
@@ -308,13 +309,10 @@ $locations = getAllLocations(); // Use existing function signature
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <?php if ($customer['assigned_user_id']): ?>
-                                            <?php $userWorkload = getUserWorkload($customer['assigned_user_id']); ?>
-                                            <span class="workload-indicator">
-                                                <?php echo __('customers_count', ['{count}' => $userWorkload]); ?>
-                                            </span>
+                                        <?php if ($customer['created_by_username']): ?>
+                                            <span class="user-badge"><?php echo htmlspecialchars($customer['created_by_username']); ?></span>
                                         <?php else: ?>
-                                            <span class="text-muted">-</span>
+                                            <span class="text-muted"><?php echo __('unknown'); ?></span>
                                         <?php endif; ?>
                                     </td>
                                     <td>
@@ -820,14 +818,6 @@ function quickUnassign(customerId) {
     border-radius: 4px;
     font-size: 0.8rem;
     font-weight: 500;
-}
-
-.workload-indicator {
-    background: #e9ecef;
-    color: #495057;
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-size: 0.75rem;
 }
 
 .action-buttons {

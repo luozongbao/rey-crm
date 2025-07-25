@@ -263,6 +263,7 @@ return [
     'project_name' => 'Project Name',
     'cc' => 'CC',
     'created' => 'Created',
+    'created_by' => 'Created By',
     'confirm_delete_email_project' => 'Are you sure you want to delete this email project?',
     'email_project_deleted_successfully' => 'Email project deleted successfully',
     'error_deleting_email_project' => 'Error deleting email project.',
@@ -622,6 +623,7 @@ return [
     
     // Assignment functionality
     'unassigned' => 'Unassigned',
+    'unknown' => 'Unknown',
     'unassign' => 'Unassign',
     'unassigning' => 'Unassigning',
     'unassign_customer' => 'Unassign Customer',
@@ -750,6 +752,9 @@ return [
     'report_type' => 'Report Type',
     'select_report_type' => '-- Select Report Type --',
     'user_performance_reports' => 'User Performance Reports',
+    'user_performance' => 'User Performance',
+    'best_performers' => 'Best Performers',
+    'track_team_performance_for' => 'Track team performance for {period}',
     'customer_reports' => 'Customer Reports',
     'activity_reports' => 'Activity Reports',
     'management_reports' => 'Management Reports',
