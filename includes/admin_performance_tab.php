@@ -9,7 +9,7 @@ $end_date = $_GET['end_date'] ?? '';
 // Calculate date range based on parameters
 if (!empty($start_date) && !empty($end_date)) {
     // Custom date range
-    $date_filter = "BETWEEN '$start_date 00:00:00' AND '$end_date 23:59:59'";
+    $date_filter = "BETWEEN :start_date AND :end_date";
     $period_label = "Custom Range ($start_date to $end_date)";
     $filter_start = $start_date;
     $filter_end = $end_date;
