@@ -2675,4 +2675,185 @@ body.dark-mode .password-reset-section h3 {
     }
 }
 
+/* Contact Channel Styling */
+.contact-channel-breakdown {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f9f9f9;
+    border-radius: 5px;
+}
+
+.contact-channel-breakdown h4 {
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.channel-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.channel-stat-card {
+    background: white;
+    padding: 15px;
+    border-radius: 5px;
+    border-left: 4px solid #007bff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.channel-stat-card h5 {
+    margin: 0 0 10px 0;
+    color: #555;
+    font-size: 14px;
+}
+
+.channel-stat-card .stat-number {
+    font-size: 24px;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.channel-stat-card .stat-subtitle {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+}
+
+/* Contact channel badges */
+.contact-channel-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.contact-channel-badge.email {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+
+.contact-channel-badge.phone-call {
+    background-color: #e8f5e8;
+    color: #388e3c;
+}
+
+.contact-channel-badge.whatsapp {
+    background-color: #e8f5e8;
+    color: #25d366;
+}
+
+.contact-channel-badge.sms {
+    background-color: #fff3e0;
+    color: #f57c00;
+}
+
+.contact-channel-badge.in-person-meeting {
+    background-color: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.contact-channel-badge.video-call {
+    background-color: #e0f2f1;
+    color: #00695c;
+}
+
+.contact-channel-badge.linkedin {
+    background-color: #e3f2fd;
+    color: #0077b5;
+}
+
+.contact-channel-badge.wechat {
+    background-color: #e8f5e8;
+    color: #00d262;
+}
+
+.contact-channel-badge.other {
+    background-color: #f5f5f5;
+    color: #616161;
+}
+
+/* Dark mode for contact channel */
+body.dark-mode .contact-channel-breakdown {
+    background: var(--card-dark);
+}
+
+body.dark-mode .contact-channel-breakdown h4 {
+    color: var(--text-dark);
+}
+
+body.dark-mode .channel-stat-card {
+    background: var(--input-dark);
+    border-left-color: var(--primary-darkmode);
+}
+
+body.dark-mode .channel-stat-card h5 {
+    color: var(--text-dark);
+}
+
+body.dark-mode .channel-stat-card .stat-number {
+    color: var(--primary-darkmode);
+}
+
+body.dark-mode .channel-stat-card .stat-subtitle {
+    color: var(--gray-400);
+}
+
+/* Metric card icons for contact channels */
+.metric-icon.meetings {
+    background: linear-gradient(135deg, #7b1fa2, #9c27b0);
+}
+
+.metric-icon.linkedin {
+    background: linear-gradient(135deg, #0077b5, #00a0dc);
+}
+
+.metric-icon.wechat {
+    background: linear-gradient(135deg, #00d262, #1aaa55);
+}
+
+/* Channel analytics specific styles */
+.channel-stats {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.channel-stat-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.channel-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.channel-stat-card h6 {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Responsive adjustments for performance tab */
+@media (max-width: 768px) {
+    .metrics-overview {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+    }
+    
+    .channel-stats {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+    
+    .channel-stat-card {
+        padding: 12px;
+    }
+}
+
 

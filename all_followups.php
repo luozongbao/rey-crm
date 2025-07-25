@@ -57,6 +57,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         __('location'),
         __('status'),
         __('action'),
+        __('contact_channel'),
         __('followup_date'),
         __('next_step')
     ];
@@ -71,6 +72,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             $location,
             __($followup['customer_status']),
             $followup['action'],
+            __($followup['contact_channel']),
             formatDateTimeCompact($followup['follow_up_datetime']),
             $followup['next_step']
         ];
@@ -214,6 +216,7 @@ require_once 'includes/header.php';
                     <th><?= __('customer') ?></th>
                     <th><?= __('status') ?></th>
                     <th><?= __('action') ?></th>
+                    <th><a href="?<?php echo http_build_query(array_merge($_GET, ['sort' => 'contact_channel', 'order' => $order == 'asc' ? 'desc' : 'asc'])); ?>"><?php echo __('contact_channel'); ?></a></th>
                     <th class="datetime"><?= __('followup_date') ?></th>
                     <th><?= __('next_step') ?></th>
                 </tr>
@@ -235,6 +238,7 @@ require_once 'includes/header.php';
                         </span>
                     </td>
                     <td><?= htmlspecialchars($followup['action']) ?></td>
+                    <td><?php echo htmlspecialchars(__($followup['contact_channel'])); ?></td>
                     <td class="datetime"><?= formatDateTimeCompact($followup['follow_up_datetime']) ?></td>
                     <td><?= htmlspecialchars($followup['next_step']) ?></td>
                 </tr>

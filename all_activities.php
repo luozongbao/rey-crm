@@ -56,6 +56,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         __('location'),
         __('status'),
         __('action'),
+        __('contact_channel'),
         __('date_time'),
         __('response')
     ];
@@ -70,6 +71,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             $location,
             __($activity['customer_status']),
             $activity['action'],
+            __($activity['contact_channel']),
             formatDateTimeCompact($activity['action_datetime']),
             $activity['response']
         ];
@@ -214,6 +216,7 @@ require_once 'includes/header.php';
                     <th><?= __('customer') ?></th>
                     <th><?= __('status') ?></th>
                     <th><?= __('action') ?></th>
+                    <th><a href="?<?php echo http_build_query(array_merge($_GET, ['sort' => 'contact_channel', 'order' => $order == 'asc' ? 'desc' : 'asc'])); ?>"><?php echo __('contact_channel'); ?></a></th>
                     <th class="datetime"><?= __('date_time') ?></th>
                     <th><?= __('response') ?></th>
                 </tr>
@@ -231,6 +234,7 @@ require_once 'includes/header.php';
                     </td>
                     <td><span class="status-badge status-<?= strtolower(str_replace(' ', '-', $activity['customer_status'])) ?>"><?= htmlspecialchars(__($activity['customer_status'])) ?></span></td>
                     <td><?= htmlspecialchars($activity['action']) ?></td>
+                    <td><?php echo htmlspecialchars(__($activity['contact_channel'])); ?></td>
                     <td class="datetime"><?= formatDateTimeCompact($activity['action_datetime']) ?></td>
                     <td><?= htmlspecialchars($activity['response']) ?></td>
                 </tr>

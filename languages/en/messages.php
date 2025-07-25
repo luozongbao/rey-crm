@@ -872,6 +872,23 @@ return [
     'report_generated_successfully' => 'Report generated successfully',
     'please_fill_required_fields' => 'Please fill in all required fields',
 
+    // Contact channel translations
+    'contact_channel' => 'Contact Channel',
+    'select_contact_channel' => 'Select Contact Channel',
+    'phone_call' => 'Phone Call',
+    'whatsapp' => 'WhatsApp',
+    'sms' => 'SMS',
+    'in_person_meeting' => 'In-Person Meeting',
+    'video_call' => 'Video Call',
+    'linkedin' => 'LinkedIn',
+    'wechat' => 'WeChat',
+    'other' => 'Other',
+    'linkedin_contacts' => 'LinkedIn Contacts',
+    'wechat_contacts' => 'WeChat Contacts',
+    'contact_channel_breakdown' => 'Contact Channel Breakdown',
+    'success_rate' => 'Success Rate',
+    'unique_customers' => 'Unique Customers',
+
     // Add more messages as needed
 ];
 ?>

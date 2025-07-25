@@ -605,13 +605,15 @@ function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '',
         }
     }
     
-    $validSorts = ['company_name', 'follow_up_datetime', 'action_datetime', 'customer_status'];
+    $validSorts = ['company_name', 'follow_up_datetime', 'action_datetime', 'customer_status', 'contact_channel'];
     $sort = in_array($sort, $validSorts) ? $sort : 'follow_up_datetime';
     $order = in_array($order, ['asc', 'desc']) ? $order : 'asc';
     
     // Handle sorting by customer_status (which is actually c.status in the query)
     if ($sort === 'customer_status') {
         $sort = 'c.status';
+    } elseif ($sort === 'contact_channel') {
+        $sort = 'ah.contact_channel';
     }
     
     $query .= " ORDER BY $sort $order";
@@ -666,13 +668,15 @@ function getFilteredActivities($customer_id = '', $date_from = '', $date_to = ''
         }
     }
     
-    $validSorts = ['company_name', 'action_datetime', 'customer_status'];
+    $validSorts = ['company_name', 'action_datetime', 'customer_status', 'contact_channel'];
     $sort = in_array($sort, $validSorts) ? $sort : 'action_datetime';
     $order = in_array($order, ['asc', 'desc']) ? $order : 'desc';
     
     // Handle sorting by customer_status (which is actually c.status in the query)
     if ($sort === 'customer_status') {
         $sort = 'c.status';
+    } elseif ($sort === 'contact_channel') {
+        $sort = 'ah.contact_channel';
     }
     
     $query .= " ORDER BY $sort $order";

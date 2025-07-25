@@ -48,6 +48,17 @@ CREATE TABLE IF NOT EXISTS action_history (
     contact_id INT,
     action_datetime DATETIME NOT NULL,
     action TEXT NOT NULL,
+    contact_channel ENUM(
+        'Email', 
+        'Phone Call', 
+        'WhatsApp', 
+        'SMS', 
+        'In-Person Meeting', 
+        'Video Call', 
+        'LinkedIn', 
+        'WeChat', 
+        'Other'
+    ) NOT NULL DEFAULT 'Other',
     response TEXT NOT NULL,
     next_step TEXT NOT NULL,
     follow_up_datetime DATETIME NOT NULL,

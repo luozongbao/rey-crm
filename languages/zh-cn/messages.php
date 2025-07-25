@@ -910,6 +910,23 @@ return [
     'report_generated_successfully' => '报表生成成功',
     'please_fill_required_fields' => '请填写所有必填字段',
 
+    // Contact channel translations
+    'contact_channel' => '联系渠道',
+    'select_contact_channel' => '选择联系渠道',
+    'phone_call' => '电话',
+    'whatsapp' => 'WhatsApp',
+    'sms' => '短信',
+    'in_person_meeting' => '面谈',
+    'video_call' => '视频通话',
+    'linkedin' => 'LinkedIn',
+    'wechat' => '微信',
+    'other' => '其他',
+    'linkedin_contacts' => 'LinkedIn联系',
+    'wechat_contacts' => '微信联系',
+    'contact_channel_breakdown' => '联系渠道分析',
+    'success_rate' => '成功率',
+    'unique_customers' => '独特客户',
+
     // Add more messages as needed
 ];
 ?>

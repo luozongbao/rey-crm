@@ -28,7 +28,7 @@ if (!empty($start_date) && !empty($end_date)) {
 
 // Get performance metrics
 try {
-    // Activity metrics by user - using correct table structure with new customers count
+    // Activity metrics by user - using contact_channel field for accurate tracking
     if (!empty($start_date) && !empty($end_date)) {
         // Custom date range - use prepared statements
         $query = "
@@ -37,9 +37,11 @@ try {
                 u.user_id,
                 COUNT(DISTINCT c.customer_id) as customers_assigned,
                 COUNT(ah.history_id) as total_activities,
-                COUNT(CASE WHEN ah.action LIKE '%email%' OR ah.action LIKE '%Email%' THEN 1 END) as emails_sent,
-                COUNT(CASE WHEN ah.action LIKE '%call%' OR ah.action LIKE '%Call%' OR ah.action LIKE '%phone%' THEN 1 END) as calls_made,
-                COUNT(CASE WHEN ah.action LIKE '%meeting%' OR ah.action LIKE '%Meeting%' THEN 1 END) as meetings_held,
+                COUNT(CASE WHEN ah.contact_channel = 'Email' THEN 1 END) as emails_sent,
+                COUNT(CASE WHEN ah.contact_channel IN ('Phone Call', 'WhatsApp', 'SMS') THEN 1 END) as calls_made,
+                COUNT(CASE WHEN ah.contact_channel IN ('In-Person Meeting', 'Video Call') THEN 1 END) as meetings_held,
+                COUNT(CASE WHEN ah.contact_channel = 'LinkedIn' THEN 1 END) as linkedin_contacts,
+                COUNT(CASE WHEN ah.contact_channel = 'WeChat' THEN 1 END) as wechat_contacts,
                 COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL AND ah.action_datetime BETWEEN ? AND ? THEN 1 END) as followups_scheduled,
                 MAX(ah.action_datetime) as last_activity_date,
                 COALESCE(nc.new_customers_created, 0) as new_customers_created
@@ -65,9 +67,11 @@ try {
                 u.user_id,
                 COUNT(DISTINCT c.customer_id) as customers_assigned,
                 COUNT(ah.history_id) as total_activities,
-                COUNT(CASE WHEN ah.action LIKE '%email%' OR ah.action LIKE '%Email%' THEN 1 END) as emails_sent,
-                COUNT(CASE WHEN ah.action LIKE '%call%' OR ah.action LIKE '%Call%' OR ah.action LIKE '%phone%' THEN 1 END) as calls_made,
-                COUNT(CASE WHEN ah.action LIKE '%meeting%' OR ah.action LIKE '%Meeting%' THEN 1 END) as meetings_held,
+                COUNT(CASE WHEN ah.contact_channel = 'Email' THEN 1 END) as emails_sent,
+                COUNT(CASE WHEN ah.contact_channel IN ('Phone Call', 'WhatsApp', 'SMS') THEN 1 END) as calls_made,
+                COUNT(CASE WHEN ah.contact_channel IN ('In-Person Meeting', 'Video Call') THEN 1 END) as meetings_held,
+                COUNT(CASE WHEN ah.contact_channel = 'LinkedIn' THEN 1 END) as linkedin_contacts,
+                COUNT(CASE WHEN ah.contact_channel = 'WeChat' THEN 1 END) as wechat_contacts,
                 COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL AND ah.action_datetime >= DATE_SUB(NOW(), INTERVAL $days DAY) THEN 1 END) as followups_scheduled,
                 MAX(ah.action_datetime) as last_activity_date,
                 COALESCE(nc.new_customers_created, 0) as new_customers_created
@@ -99,8 +103,11 @@ try {
             SELECT 
                 COUNT(DISTINCT customer_id) as active_customers,
                 COUNT(*) as total_activities,
-                COUNT(CASE WHEN action LIKE '%email%' OR action LIKE '%Email%' THEN 1 END) as total_emails,
-                COUNT(CASE WHEN action LIKE '%call%' OR action LIKE '%Call%' OR action LIKE '%phone%' THEN 1 END) as total_calls,
+                COUNT(CASE WHEN contact_channel = 'Email' THEN 1 END) as total_emails,
+                COUNT(CASE WHEN contact_channel IN ('Phone Call', 'WhatsApp', 'SMS') THEN 1 END) as total_calls,
+                COUNT(CASE WHEN contact_channel IN ('In-Person Meeting', 'Video Call') THEN 1 END) as total_meetings,
+                COUNT(CASE WHEN contact_channel = 'LinkedIn' THEN 1 END) as total_linkedin,
+                COUNT(CASE WHEN contact_channel = 'WeChat' THEN 1 END) as total_wechat,
                 AVG(CASE WHEN follow_up_datetime IS NOT NULL THEN 
                     DATEDIFF(follow_up_datetime, action_datetime) END) as avg_followup_days
             FROM action_history 
@@ -113,8 +120,11 @@ try {
             SELECT 
                 COUNT(DISTINCT customer_id) as active_customers,
                 COUNT(*) as total_activities,
-                COUNT(CASE WHEN action LIKE '%email%' OR action LIKE '%Email%' THEN 1 END) as total_emails,
-                COUNT(CASE WHEN action LIKE '%call%' OR action LIKE '%Call%' OR action LIKE '%phone%' THEN 1 END) as total_calls,
+                COUNT(CASE WHEN contact_channel = 'Email' THEN 1 END) as total_emails,
+                COUNT(CASE WHEN contact_channel IN ('Phone Call', 'WhatsApp', 'SMS') THEN 1 END) as total_calls,
+                COUNT(CASE WHEN contact_channel IN ('In-Person Meeting', 'Video Call') THEN 1 END) as total_meetings,
+                COUNT(CASE WHEN contact_channel = 'LinkedIn' THEN 1 END) as total_linkedin,
+                COUNT(CASE WHEN contact_channel = 'WeChat' THEN 1 END) as total_wechat,
                 AVG(CASE WHEN follow_up_datetime IS NOT NULL THEN 
                     DATEDIFF(follow_up_datetime, action_datetime) END) as avg_followup_days
             FROM action_history 
@@ -342,7 +352,7 @@ try {
 } catch (PDOException $e) {
     logError("Error getting performance metrics: " . $e->getMessage());
     $user_performance = [];
-    $system_metrics = ['active_customers' => 0, 'total_activities' => 0, 'total_emails' => 0, 'total_calls' => 0, 'avg_followup_days' => 0];
+    $system_metrics = ['active_customers' => 0, 'total_activities' => 0, 'total_emails' => 0, 'total_calls' => 0, 'total_meetings' => 0, 'total_linkedin' => 0, 'total_wechat' => 0, 'avg_followup_days' => 0];
     $daily_trends = [];
     $conversion_funnel = [];
     $response_metrics = ['avg_first_response_hours' => 0, 'quick_responses_24h' => 0, 'slow_responses_72h' => 0, 'total_customers_with_activity' => 0];
@@ -433,6 +443,36 @@ try {
         </div>
         
         <div class="metric-card">
+            <div class="metric-icon meetings">
+                <i class="fas fa-handshake"></i>
+            </div>
+            <div class="metric-content">
+                <div class="metric-value"><?php echo number_format($system_metrics['total_meetings']); ?></div>
+                <div class="metric-label"><?php echo __('meetings'); ?></div>
+            </div>
+        </div>
+        
+        <div class="metric-card">
+            <div class="metric-icon linkedin">
+                <i class="fab fa-linkedin"></i>
+            </div>
+            <div class="metric-content">
+                <div class="metric-value"><?php echo number_format($system_metrics['total_linkedin']); ?></div>
+                <div class="metric-label"><?php echo __('linkedin_contacts'); ?></div>
+            </div>
+        </div>
+        
+        <div class="metric-card">
+            <div class="metric-icon wechat">
+                <i class="fab fa-weixin"></i>
+            </div>
+            <div class="metric-content">
+                <div class="metric-value"><?php echo number_format($system_metrics['total_wechat']); ?></div>
+                <div class="metric-label"><?php echo __('wechat_contacts'); ?></div>
+            </div>
+        </div>
+        
+        <div class="metric-card">
             <div class="metric-icon followups">
                 <i class="fas fa-clock"></i>
             </div>
@@ -505,6 +545,8 @@ try {
                                 <th><?php echo __('emails_sent'); ?></th>
                                 <th><?php echo __('calls_made'); ?></th>
                                 <th><?php echo __('meetings'); ?></th>
+                                <th><?php echo __('linkedin_contacts'); ?></th>
+                                <th><?php echo __('wechat_contacts'); ?></th>
                                 <th><?php echo __('efficiency'); ?></th>
                                 <th><?php echo __('last_activity'); ?></th>
                             </tr>
@@ -525,6 +567,8 @@ try {
                                     <td><?php echo $user['emails_sent']; ?></td>
                                     <td><?php echo $user['calls_made']; ?></td>
                                     <td><?php echo $user['meetings_held']; ?></td>
+                                    <td><?php echo $user['linkedin_contacts']; ?></td>
+                                    <td><?php echo $user['wechat_contacts']; ?></td>
                                     <td>
                                         <?php 
                                         $efficiency = $user['customers_assigned'] > 0 ? 
@@ -548,6 +592,68 @@ try {
         <!-- Right Column: Trends and Analysis -->
         <div class="analytics-section">
             <h4><?php echo __('trends_overview'); ?></h4>
+            
+            <!-- Contact Channel Breakdown -->
+            <div class="contact-channel-breakdown">
+                <h5><?php echo __('contact_channel_breakdown'); ?></h5>
+                <?php
+                // Contact Channel Analytics Query
+                if (!empty($start_date) && !empty($end_date)) {
+                    $channel_query = "
+                        SELECT 
+                            ah.contact_channel,
+                            COUNT(*) as count,
+                            COUNT(DISTINCT ah.customer_id) as unique_customers,
+                            ROUND(AVG(CASE WHEN c.status IN ('New Customer', 'Active Customer', 'Closed Won') THEN 1 ELSE 0 END) * 100, 1) as success_rate
+                        FROM action_history ah
+                        JOIN customers c ON ah.customer_id = c.customer_id
+                        WHERE ah.action_datetime BETWEEN ? AND ?
+                        GROUP BY ah.contact_channel
+                        ORDER BY count DESC
+                    ";
+                    $channel_params = [$start_date . ' 00:00:00', $end_date . ' 23:59:59'];
+                } else {
+                    $days = intval($date_range);
+                    $channel_query = "
+                        SELECT 
+                            ah.contact_channel,
+                            COUNT(*) as count,
+                            COUNT(DISTINCT ah.customer_id) as unique_customers,
+                            ROUND(AVG(CASE WHEN c.status IN ('New Customer', 'Active Customer', 'Closed Won') THEN 1 ELSE 0 END) * 100, 1) as success_rate
+                        FROM action_history ah
+                        JOIN customers c ON ah.customer_id = c.customer_id
+                        WHERE ah.action_datetime >= DATE_SUB(NOW(), INTERVAL $days DAY)
+                        GROUP BY ah.contact_channel
+                        ORDER BY count DESC
+                    ";
+                    $channel_params = [];
+                }
+                
+                $stmt = $pdo->prepare($channel_query);
+                $stmt->execute($channel_params);
+                $channel_breakdown = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                ?>
+                
+                <div class="channel-stats">
+                    <?php foreach ($channel_breakdown as $channel): ?>
+                        <div class="channel-stat-card">
+                            <h6><?php 
+                                // Convert contact channel to translation key
+                                $channel_key = strtolower(str_replace([' ', '-'], '_', $channel['contact_channel']));
+                                if ($channel_key === 'phone_call') $channel_key = 'phone_call';
+                                elseif ($channel_key === 'in_person_meeting') $channel_key = 'in_person_meeting';
+                                elseif ($channel_key === 'video_call') $channel_key = 'video_call';
+                                echo __($channel_key); 
+                            ?></h6>
+                            <div class="stat-number"><?php echo $channel['count']; ?></div>
+                            <div class="stat-subtitle">
+                                <?php echo $channel['unique_customers']; ?> <?php echo __('unique_customers'); ?><br>
+                                <?php echo $channel['success_rate']; ?>% <?php echo __('success_rate'); ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
             
             <!-- Conversion Funnel -->
             <div class="conversion-funnel">

@@ -31,3 +31,6 @@ uploads/*
 
 # Ignore test script
 test_*
+
+# maintenance files
+maintenance/*
