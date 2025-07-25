@@ -168,6 +168,7 @@ return [
     // File operations
     'upload' => 'Upload',
     'download' => 'Download',
+    'export_to_csv' => 'Export to CSV',
     'file_uploaded' => 'File uploaded successfully',
     'file_upload_failed' => 'File upload failed',
     'file_not_found' => 'File not found',

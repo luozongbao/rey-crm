@@ -161,6 +161,21 @@ require_once 'includes/header.php';
         </table>
     </div>
     
+    <!-- Export to CSV button -->
+    <?php if (!empty($activities)): ?>
+    <div class="export-section" style="margin-top: 20px; padding: 20px; background: #f9f9f9; border-radius: 8px; text-align: center;">
+        <h3 style="margin-bottom: 15px;"><?= __('export') ?></h3>
+        <a href="export_activities_csv.php?<?= http_build_query($_GET) ?>" 
+           class="btn btn-secondary" 
+           style="padding: 10px 20px; margin: 5px; text-decoration: none; border-radius: 5px; background-color: #28a745; color: white;">
+            📄 <?= __('export_to_csv') ?>
+        </a>
+        <p style="margin-top: 10px; color: #666; font-size: 14px;">
+            <?= __('export') ?> <?= count($activities) ?> <?= __('records') ?>
+        </p>
+    </div>
+    <?php endif; ?>
+    
     <script>
         function validateDates() {
             const dateFromInput = document.getElementById('date_from');

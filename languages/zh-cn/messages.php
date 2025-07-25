@@ -176,6 +176,7 @@ return [
     // File operations
     'upload' => '上传',
     'download' => '下载',
+    'export_to_csv' => '导出为CSV',
     'file_uploaded' => '文件上传成功',
     'file_upload_failed' => '文件上传失败',
     'file_not_found' => '文件未找到',
