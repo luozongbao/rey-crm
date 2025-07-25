@@ -763,6 +763,194 @@ function getSMTPSettings() {
 }
 
 /**
+ * Get user-specific SMTP settings, falling back to system defaults
+ * 
+ * @param int $user_id User ID to get settings for
+ * @return array SMTP settings array
+ */
+function getUserSMTPSettings($user_id) {
+    global $pdo;
+    try {
+        // Get user's personal email settings
+        $stmt = $pdo->prepare("SELECT smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_encryption FROM users WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+        $user_settings = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        // Get system default settings
+        $system_settings = getSMTPSettings();
+        
+        // Build final settings using user preferences or system defaults
+        return [
+            'smtp_host' => !empty($user_settings['smtp_host']) ? $user_settings['smtp_host'] : $system_settings['smtp_host'],
+            'smtp_port' => !empty($user_settings['smtp_port']) ? intval($user_settings['smtp_port']) : $system_settings['smtp_port'],
+            'smtp_username' => !empty($user_settings['smtp_username']) ? $user_settings['smtp_username'] : $system_settings['smtp_username'],
+            'smtp_password' => !empty($user_settings['smtp_password']) ? $user_settings['smtp_password'] : $system_settings['smtp_password'],
+            'smtp_encryption' => !empty($user_settings['smtp_encryption']) ? $user_settings['smtp_encryption'] : $system_settings['smtp_encryption'],
+            'smtp_from_email' => !empty($user_settings['smtp_from_email']) ? $user_settings['smtp_from_email'] : $system_settings['smtp_from_email'],
+            'smtp_from_name' => !empty($user_settings['smtp_from_name']) ? $user_settings['smtp_from_name'] : $system_settings['smtp_from_name']
+        ];
+    } catch (PDOException $e) {
+        logError("Failed to get user SMTP settings: " . $e->getMessage());
+        // Fall back to system settings
+        return getSMTPSettings();
+    }
+}
+
+/**
+ * Send an email using user-specific SMTP settings
+ * 
+ * @param int $user_id User ID to send email as
+ * @param string|array $to Recipient email address(es)
+ * @param string $subject Email subject
+ * @param string $body Email body (HTML format)
+ * @param string $altBody Plain text version of the email body
+ * @param array $attachments Array of files to attach (optional)
+ * @param array|null $cc CC recipients (optional)
+ * @param array|null $bcc BCC recipients (optional)
+ * @param array|null $replyTo Reply-To addresses (optional)
+ * @return array Success status and message
+ */
+function sendUserEmail($user_id, $to, $subject, $body, $altBody = '', $attachments = [], $cc = null, $bcc = null, $replyTo = null) {
+    try {
+        // Check if PHPMailer is installed
+        if (!class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
+            throw new Exception('PHPMailer is not installed. Please run: composer require phpmailer/phpmailer');
+        }
+        
+        // Get user-specific SMTP settings
+        $smtp_settings = getUserSMTPSettings($user_id);
+        
+        // Check if required SMTP settings are configured
+        if (empty($smtp_settings['smtp_host']) || empty($smtp_settings['smtp_port'])) {
+            throw new Exception('SMTP settings are not fully configured.');
+        }
+        
+        // Check authentication if required
+        if (empty($smtp_settings['smtp_username']) || empty($smtp_settings['smtp_password'])) {
+            throw new Exception('SMTP authentication credentials are required.');
+        }
+        
+        // Create a new PHPMailer instance
+        $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+        
+        // Disable SMTP debugging for production
+        $mail->SMTPDebug = 0;
+        
+        // Configure SMTP
+        $mail->isSMTP();
+        $mail->Host = $smtp_settings['smtp_host'];
+        $mail->Port = $smtp_settings['smtp_port'];
+        
+        // Additional SSL/TLS options for better compatibility
+        $mail->SMTPOptions = array(
+            'ssl' => array(
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+                'allow_self_signed' => true
+            )
+        );
+        
+        // Set encryption
+        if ($smtp_settings['smtp_encryption'] === 'ssl') {
+            $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
+        } elseif ($smtp_settings['smtp_encryption'] === 'tls') {
+            $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+        }
+        
+        // Set authentication
+        if (!empty($smtp_settings['smtp_username']) && !empty($smtp_settings['smtp_password'])) {
+            $mail->SMTPAuth = true;
+            $mail->Username = $smtp_settings['smtp_username'];
+            $mail->Password = $smtp_settings['smtp_password'];
+        }
+        
+        // Set sender
+        $from_email = !empty($smtp_settings['smtp_from_email']) ? $smtp_settings['smtp_from_email'] : $smtp_settings['smtp_username'];
+        $from_name = !empty($smtp_settings['smtp_from_name']) ? $smtp_settings['smtp_from_name'] : '';
+        
+        $mail->setFrom($from_email, $from_name);
+        
+        // Add recipients
+        if (is_array($to)) {
+            foreach ($to as $email) {
+                $mail->addAddress($email);
+            }
+        } else {
+            $mail->addAddress($to);
+        }
+        
+        // Add CC recipients
+        if ($cc) {
+            if (is_array($cc)) {
+                foreach ($cc as $email) {
+                    $mail->addCC($email);
+                }
+            } else {
+                $mail->addCC($cc);
+            }
+        }
+        
+        // Add BCC recipients
+        if ($bcc) {
+            if (is_array($bcc)) {
+                foreach ($bcc as $email) {
+                    $mail->addBCC($email);
+                }
+            } else {
+                $mail->addBCC($bcc);
+            }
+        }
+        
+        // Add Reply-To addresses
+        if ($replyTo) {
+            if (is_array($replyTo)) {
+                foreach ($replyTo as $email) {
+                    $mail->addReplyTo($email);
+                }
+            } else {
+                $mail->addReplyTo($replyTo);
+            }
+        }
+        
+        // Add attachments
+        if (!empty($attachments)) {
+            foreach ($attachments as $attachment) {
+                if (file_exists($attachment)) {
+                    // Extract original filename for display to email recipient
+                    $originalName = getOriginalFileName(basename($attachment));
+                    $mail->addAttachment($attachment, $originalName);
+                }
+            }
+        }
+        
+        // Email content
+        $mail->isHTML(true);
+        $mail->CharSet = 'UTF-8';  // Ensure UTF-8 encoding for Asian languages
+        $mail->Encoding = 'base64'; // Use base64 encoding for better compatibility
+        $mail->Subject = $subject;
+        $mail->Body = $body;
+        if (!empty($altBody)) {
+            $mail->AltBody = $altBody;
+        }
+        
+        // Send email
+        $result = $mail->send();
+        
+        return [
+            'success' => true,
+            'message' => 'Email sent successfully'
+        ];
+        
+    } catch (Exception $e) {
+        logError("Email sending failed: " . $e->getMessage());
+        return [
+            'success' => false,
+            'message' => 'Failed to send email: ' . $e->getMessage()
+        ];
+    }
+}
+
+/**
  * Send an email using PHPMailer
  * 
  * @param string|array $to Recipient email address(es)

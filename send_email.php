@@ -113,69 +113,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {
     
     if (empty($errors)) {
         try {
-            // Get SMTP settings from the centralized function
-            $smtp_settings = getSMTPSettings();
+            // Get user-specific SMTP settings
+            $user_id = $_SESSION['user_id'];
             
-            // Create PHPMailer instance
-            $mail = new PHPMailer(true);
-            
-            // Disable SMTP debugging for production
-            $mail->SMTPDebug = 0;
-            
-            // Server settings
-            $mail->isSMTP();
-            $mail->Host = $smtp_settings['smtp_host'] ?? 'localhost';
-            $mail->SMTPAuth = true;
-            $mail->Username = $smtp_settings['smtp_username'] ?? '';
-            $mail->Password = $smtp_settings['smtp_password'] ?? '';
-            
-            // Set encryption based on settings
-            $encryption = $smtp_settings['smtp_encryption'] ?? 'tls';
-            if ($encryption === 'ssl') {
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS; // SSL
-            } else {
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS; // TLS/STARTTLS
-            }
-            
-            $mail->Port = $smtp_settings['smtp_port'] ?? 587;
-            
-            // Additional SSL/TLS options for better compatibility
-            $mail->SMTPOptions = array(
-                'ssl' => array(
-                    'verify_peer' => false,
-                    'verify_peer_name' => false,
-                    'allow_self_signed' => true
-                )
-            );
-            
-            // Recipients - handle multiple emails in TO field
-            $mail->setFrom($smtp_settings['smtp_from_email'] ?? 'noreply@example.com', 
-                          $smtp_settings['smtp_from_name'] ?? 'Rey CRM');
-            
-            // Parse TO emails (may contain multiple addresses)
-            $to_emails = parse_cc_emails($to_email);
-            foreach ($to_emails as $email) {
-                $mail->addAddress($email);
-            }
-            
-            // Add CC if specified
-            if (!empty($email_cc)) {
-                $cc_emails = parse_cc_emails($email_cc);
-                foreach ($cc_emails as $cc_email) {
-                    $mail->addCC($cc_email);
-                }
-            }
-            
-            // Content
-            $mail->isHTML(true);
-            $mail->CharSet = 'UTF-8';  // Ensure UTF-8 encoding for Asian languages
-            $mail->Encoding = 'base64'; // Use base64 encoding for better compatibility
-            $mail->Subject = $email_subject;
-            $mail->Body = $email_message;
-            $mail->AltBody = strip_tags($email_message);
-            
-            // Add attachments if any
-            $attachment_status = [];
+            // Prepare attachments array
+            $attachments_paths = [];
             if (!empty($final_attachments)) {
                 foreach ($final_attachments as $attachment) {
                     // Convert relative path to absolute path
@@ -183,22 +125,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {
                     if (!is_absolute_path($attachment)) {
                         $attachment_path = __DIR__ . '/' . $attachment;
                     }
-                    
                     if (file_exists($attachment_path)) {
-                        // Extract original filename for display to email recipient
-                        $originalName = getOriginalFileName($attachment);
-                        $mail->addAttachment($attachment_path, $originalName);
-                        $attachment_status[] = "✓ Added: " . $originalName;
-                        error_log("Added attachment: " . $attachment_path . " as " . $originalName);
-                    } else {
-                        $attachment_status[] = "✗ Missing: " . basename($attachment);
-                        error_log("Attachment file not found: " . $attachment_path);
+                        $attachments_paths[] = $attachment_path;
                     }
                 }
             }
             
-            // Send email
-            $mail->send();
+            // Parse recipient emails
+            $to_emails = parse_cc_emails($to_email);
+            
+            // Parse CC emails
+            $cc_emails = [];
+            if (!empty($email_cc)) {
+                $cc_emails = parse_cc_emails($email_cc);
+            }
+            
+            // Send email using user's personal SMTP settings
+            $email_result = sendUserEmail(
+                $user_id,
+                $to_emails,
+                $email_subject,
+                $email_message,
+                strip_tags($email_message),
+                $attachments_paths,
+                $cc_emails
+            );
+            
+            if (!$email_result['success']) {
+                throw new Exception($email_result['message']);
+            }
             
             // Save to email history
             $stmt = $pdo->prepare("
@@ -208,41 +163,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {
             ");
             $stmt->execute([
                 getCurrentUTCDateTime(),  // Use UTC timestamp instead of NOW()
-                $to_email,
-                $email_cc,
+                implode(', ', $to_emails),
+                implode(', ', $cc_emails),
                 $project_id,
                 $email_subject,
-                json_encode($final_attachments)
+                json_encode(array_map('basename', $attachments_paths))
             ]);
             
             $success_message = 'Email sent successfully!';
             
             // Add recipient info
-            $recipient_emails = parse_cc_emails($to_email);
-            if (count($recipient_emails) > 1) {
-                $success_message .= ' (Sent to ' . count($recipient_emails) . ' recipients)';
+            if (count($to_emails) > 1) {
+                $success_message .= ' (Sent to ' . count($to_emails) . ' recipients)';
             }
             
             // Add attachment info if there were attachments
-            if (!empty($attachment_status)) {
-                $successful_attachments = array_filter($attachment_status, function($status) {
-                    return strpos($status, '✓') === 0;
-                });
-                $failed_attachments = array_filter($attachment_status, function($status) {
-                    return strpos($status, '✗') === 0;
-                });
-                
-                if (count($successful_attachments) > 0) {
-                    $success_message .= ' (' . count($successful_attachments) . ' attachment' . 
-                                      (count($successful_attachments) > 1 ? 's' : '') . ' included)';
-                }
-                
-                if (count($failed_attachments) > 0) {
-                    $success_message .= '<br><small style="color: #856404;">Note: ' . 
-                                      count($failed_attachments) . ' attachment' . 
-                                      (count($failed_attachments) > 1 ? 's were' : ' was') . 
-                                      ' not found and could not be attached.</small>';
-                }
+            if (!empty($attachments_paths)) {
+                $success_message .= ' (' . count($attachments_paths) . ' attachment' . 
+                                  (count($attachments_paths) > 1 ? 's' : '') . ' included)';
             }
             
         } catch (Exception $e) {
