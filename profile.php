@@ -12,7 +12,7 @@ $error = '';
 
 // Get current user data
 try {
-    $stmt = $pdo->prepare("SELECT username, email, role, preferred_language FROM users WHERE user_id = ?");
+    $stmt = $pdo->prepare("SELECT username, email, role, preferred_language, smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, smtp_from_name, smtp_encryption FROM users WHERE user_id = ?");
     $stmt->execute([$user_id]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -136,6 +136,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     }
 }
 
+// Handle email settings updates
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_email_settings'])) {
+    $smtp_host = trim($_POST['smtp_host'] ?? '');
+    $smtp_port = intval($_POST['smtp_port'] ?? 0);
+    $smtp_username = trim($_POST['smtp_username'] ?? '');
+    $smtp_password = trim($_POST['smtp_password'] ?? '');
+    $smtp_from_email = trim($_POST['smtp_from_email'] ?? '');
+    $smtp_from_name = trim($_POST['smtp_from_name'] ?? '');
+    $smtp_encryption = $_POST['smtp_encryption'] ?? '';
+    
+    try {
+        // Begin transaction
+        $pdo->beginTransaction();
+        
+        // Validate required fields
+        if (empty($smtp_username) || empty($smtp_password) || empty($smtp_from_email) || empty($smtp_from_name)) {
+            throw new Exception("SMTP Username, Password, From Email, and From Name are required.");
+        }
+        
+        // Validate from email format
+        if (!filter_var($smtp_from_email, FILTER_VALIDATE_EMAIL)) {
+            throw new Exception("Please enter a valid From Email address.");
+        }
+        
+        // If host and port are empty, get defaults from system settings
+        $system_smtp = getSMTPSettings();
+        if (empty($smtp_host)) {
+            $smtp_host = $system_smtp['smtp_host'];
+        }
+        if ($smtp_port <= 0) {
+            $smtp_port = $system_smtp['smtp_port'];
+        }
+        if (empty($smtp_encryption)) {
+            $smtp_encryption = $system_smtp['smtp_encryption'];
+        }
+        
+        // Update user email settings
+        $stmt = $pdo->prepare("UPDATE users SET smtp_host = ?, smtp_port = ?, smtp_username = ?, smtp_password = ?, smtp_from_email = ?, smtp_from_name = ?, smtp_encryption = ?, updated_at = NOW() WHERE user_id = ?");
+        $stmt->execute([$smtp_host, $smtp_port, $smtp_username, $smtp_password, $smtp_from_email, $smtp_from_name, $smtp_encryption, $user_id]);
+        
+        // Commit transaction
+        $pdo->commit();
+        
+        // Update user data for display
+        $user['smtp_host'] = $smtp_host;
+        $user['smtp_port'] = $smtp_port;
+        $user['smtp_username'] = $smtp_username;
+        $user['smtp_password'] = $smtp_password;
+        $user['smtp_from_email'] = $smtp_from_email;
+        $user['smtp_from_name'] = $smtp_from_name;
+        $user['smtp_encryption'] = $smtp_encryption;
+        
+        $message = "Your email settings have been updated successfully.";
+        
+    } catch (Exception $e) {
+        // Rollback transaction
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        $error = $e->getMessage();
+    } catch (PDOException $e) {
+        // Rollback transaction
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        $error = "Failed to update email settings. Please try again.";
+        logError("Email settings update failed: " . $e->getMessage());
+    }
+}
+
 require_once 'includes/header.php';
 ?>
 
@@ -191,6 +261,66 @@ require_once 'includes/header.php';
 
                     <div class="form-actions">
                         <button type="submit" name="update_profile" class="btn btn-primary"><?php echo __('update_profile'); ?></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="settings-section email-settings-box">
+            <div class="settings-header">
+                <h3><?php echo __('email_settings'); ?></h3>
+            </div>
+            <div class="settings-content">
+                <form method="POST" action="" class="form">
+                    <div class="form-group">
+                        <label for="smtp_host"><?php echo __('smtp_server'); ?>:</label>
+                        <input type="text" id="smtp_host" name="smtp_host" value="<?php echo htmlspecialchars($user['smtp_host'] ?? ''); ?>" class="form-input" placeholder="<?php echo htmlspecialchars(getSMTPSettings()['smtp_host'] ?? 'smtp.gmail.com'); ?>">
+                        <small class="form-text text-muted"><?php echo __('smtp_server_help'); ?></small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="smtp_port"><?php echo __('smtp_port'); ?>:</label>
+                        <input type="number" id="smtp_port" name="smtp_port" value="<?php echo htmlspecialchars($user['smtp_port'] ?? ''); ?>" class="form-input" placeholder="<?php echo htmlspecialchars(getSMTPSettings()['smtp_port'] ?? '587'); ?>" min="1" max="65535">
+                        <small class="form-text text-muted"><?php echo __('smtp_port_help'); ?></small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="smtp_username"><?php echo __('smtp_username'); ?> *:</label>
+                        <input type="text" id="smtp_username" name="smtp_username" value="<?php echo htmlspecialchars($user['smtp_username'] ?? ''); ?>" required class="form-input">
+                        <small class="form-text text-muted"><?php echo __('smtp_username_help'); ?></small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="smtp_password"><?php echo __('smtp_password'); ?> *:</label>
+                        <input type="password" id="smtp_password" name="smtp_password" value="<?php echo htmlspecialchars($user['smtp_password'] ?? ''); ?>" required class="form-input">
+                        <small class="form-text text-muted"><?php echo __('smtp_password_help'); ?></small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="smtp_from_email"><?php echo __('from_email'); ?> *:</label>
+                        <input type="email" id="smtp_from_email" name="smtp_from_email" value="<?php echo htmlspecialchars($user['smtp_from_email'] ?? ''); ?>" required class="form-input">
+                        <small class="form-text text-muted"><?php echo __('from_email_help'); ?></small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="smtp_from_name"><?php echo __('from_name'); ?> *:</label>
+                        <input type="text" id="smtp_from_name" name="smtp_from_name" value="<?php echo htmlspecialchars($user['smtp_from_name'] ?? ''); ?>" required class="form-input">
+                        <small class="form-text text-muted"><?php echo __('from_name_help'); ?></small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="smtp_encryption"><?php echo __('encryption'); ?>:</label>
+                        <select id="smtp_encryption" name="smtp_encryption" class="form-input">
+                            <option value="" <?php echo empty($user['smtp_encryption']) ? 'selected' : ''; ?>><?php echo __('use_system_default'); ?> (<?php echo strtoupper(getSMTPSettings()['smtp_encryption'] ?? 'TLS'); ?>)</option>
+                            <option value="tls" <?php echo ($user['smtp_encryption'] ?? '') === 'tls' ? 'selected' : ''; ?>>TLS</option>
+                            <option value="ssl" <?php echo ($user['smtp_encryption'] ?? '') === 'ssl' ? 'selected' : ''; ?>>SSL</option>
+                            <option value="none" <?php echo ($user['smtp_encryption'] ?? '') === 'none' ? 'selected' : ''; ?>><?php echo __('none'); ?></option>
+                        </select>
+                        <small class="form-text text-muted"><?php echo __('encryption_help'); ?></small>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" name="update_email_settings" class="btn btn-primary"><?php echo __('update_email_settings'); ?></button>
                     </div>
                 </form>
             </div>

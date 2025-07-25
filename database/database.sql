@@ -79,6 +79,14 @@ CREATE TABLE IF NOT EXISTS users (
     password VARCHAR(255) NOT NULL,
     role ENUM('user', 'admin') DEFAULT 'user',
     preferred_language VARCHAR(10) DEFAULT 'en',
+    -- Personal email settings
+    smtp_host VARCHAR(255) DEFAULT NULL,
+    smtp_port INT DEFAULT NULL,
+    smtp_username VARCHAR(255) DEFAULT NULL,
+    smtp_password VARCHAR(255) DEFAULT NULL,
+    smtp_from_email VARCHAR(255) DEFAULT NULL,
+    smtp_from_name VARCHAR(255) DEFAULT NULL,
+    smtp_encryption ENUM('tls', 'ssl', 'none') DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     last_login TIMESTAMP NULL
