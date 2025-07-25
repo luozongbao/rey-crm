@@ -118,3 +118,20 @@ CREATE TABLE IF NOT EXISTS sent_email_history (
     FOREIGN KEY (project_id) REFERENCES email_projects(project_id) ON DELETE SET NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Table for User Email Settings
+CREATE TABLE IF NOT EXISTS user_email_settings (
+    user_email_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    smtp_host VARCHAR(255),
+    smtp_port INT,
+    smtp_username VARCHAR(255),
+    smtp_password VARCHAR(255),
+    smtp_from_email VARCHAR(255),
+    smtp_from_name VARCHAR(255),
+    smtp_encryption ENUM('tls', 'ssl', 'none') DEFAULT 'tls',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    UNIQUE KEY unique_user_email_settings (user_id)
+);

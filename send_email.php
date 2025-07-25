@@ -114,92 +114,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {
     
     if (empty($errors)) {
         try {
-            // Get SMTP settings from the centralized function
-            $smtp_settings = getSMTPSettings();
+            // Parse recipients and CC emails
+            $to_emails = parse_cc_emails($to_email);
+            $cc_emails = !empty($email_cc) ? parse_cc_emails($email_cc) : null;
             
-            // Create PHPMailer instance
-            $mail = new PHPMailer(true);
-            
-            // Disable SMTP debugging for production
-            $mail->SMTPDebug = 0;
-            
-            // Server settings
-            $mail->isSMTP();
-            $mail->Host = $smtp_settings['smtp_host'] ?? 'localhost';
-            $mail->SMTPAuth = true;
-            $mail->Username = $smtp_settings['smtp_username'] ?? '';
-            $mail->Password = $smtp_settings['smtp_password'] ?? '';
-            
-            // Set encryption based on settings
-            $encryption = $smtp_settings['smtp_encryption'] ?? 'tls';
-            if ($encryption === 'ssl') {
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS; // SSL
-            } else {
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS; // TLS/STARTTLS
-            }
-            
-            $mail->Port = $smtp_settings['smtp_port'] ?? 587;
-            
-            // Additional SSL/TLS options for better compatibility
-            $mail->SMTPOptions = array(
-                'ssl' => array(
-                    'verify_peer' => false,
-                    'verify_peer_name' => false,
-                    'allow_self_signed' => true
-                )
+            // Use enhanced sendEmail function with user-specific settings
+            $result = sendEmail(
+                $to_emails,
+                $email_subject,
+                $email_message,
+                strip_tags($email_message), // alt body
+                $final_attachments,
+                $cc_emails,
+                null, // bcc
+                null, // reply-to
+                $_SESSION['user_id'] // user_id for personal email settings
             );
             
-            // Recipients - handle multiple emails in TO field
-            $mail->setFrom($smtp_settings['smtp_from_email'] ?? 'noreply@example.com', 
-                          $smtp_settings['smtp_from_name'] ?? 'Rey CRM');
-            
-            // Parse TO emails (may contain multiple addresses)
-            $to_emails = parse_cc_emails($to_email);
-            foreach ($to_emails as $email) {
-                $mail->addAddress($email);
+            if (!$result['success']) {
+                throw new Exception($result['message']);
             }
-            
-            // Add CC if specified
-            if (!empty($email_cc)) {
-                $cc_emails = parse_cc_emails($email_cc);
-                foreach ($cc_emails as $cc_email) {
-                    $mail->addCC($cc_email);
-                }
-            }
-            
-            // Content
-            $mail->isHTML(true);
-            $mail->CharSet = 'UTF-8';  // Ensure UTF-8 encoding for Asian languages
-            $mail->Encoding = 'base64'; // Use base64 encoding for better compatibility
-            $mail->Subject = $email_subject;
-            $mail->Body = $email_message;
-            $mail->AltBody = strip_tags($email_message);
-            
-            // Add attachments if any
-            $attachment_status = [];
-            if (!empty($final_attachments)) {
-                foreach ($final_attachments as $attachment) {
-                    // Convert relative path to absolute path
-                    $attachment_path = $attachment;
-                    if (!is_absolute_path($attachment)) {
-                        $attachment_path = __DIR__ . '/' . $attachment;
-                    }
-                    
-                    if (file_exists($attachment_path)) {
-                        // Extract original filename for display to email recipient
-                        $originalName = getOriginalFileName($attachment);
-                        $mail->addAttachment($attachment_path, $originalName);
-                        $attachment_status[] = "✓ Added: " . $originalName;
-                        error_log("Added attachment: " . $attachment_path . " as " . $originalName);
-                    } else {
-                        $attachment_status[] = "✗ Missing: " . basename($attachment);
-                        error_log("Attachment file not found: " . $attachment_path);
-                    }
-                }
-            }
-            
-            // Send email
-            $mail->send();
             
             // Save to email history
             $stmt = $pdo->prepare("

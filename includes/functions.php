@@ -693,6 +693,107 @@ function getSMTPSettings() {
 }
 
 /**
+ * Get user email settings with fallbacks to system SMTP settings
+ * 
+ * @param int $user_id User ID to get email settings for
+ * @return array Email settings with system defaults as fallbacks
+ */
+function getUserEmailSettings($user_id) {
+    global $pdo;
+    
+    try {
+        // Get user-specific email settings
+        $stmt = $pdo->prepare("SELECT * FROM user_email_settings WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+        $user_settings = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        // Get system SMTP settings as defaults
+        $system_settings = getSMTPSettings();
+        
+        // Merge user settings with system defaults
+        $settings = [
+            'smtp_host' => $user_settings['smtp_host'] ?? $system_settings['smtp_host'],
+            'smtp_port' => intval($user_settings['smtp_port'] ?? $system_settings['smtp_port']),
+            'smtp_username' => $user_settings['smtp_username'] ?? $system_settings['smtp_username'],
+            'smtp_password' => $user_settings['smtp_password'] ?? $system_settings['smtp_password'],
+            'smtp_encryption' => $user_settings['smtp_encryption'] ?? $system_settings['smtp_encryption'],
+            'smtp_from_email' => $user_settings['smtp_from_email'] ?? $system_settings['smtp_from_email'],
+            'smtp_from_name' => $user_settings['smtp_from_name'] ?? $system_settings['smtp_from_name']
+        ];
+        
+        return $settings;
+    } catch (PDOException $e) {
+        logError("Failed to get user email settings: " . $e->getMessage());
+        // Fall back to system settings if user settings fail
+        return getSMTPSettings();
+    }
+}
+
+/**
+ * Save or update user email settings
+ * 
+ * @param int $user_id User ID
+ * @param array $settings Email settings to save
+ * @return bool Success status
+ */
+function saveUserEmailSettings($user_id, $settings) {
+    global $pdo;
+    
+    try {
+        $pdo->beginTransaction();
+        
+        // Check if user settings already exist
+        $stmt = $pdo->prepare("SELECT user_email_id FROM user_email_settings WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+        $exists = $stmt->fetch();
+        
+        if ($exists) {
+            // Update existing settings
+            $sql = "UPDATE user_email_settings SET 
+                    smtp_host = ?, smtp_port = ?, smtp_username = ?, smtp_password = ?,
+                    smtp_from_email = ?, smtp_from_name = ?, smtp_encryption = ?,
+                    updated_at = NOW()
+                    WHERE user_id = ?";
+            $stmt = $pdo->prepare($sql);
+            $result = $stmt->execute([
+                $settings['smtp_host'],
+                $settings['smtp_port'], 
+                $settings['smtp_username'],
+                $settings['smtp_password'],
+                $settings['smtp_from_email'],
+                $settings['smtp_from_name'],
+                $settings['smtp_encryption'],
+                $user_id
+            ]);
+        } else {
+            // Insert new settings
+            $sql = "INSERT INTO user_email_settings 
+                    (user_id, smtp_host, smtp_port, smtp_username, smtp_password,
+                     smtp_from_email, smtp_from_name, smtp_encryption)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            $stmt = $pdo->prepare($sql);
+            $result = $stmt->execute([
+                $user_id,
+                $settings['smtp_host'],
+                $settings['smtp_port'],
+                $settings['smtp_username'], 
+                $settings['smtp_password'],
+                $settings['smtp_from_email'],
+                $settings['smtp_from_name'],
+                $settings['smtp_encryption']
+            ]);
+        }
+        
+        $pdo->commit();
+        return $result;
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        logError("Failed to save user email settings: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
  * Send an email using PHPMailer
  * 
  * @param string|array $to Recipient email address(es)
@@ -703,17 +804,22 @@ function getSMTPSettings() {
  * @param array|null $cc CC recipients (optional)
  * @param array|null $bcc BCC recipients (optional)
  * @param array|null $replyTo Reply-To addresses (optional)
+ * @param int|null $user_id User ID to use personal email settings (optional)
  * @return array Success status and message
  */
-function sendEmail($to, $subject, $body, $altBody = '', $attachments = [], $cc = null, $bcc = null, $replyTo = null) {
+function sendEmail($to, $subject, $body, $altBody = '', $attachments = [], $cc = null, $bcc = null, $replyTo = null, $user_id = null) {
     try {
         // Check if PHPMailer is installed
         if (!class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
             throw new Exception('PHPMailer is not installed. Please run: composer require phpmailer/phpmailer');
         }
         
-        // Get SMTP settings from database
-        $smtp_settings = getSMTPSettings();
+        // Get email settings - use user-specific settings if user_id provided, otherwise system settings
+        if ($user_id !== null) {
+            $smtp_settings = getUserEmailSettings($user_id);
+        } else {
+            $smtp_settings = getSMTPSettings();
+        }
         
         // Check if required SMTP settings are configured
         if (empty($smtp_settings['smtp_host']) || empty($smtp_settings['smtp_port'])) {

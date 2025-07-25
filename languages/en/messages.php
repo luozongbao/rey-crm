@@ -305,6 +305,7 @@ return [
     'encryption' => 'Encryption',
     'none' => 'None',
     'update_smtp_settings' => 'Update SMTP Settings',
+    'update_email_settings' => 'Update Email Settings',
     'test_email_settings' => 'Test Email Settings',
     'send_test_email' => 'Send Test Email',
     'recipient_email' => 'Recipient Email',
