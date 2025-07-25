@@ -77,6 +77,13 @@ CREATE TABLE IF NOT EXISTS users (
     password VARCHAR(255) NOT NULL,
     role ENUM('user', 'admin') DEFAULT 'user',
     preferred_language VARCHAR(10) DEFAULT 'en',
+    smtp_host VARCHAR(255),
+    smtp_port INT,
+    smtp_username VARCHAR(255),
+    smtp_password VARCHAR(255),
+    smtp_from_email VARCHAR(255),
+    smtp_from_name VARCHAR(255),
+    smtp_encryption ENUM('tls', 'ssl', 'none') DEFAULT 'tls',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     last_login TIMESTAMP NULL
@@ -119,19 +126,3 @@ CREATE TABLE IF NOT EXISTS sent_email_history (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Table for User Email Settings
-CREATE TABLE IF NOT EXISTS user_email_settings (
-    user_email_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    smtp_host VARCHAR(255),
-    smtp_port INT,
-    smtp_username VARCHAR(255),
-    smtp_password VARCHAR(255),
-    smtp_from_email VARCHAR(255),
-    smtp_from_name VARCHAR(255),
-    smtp_encryption ENUM('tls', 'ssl', 'none') DEFAULT 'tls',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-    UNIQUE KEY unique_user_email_settings (user_id)
-);

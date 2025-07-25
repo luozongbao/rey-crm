@@ -702,8 +702,10 @@ function getUserEmailSettings($user_id) {
     global $pdo;
     
     try {
-        // Get user-specific email settings
-        $stmt = $pdo->prepare("SELECT * FROM user_email_settings WHERE user_id = ?");
+        // Get user-specific email settings from users table
+        $stmt = $pdo->prepare("SELECT smtp_host, smtp_port, smtp_username, smtp_password, 
+                                     smtp_from_email, smtp_from_name, smtp_encryption 
+                              FROM users WHERE user_id = ?");
         $stmt->execute([$user_id]);
         $user_settings = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -742,47 +744,23 @@ function saveUserEmailSettings($user_id, $settings) {
     try {
         $pdo->beginTransaction();
         
-        // Check if user settings already exist
-        $stmt = $pdo->prepare("SELECT user_email_id FROM user_email_settings WHERE user_id = ?");
-        $stmt->execute([$user_id]);
-        $exists = $stmt->fetch();
-        
-        if ($exists) {
-            // Update existing settings
-            $sql = "UPDATE user_email_settings SET 
-                    smtp_host = ?, smtp_port = ?, smtp_username = ?, smtp_password = ?,
-                    smtp_from_email = ?, smtp_from_name = ?, smtp_encryption = ?,
-                    updated_at = NOW()
-                    WHERE user_id = ?";
-            $stmt = $pdo->prepare($sql);
-            $result = $stmt->execute([
-                $settings['smtp_host'],
-                $settings['smtp_port'], 
-                $settings['smtp_username'],
-                $settings['smtp_password'],
-                $settings['smtp_from_email'],
-                $settings['smtp_from_name'],
-                $settings['smtp_encryption'],
-                $user_id
-            ]);
-        } else {
-            // Insert new settings
-            $sql = "INSERT INTO user_email_settings 
-                    (user_id, smtp_host, smtp_port, smtp_username, smtp_password,
-                     smtp_from_email, smtp_from_name, smtp_encryption)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-            $stmt = $pdo->prepare($sql);
-            $result = $stmt->execute([
-                $user_id,
-                $settings['smtp_host'],
-                $settings['smtp_port'],
-                $settings['smtp_username'], 
-                $settings['smtp_password'],
-                $settings['smtp_from_email'],
-                $settings['smtp_from_name'],
-                $settings['smtp_encryption']
-            ]);
-        }
+        // Update user email settings in users table
+        $sql = "UPDATE users SET 
+                smtp_host = ?, smtp_port = ?, smtp_username = ?, smtp_password = ?,
+                smtp_from_email = ?, smtp_from_name = ?, smtp_encryption = ?,
+                updated_at = NOW()
+                WHERE user_id = ?";
+        $stmt = $pdo->prepare($sql);
+        $result = $stmt->execute([
+            $settings['smtp_host'],
+            $settings['smtp_port'], 
+            $settings['smtp_username'],
+            $settings['smtp_password'],
+            $settings['smtp_from_email'],
+            $settings['smtp_from_name'],
+            $settings['smtp_encryption'],
+            $user_id
+        ]);
         
         $pdo->commit();
         return $result;
