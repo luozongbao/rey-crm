@@ -39,6 +39,13 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Validate CSRF token
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!validateCSRFToken($csrf_token)) {
+        http_response_code(403);
+        die('CSRF token validation failed');
+    }
+    
     if (isset($_POST['delete_user']) && $is_edit && !$is_current_user) {
         // Handle delete user (only for other users)
         try {
@@ -173,6 +180,7 @@ include 'includes/header.php';
     <div class="card">
         <div class="card-body">
             <form method="POST" action="" class="user-form">
+                <?php echo csrfTokenField(); ?>
                 <div class="form-group">
                     <label for="username"><?php echo __('username'); ?>:</label>
                     <input type="text" 
@@ -233,6 +241,7 @@ include 'includes/header.php';
                     <h3><?php echo __('password_reset'); ?></h3>
                     <p><?php echo __('send_password_reset_link_to'); ?> <?php echo htmlspecialchars($user['email']); ?></p>
                     <form method="POST" action="" class="reset-form">
+                        <?php echo csrfTokenField(); ?>
                         <input type="hidden" name="reset_email" value="<?php echo htmlspecialchars($user['email']); ?>">
                         <button type="submit" name="send_reset" class="btn btn-warning">
                             <?php echo __('send_password_reset_link'); ?>
@@ -247,6 +256,7 @@ include 'includes/header.php';
                     <h3><?php echo __('delete_user'); ?></h3>
                     <p class="delete-warning"><?php echo __('delete_user_warning'); ?></p>
                     <form method="POST" action="" onsubmit="return confirm('<?php echo __('confirm_delete_user'); ?>');">
+                        <?php echo csrfTokenField(); ?>
                         <button type="submit" name="delete_user" class="btn btn-danger delete-user-btn">
                             <?php echo __('delete_user'); ?>
                         </button>

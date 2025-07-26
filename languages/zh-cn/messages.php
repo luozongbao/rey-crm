@@ -966,6 +966,12 @@ return [
     'recent_activities' => '最近活动',
     'clear_filters' => '清除筛选',
 
+    // Security messages
+    'account_temporarily_locked' => '由于多次登录失败，账户已被临时锁定。请稍后再试。',
+    'csrf_token_validation_failed' => '安全令牌验证失败。请刷新页面后重试。',
+    'access_denied' => '拒绝访问。您没有权限查看此资源。',
+    'session_timeout' => '您的会话已过期。请重新登录。',
+
     // Add more messages as needed
 ];
 ?>

@@ -17,6 +17,13 @@ if (isset($_SESSION['message'])) {
 
 // Handle database export
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_db'])) {
+    // Validate CSRF token
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!validateCSRFToken($csrf_token)) {
+        http_response_code(403);
+        die('CSRF token validation failed');
+    }
+    
     try {
         // Create backup folder if it doesn't exist
         $backup_dir = __DIR__ . '/backup';
@@ -73,6 +80,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_db'])) {
 
 // Handle database import
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_db'])) {
+    // Validate CSRF token
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!validateCSRFToken($csrf_token)) {
+        http_response_code(403);
+        die('CSRF token validation failed');
+    }
+    
     try {
         if (!isset($_FILES['import_file']) || $_FILES['import_file']['error'] !== UPLOAD_ERR_OK) {
             throw new Exception(__('no_file_uploaded'));
@@ -132,6 +146,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_db'])) {
 
 // Handle form submission for pagination settings
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_pagination'])) {
+    // Validate CSRF token
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!validateCSRFToken($csrf_token)) {
+        http_response_code(403);
+        die('CSRF token validation failed');
+    }
+    
     $items_per_page = intval($_POST['items_per_page']);
     if ($items_per_page > 0) {
         try {
@@ -167,6 +188,13 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_user' && isset($_GET['
 
 // Handle SMTP settings form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_smtp'])) {
+    // Validate CSRF token
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!validateCSRFToken($csrf_token)) {
+        http_response_code(403);
+        die('CSRF token validation failed');
+    }
+    
     $smtp_host = trim($_POST['smtp_host']);
     $smtp_port = intval($_POST['smtp_port']);
     $smtp_username = trim($_POST['smtp_username']);
@@ -268,6 +296,7 @@ require_once 'includes/header.php';
     <div class="settings-section" style="flex:1 1 320px; min-width:300px;">
         <h3><?= __('pagination_settings') ?></h3>
         <form method="POST" action="">
+            <?php echo csrfTokenField(); ?>
             <div class="form-group">
                 <label for="items_per_page"><?= __('items_per_page') ?>:</label>
                 <input type="number" id="items_per_page" name="items_per_page" 
@@ -285,6 +314,7 @@ require_once 'includes/header.php';
 <div class="settings-section">
     <h3><?= __('email_settings') ?></h3>
     <form method="POST" action="">
+        <?php echo csrfTokenField(); ?>
         <div class="form-row">
             <div class="form-group half-width">
                 <label for="smtp_host"><?= __('smtp_host') ?>:</label>
@@ -409,6 +439,7 @@ require_once 'includes/header.php';
     <div class="form-row">
         <div class="form-group half-width">
             <form method="post" action="">
+                <?php echo csrfTokenField(); ?>
                 <h4><?= __('export_database') ?></h4>
                 <p class="form-text"><?= __('export_complete_database_compressed') ?></p>
                 <button type="submit" name="export_db" class="btn"><?= __('export_database') ?></button>
@@ -417,6 +448,7 @@ require_once 'includes/header.php';
         
         <div class="form-group half-width">
             <form method="post" action="" enctype="multipart/form-data">
+                <?php echo csrfTokenField(); ?>
                 <h4><?= __('import_database') ?></h4>
                 <p class="form-text"><?= __('import_previously_exported_database') ?></p>
                 <div class="form-group">

@@ -2858,4 +2858,121 @@ function canEditCustomer($customer_id) {
     }
 }
 
+/**
+ * CSRF Protection Functions
+ */
+function generateCSRFToken() {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    if (!isset($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function validateCSRFToken($token) {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+}
+
+function csrfTokenField() {
+    $token = generateCSRFToken();
+    return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($token) . '">';
+}
+
+/**
+ * Enhanced Session Security Functions
+ */
+function regenerateSession() {
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_regenerate_id(true);
+    }
+}
+
+function checkSessionTimeout() {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    if (isset($_SESSION['last_activity'])) {
+        if (time() - $_SESSION['last_activity'] > SESSION_TIMEOUT) {
+            session_unset();
+            session_destroy();
+            header('Location: /login.php?timeout=1');
+            exit;
+        }
+    }
+    $_SESSION['last_activity'] = time();
+}
+
+/**
+ * Access Control Functions
+ */
+function canUserAccessCustomer($user_id, $customer_id) {
+    global $pdo;
+    
+    // Admin can access all customers
+    if (isAdmin()) {
+        return true;
+    }
+    
+    // Regular users can only access assigned customers
+    try {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM customers WHERE customer_id = ? AND assigned_user_id = ?");
+        $stmt->execute([$customer_id, $user_id]);
+        
+        return $stmt->fetchColumn() > 0;
+    } catch (PDOException $e) {
+        logError("Error checking customer access: " . $e->getMessage());
+        return false;
+    }
+}
+
+function validateCustomerAccess($customer_id) {
+    if (!canUserAccessCustomer($_SESSION['user_id'], $customer_id)) {
+        http_response_code(403);
+        header('Location: /dashboard.php?error=access_denied');
+        exit;
+    }
+}
+
+/**
+ * Login Attempt Tracking Functions
+ */
+function trackLoginAttempt($username, $ip_address, $success = false) {
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare("INSERT INTO login_attempts (username, ip_address, attempt_time, success) VALUES (?, ?, ?, ?)");
+        $stmt->execute([$username, $ip_address, getCurrentUTCDateTime(), $success ? 1 : 0]);
+    } catch (PDOException $e) {
+        logError("Failed to track login attempt: " . $e->getMessage());
+    }
+}
+
+function isAccountLocked($username, $ip_address) {
+    global $pdo;
+    $lockout_time = date('Y-m-d H:i:s', time() - LOCKOUT_DURATION);
+    
+    try {
+        // Check failed attempts from this IP or username
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) FROM login_attempts 
+            WHERE (username = ? OR ip_address = ?) 
+            AND attempt_time > ? 
+            AND success = 0
+        ");
+        $stmt->execute([$username, $ip_address, $lockout_time]);
+        
+        return $stmt->fetchColumn() >= MAX_LOGIN_ATTEMPTS;
+    } catch (PDOException $e) {
+        logError("Failed to check account lockout: " . $e->getMessage());
+        return false; // Default to not locked if we can't check
+    }
+}
+
 ?>

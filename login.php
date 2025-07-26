@@ -13,40 +13,56 @@ if (isset($_SESSION['user_id'])) {
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? '');
-    $password = trim($_POST['password'] ?? '');
-    
-    // Cleanup expired tokens occasionally (1% chance)
-    if (mt_rand(1, 100) === 1) {
-        cleanupExpiredTokens();
-    }
-    
-    if (empty($username) || empty($password)) {
-        $error = __('login_required');
+    // Validate CSRF token
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!validateCSRFToken($csrf_token)) {
+        http_response_code(403);
+        $error = 'CSRF token validation failed';
     } else {
-        try {
-            $stmt = $pdo->prepare("SELECT user_id, username, password, role FROM users WHERE username = ?");
-            $stmt->execute([$username]);
-            $user = $stmt->fetch();
-            
-            if ($user && password_verify($password, $user['password'])) {
-                // Update last login time
-                $updateStmt = $pdo->prepare("UPDATE users SET last_login = ? WHERE user_id = ?");
-                $updateStmt->execute([getCurrentUTCDateTime(), $user['user_id']]);
+        $username = trim($_POST['username'] ?? '');
+        $password = trim($_POST['password'] ?? '');
+        $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        
+        // Cleanup expired tokens occasionally (1% chance)
+        if (mt_rand(1, 100) === 1) {
+            cleanupExpiredTokens();
+        }
+        
+        if (empty($username) || empty($password)) {
+            $error = __('login_required');
+        } elseif (isAccountLocked($username, $ip_address)) {
+            $error = __('account_temporarily_locked');
+        } else {
+            try {
+                $stmt = $pdo->prepare("SELECT user_id, username, password, role FROM users WHERE username = ?");
+                $stmt->execute([$username]);
+                $user = $stmt->fetch();
                 
-                // Set session variables
-                $_SESSION['user_id'] = $user['user_id'];
-                $_SESSION['username'] = $user['username'];
-                $_SESSION['role'] = $user['role'];
-                
-                header('Location: dashboard.php');
-                exit;
-            } else {
-                $error = __('invalid_credentials');
+                if ($user && password_verify($password, $user['password'])) {
+                    // Successful login
+                    trackLoginAttempt($username, $ip_address, true);
+                    regenerateSession();
+                    
+                    // Update last login time
+                    $updateStmt = $pdo->prepare("UPDATE users SET last_login = ? WHERE user_id = ?");
+                    $updateStmt->execute([getCurrentUTCDateTime(), $user['user_id']]);
+                    
+                    // Set session variables
+                    $_SESSION['user_id'] = $user['user_id'];
+                    $_SESSION['username'] = $user['username'];
+                    $_SESSION['role'] = $user['role'];
+                    $_SESSION['last_activity'] = time();
+                    
+                    header('Location: dashboard.php');
+                    exit;
+                } else {
+                    trackLoginAttempt($username, $ip_address, false);
+                    $error = __('invalid_credentials');
+                }
+            } catch (PDOException $e) {
+                $error = __('login_failed');
+                logError($e->getMessage());
             }
-        } catch (PDOException $e) {
-            $error = __('login_failed');
-            logError($e->getMessage());
         }
     }
 }
@@ -90,6 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <form method="POST" class="auth-form">
+                <?php echo csrfTokenField(); ?>
                 <div class="form-group">
                     <label for="username"><?php echo __('username'); ?></label>
                     <input type="text" 

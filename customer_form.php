@@ -7,13 +7,32 @@ $customer_id = $_GET['id'] ?? 0;
 $isViewMode = $action === 'view';
 $isEditMode = $action === 'edit';
 
+// Validate customer access for view/edit operations
+if (($action === 'view' || $action === 'edit') && $customer_id) {
+    validateCustomerAccess($customer_id);
+}
+
 if ($action == 'delete' && $customer_id) {
+    // Validate access before deletion
+    validateCustomerAccess($customer_id);
     deleteCustomer($customer_id);
     header("Location: customers.php?restore=1");
     exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edit')) {
+    // Validate CSRF token
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!validateCSRFToken($csrf_token)) {
+        http_response_code(403);
+        die('CSRF token validation failed');
+    }
+    
+    // Validate customer access for edit
+    if ($action == 'edit' && $customer_id) {
+        validateCustomerAccess($customer_id);
+    }
+    
     $data = [
         'company_name' => $_POST['company_name'],
         'address' => $_POST['address'] ?? null,
@@ -124,6 +143,7 @@ require_once 'includes/header.php';
         </div>
         
         <form method="post">
+            <?php echo csrfTokenField(); ?>
             <!-- Row 1: Company Name and Status -->
             <div class="form-row">
                 <div class="form-group company-name">

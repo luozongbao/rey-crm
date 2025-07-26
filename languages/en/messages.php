@@ -928,6 +928,12 @@ return [
     'recent_activities' => 'recent activities',
     'clear_filters' => 'Clear Filters',
 
+    // Security messages
+    'account_temporarily_locked' => 'Account temporarily locked due to multiple failed login attempts. Please try again later.',
+    'csrf_token_validation_failed' => 'Security token validation failed. Please refresh the page and try again.',
+    'access_denied' => 'Access denied. You do not have permission to view this resource.',
+    'session_timeout' => 'Your session has expired. Please log in again.',
+
     // Add more messages as needed
 ];
 ?>

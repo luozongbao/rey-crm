@@ -145,3 +145,14 @@ CREATE TABLE IF NOT EXISTS sent_email_history (
     FOREIGN KEY (project_id) REFERENCES email_projects(project_id) ON DELETE SET NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Security tables for Phase 1 implementation
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ip_address VARCHAR(45) NOT NULL,
+    username VARCHAR(255),
+    attempt_time DATETIME NOT NULL,
+    success TINYINT(1) DEFAULT 0,
+    INDEX idx_ip_time (ip_address, attempt_time),
+    INDEX idx_username_time (username, attempt_time)
+);
