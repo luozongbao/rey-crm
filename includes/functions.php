@@ -3165,12 +3165,13 @@ function validateBusinessRules($operation, $data) {
  * Data Encryption Functions for Phase 3
  */
 function getEncryptionKey() {
-    // Use environment variable if available, otherwise use a default key
-    // In production, this should always come from environment
-    $key = $_ENV['ENCRYPTION_KEY'] ?? 'rey-crm-default-key-change-in-production-2025';
+    // Ensure the ENCRYPTION_KEY environment variable is set
+    if (empty($_ENV['ENCRYPTION_KEY'])) {
+        throw new Exception('Encryption key is not set. Please configure the ENCRYPTION_KEY environment variable.');
+    }
     
     // Ensure key is exactly 32 bytes for AES-256
-    return hash('sha256', $key, true);
+    return hash('sha256', $_ENV['ENCRYPTION_KEY'], true);
 }
 
 function encryptData($data) {
