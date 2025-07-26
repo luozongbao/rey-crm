@@ -29,8 +29,9 @@ markdown/
 # Upload files
 uploads/*
 
-# Ignore test script
+# Ignore test and debug script
 test_*
+debug_*
 
 # maintenance files
 maintenance/*
