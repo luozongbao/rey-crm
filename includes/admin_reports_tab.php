@@ -56,8 +56,7 @@ function generateReport($type, $start_date, $end_date, $user_filter = '') {
                             MAX(ah.action_datetime) as last_activity,
                             COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL THEN 1 END) as followups_scheduled
                         FROM users u
-                        LEFT JOIN customers c ON u.user_id = c.assigned_user_id
-                        LEFT JOIN action_history ah ON c.customer_id = ah.customer_id 
+                        LEFT JOIN action_history ah ON u.user_id = ah.user_id 
                             AND ah.action_datetime BETWEEN ? AND ?
                         WHERE u.role != 'admin' $user_condition
                         GROUP BY u.user_id, u.username
@@ -82,11 +81,15 @@ function generateReport($type, $start_date, $end_date, $user_filter = '') {
                 break;
                 
             case 'activity_summary':
+                $user_condition_ah = '';
+                if (!empty($user_filter)) {
+                    $user_condition_ah = " AND ah.user_id = ?";
+                }
                 $sql = "SELECT 
                             ah.action as activity_type,
                             COUNT(*) as activity_count,
                             COUNT(DISTINCT ah.customer_id) as unique_customers,
-                            COUNT(DISTINCT c.assigned_user_id) as users_involved,
+                            COUNT(DISTINCT ah.user_id) as users_involved,
                             CASE 
                                 WHEN ah.action LIKE '%email%' OR ah.action LIKE '%Email%' THEN 'Email'
                                 WHEN ah.action LIKE '%call%' OR ah.action LIKE '%Call%' OR ah.action LIKE '%phone%' THEN 'Call'
@@ -97,9 +100,8 @@ function generateReport($type, $start_date, $end_date, $user_filter = '') {
                             AVG(CASE WHEN ah.follow_up_datetime IS NOT NULL 
                                 THEN TIMESTAMPDIFF(DAY, ah.action_datetime, ah.follow_up_datetime) END) as avg_followup_days
                         FROM action_history ah
-                        JOIN customers c ON ah.customer_id = c.customer_id
                         WHERE ah.action_datetime BETWEEN ? AND ?
-                        $user_condition
+                        $user_condition_ah
                         GROUP BY activity_type
                         ORDER BY activity_count DESC";
                 $params = array_merge([$start_date, $end_date], $user_params);
@@ -125,21 +127,44 @@ function generateReport($type, $start_date, $end_date, $user_filter = '') {
             case 'user_performance':
                 $sql = "SELECT 
                             u.username,
-                            COUNT(DISTINCT c.customer_id) as customers_assigned,
-                            COUNT(ah.history_id) as total_activities,
-                            COUNT(CASE WHEN ah.action LIKE '%email%' OR ah.action LIKE '%Email%' THEN 1 END) as emails_sent,
-                            COUNT(CASE WHEN ah.action LIKE '%call%' OR ah.action LIKE '%Call%' OR ah.action LIKE '%phone%' THEN 1 END) as calls_made,
-                            COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL THEN 1 END) as followups_scheduled,
-                            COUNT(CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) as overdue_followups,
-                            AVG(CASE WHEN c.status = 'Active' THEN 1 ELSE 0 END) * 100 as conversion_rate,
-                            ROUND(COUNT(ah.history_id) / GREATEST(COUNT(DISTINCT c.customer_id), 1), 2) as activity_per_customer,
-                            MAX(ah.action_datetime) as last_activity_date
+                            COALESCE(ca.customers_assigned, 0) as customers_assigned,
+                            COALESCE(ah_stats.total_activities, 0) as total_activities,
+                            COALESCE(ah_stats.emails_sent, 0) as emails_sent,
+                            COALESCE(ah_stats.calls_made, 0) as calls_made,
+                            COALESCE(ah_stats.followups_scheduled, 0) as followups_scheduled,
+                            COALESCE(ah_stats.overdue_followups, 0) as overdue_followups,
+                            COALESCE(c_stats.conversion_rate, 0) as conversion_rate,
+                            CASE WHEN COALESCE(ca.customers_assigned, 0) > 0 
+                                THEN ROUND(COALESCE(ah_stats.total_activities, 0) / ca.customers_assigned, 2) 
+                                ELSE 0 END as activity_per_customer,
+                            ah_stats.last_activity_date
                         FROM users u
-                        LEFT JOIN customers c ON u.user_id = c.assigned_user_id
-                        LEFT JOIN action_history ah ON c.customer_id = ah.customer_id 
-                            AND ah.action_datetime BETWEEN ? AND ?
+                        LEFT JOIN (
+                            SELECT assigned_user_id, COUNT(DISTINCT customer_id) as customers_assigned
+                            FROM customers 
+                            WHERE assigned_user_id IS NOT NULL
+                            GROUP BY assigned_user_id
+                        ) ca ON u.user_id = ca.assigned_user_id
+                        LEFT JOIN (
+                            SELECT 
+                                user_id,
+                                COUNT(history_id) as total_activities,
+                                COUNT(CASE WHEN action LIKE '%email%' OR action LIKE '%Email%' THEN 1 END) as emails_sent,
+                                COUNT(CASE WHEN action LIKE '%call%' OR action LIKE '%Call%' OR action LIKE '%phone%' THEN 1 END) as calls_made,
+                                COUNT(CASE WHEN follow_up_datetime IS NOT NULL THEN 1 END) as followups_scheduled,
+                                COUNT(CASE WHEN follow_up_datetime < NOW() AND follow_up_datetime IS NOT NULL THEN 1 END) as overdue_followups,
+                                MAX(action_datetime) as last_activity_date
+                            FROM action_history 
+                            WHERE action_datetime BETWEEN ? AND ?
+                            GROUP BY user_id
+                        ) ah_stats ON u.user_id = ah_stats.user_id
+                        LEFT JOIN (
+                            SELECT assigned_user_id, AVG(CASE WHEN status = 'Active' THEN 1 ELSE 0 END) * 100 as conversion_rate
+                            FROM customers 
+                            WHERE assigned_user_id IS NOT NULL
+                            GROUP BY assigned_user_id
+                        ) c_stats ON u.user_id = c_stats.assigned_user_id
                         WHERE 1=1 $user_condition
-                        GROUP BY u.user_id, u.username
                         ORDER BY total_activities DESC";
                 $params = array_merge([$start_date, $end_date], $user_params);
                 break;
@@ -154,8 +179,7 @@ function generateReport($type, $start_date, $end_date, $user_filter = '') {
                             ROUND(COUNT(CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime IS NOT NULL THEN 1 END) / 
                                 GREATEST(COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL THEN 1 END), 1) * 100, 2) as overdue_percentage
                         FROM users u
-                        LEFT JOIN customers c ON u.user_id = c.assigned_user_id
-                        LEFT JOIN action_history ah ON c.customer_id = ah.customer_id 
+                        LEFT JOIN action_history ah ON u.user_id = ah.user_id 
                             AND ah.action_datetime BETWEEN ? AND ?
                         WHERE 1=1 $user_condition
                         GROUP BY u.user_id, u.username

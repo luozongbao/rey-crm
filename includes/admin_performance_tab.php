@@ -28,26 +28,45 @@ if (!empty($start_date) && !empty($end_date)) {
 
 // Get performance metrics
 try {
-    // Activity metrics by user - using contact_channel field for accurate tracking
+    // Activity metrics by user - using direct user_id relationship
     if (!empty($start_date) && !empty($end_date)) {
         // Custom date range - use prepared statements
         $query = "
             SELECT 
                 u.username,
                 u.user_id,
-                COUNT(DISTINCT c.customer_id) as customers_assigned,
-                COUNT(ah.history_id) as total_activities,
-                COUNT(CASE WHEN ah.contact_channel = 'Email' THEN 1 END) as emails_sent,
-                COUNT(CASE WHEN ah.contact_channel IN ('Phone Call', 'WhatsApp', 'SMS') THEN 1 END) as calls_made,
-                COUNT(CASE WHEN ah.contact_channel IN ('In-Person Meeting', 'Video Call') THEN 1 END) as meetings_held,
-                COUNT(CASE WHEN ah.contact_channel = 'LinkedIn' THEN 1 END) as linkedin_contacts,
-                COUNT(CASE WHEN ah.contact_channel = 'WeChat' THEN 1 END) as wechat_contacts,
-                COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL AND ah.action_datetime BETWEEN ? AND ? THEN 1 END) as followups_scheduled,
-                MAX(ah.action_datetime) as last_activity_date,
+                COALESCE(ca.customers_assigned, 0) as customers_assigned,
+                COALESCE(ah_stats.total_activities, 0) as total_activities,
+                COALESCE(ah_stats.emails_sent, 0) as emails_sent,
+                COALESCE(ah_stats.calls_made, 0) as calls_made,
+                COALESCE(ah_stats.meetings_held, 0) as meetings_held,
+                COALESCE(ah_stats.linkedin_contacts, 0) as linkedin_contacts,
+                COALESCE(ah_stats.wechat_contacts, 0) as wechat_contacts,
+                COALESCE(ah_stats.followups_scheduled, 0) as followups_scheduled,
+                ah_stats.last_activity_date,
                 COALESCE(nc.new_customers_created, 0) as new_customers_created
             FROM users u
-            LEFT JOIN customers c ON u.user_id = c.assigned_user_id
-            LEFT JOIN action_history ah ON c.customer_id = ah.customer_id AND ah.action_datetime BETWEEN ? AND ?
+            LEFT JOIN (
+                SELECT assigned_user_id, COUNT(DISTINCT customer_id) as customers_assigned
+                FROM customers 
+                WHERE assigned_user_id IS NOT NULL
+                GROUP BY assigned_user_id
+            ) ca ON u.user_id = ca.assigned_user_id
+            LEFT JOIN (
+                SELECT 
+                    user_id,
+                    COUNT(history_id) as total_activities,
+                    COUNT(CASE WHEN contact_channel = 'Email' THEN 1 END) as emails_sent,
+                    COUNT(CASE WHEN contact_channel IN ('Phone Call', 'WhatsApp', 'SMS') THEN 1 END) as calls_made,
+                    COUNT(CASE WHEN contact_channel IN ('In-Person Meeting', 'Video Call') THEN 1 END) as meetings_held,
+                    COUNT(CASE WHEN contact_channel = 'LinkedIn' THEN 1 END) as linkedin_contacts,
+                    COUNT(CASE WHEN contact_channel = 'WeChat' THEN 1 END) as wechat_contacts,
+                    COUNT(CASE WHEN follow_up_datetime IS NOT NULL AND action_datetime BETWEEN ? AND ? THEN 1 END) as followups_scheduled,
+                    MAX(action_datetime) as last_activity_date
+                FROM action_history 
+                WHERE action_datetime BETWEEN ? AND ?
+                GROUP BY user_id
+            ) ah_stats ON u.user_id = ah_stats.user_id
             LEFT JOIN (
                 SELECT created_by_user_id, COUNT(*) as new_customers_created
                 FROM customers c2 
@@ -65,19 +84,38 @@ try {
             SELECT 
                 u.username,
                 u.user_id,
-                COUNT(DISTINCT c.customer_id) as customers_assigned,
-                COUNT(ah.history_id) as total_activities,
-                COUNT(CASE WHEN ah.contact_channel = 'Email' THEN 1 END) as emails_sent,
-                COUNT(CASE WHEN ah.contact_channel IN ('Phone Call', 'WhatsApp', 'SMS') THEN 1 END) as calls_made,
-                COUNT(CASE WHEN ah.contact_channel IN ('In-Person Meeting', 'Video Call') THEN 1 END) as meetings_held,
-                COUNT(CASE WHEN ah.contact_channel = 'LinkedIn' THEN 1 END) as linkedin_contacts,
-                COUNT(CASE WHEN ah.contact_channel = 'WeChat' THEN 1 END) as wechat_contacts,
-                COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL AND ah.action_datetime >= DATE_SUB(NOW(), INTERVAL $days DAY) THEN 1 END) as followups_scheduled,
-                MAX(ah.action_datetime) as last_activity_date,
+                COALESCE(ca.customers_assigned, 0) as customers_assigned,
+                COALESCE(ah_stats.total_activities, 0) as total_activities,
+                COALESCE(ah_stats.emails_sent, 0) as emails_sent,
+                COALESCE(ah_stats.calls_made, 0) as calls_made,
+                COALESCE(ah_stats.meetings_held, 0) as meetings_held,
+                COALESCE(ah_stats.linkedin_contacts, 0) as linkedin_contacts,
+                COALESCE(ah_stats.wechat_contacts, 0) as wechat_contacts,
+                COALESCE(ah_stats.followups_scheduled, 0) as followups_scheduled,
+                ah_stats.last_activity_date,
                 COALESCE(nc.new_customers_created, 0) as new_customers_created
             FROM users u
-            LEFT JOIN customers c ON u.user_id = c.assigned_user_id
-            LEFT JOIN action_history ah ON c.customer_id = ah.customer_id AND ah.action_datetime >= DATE_SUB(NOW(), INTERVAL $days DAY)
+            LEFT JOIN (
+                SELECT assigned_user_id, COUNT(DISTINCT customer_id) as customers_assigned
+                FROM customers 
+                WHERE assigned_user_id IS NOT NULL
+                GROUP BY assigned_user_id
+            ) ca ON u.user_id = ca.assigned_user_id
+            LEFT JOIN (
+                SELECT 
+                    user_id,
+                    COUNT(history_id) as total_activities,
+                    COUNT(CASE WHEN contact_channel = 'Email' THEN 1 END) as emails_sent,
+                    COUNT(CASE WHEN contact_channel IN ('Phone Call', 'WhatsApp', 'SMS') THEN 1 END) as calls_made,
+                    COUNT(CASE WHEN contact_channel IN ('In-Person Meeting', 'Video Call') THEN 1 END) as meetings_held,
+                    COUNT(CASE WHEN contact_channel = 'LinkedIn' THEN 1 END) as linkedin_contacts,
+                    COUNT(CASE WHEN contact_channel = 'WeChat' THEN 1 END) as wechat_contacts,
+                    COUNT(CASE WHEN follow_up_datetime IS NOT NULL AND action_datetime >= DATE_SUB(NOW(), INTERVAL $days DAY) THEN 1 END) as followups_scheduled,
+                    MAX(action_datetime) as last_activity_date
+                FROM action_history 
+                WHERE action_datetime >= DATE_SUB(NOW(), INTERVAL $days DAY)
+                GROUP BY user_id
+            ) ah_stats ON u.user_id = ah_stats.user_id
             LEFT JOIN (
                 SELECT created_by_user_id, COUNT(*) as new_customers_created
                 FROM customers c2 
@@ -159,9 +197,8 @@ try {
                 DATE(ah.action_datetime) as activity_date,
                 COUNT(*) as daily_activities,
                 COUNT(DISTINCT ah.customer_id) as customers_contacted,
-                COUNT(DISTINCT c.assigned_user_id) as active_users
+                COUNT(DISTINCT ah.user_id) as active_users
             FROM action_history ah
-            LEFT JOIN customers c ON ah.customer_id = c.customer_id
             WHERE ah.action_datetime BETWEEN ? AND ?
             GROUP BY DATE(ah.action_datetime)
             ORDER BY activity_date DESC
@@ -175,9 +212,8 @@ try {
                 DATE(ah.action_datetime) as activity_date,
                 COUNT(*) as daily_activities,
                 COUNT(DISTINCT ah.customer_id) as customers_contacted,
-                COUNT(DISTINCT c.assigned_user_id) as active_users
+                COUNT(DISTINCT ah.user_id) as active_users
             FROM action_history ah
-            LEFT JOIN customers c ON ah.customer_id = c.customer_id
             WHERE ah.action_datetime >= DATE_SUB(NOW(), INTERVAL $days DAY)
             GROUP BY DATE(ah.action_datetime)
             ORDER BY activity_date DESC
@@ -287,8 +323,7 @@ try {
                 COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL THEN 1 END) as user_total_followups,
                 AVG(TIMESTAMPDIFF(DAY, ah.action_datetime, ah.follow_up_datetime)) as user_avg_followup_interval
             FROM action_history ah
-            JOIN customers c ON ah.customer_id = c.customer_id
-            JOIN users u ON c.assigned_user_id = u.user_id
+            JOIN users u ON ah.user_id = u.user_id
             WHERE ah.action_datetime BETWEEN ? AND ?
             GROUP BY u.user_id, u.username
             ORDER BY user_overdue_count DESC
@@ -305,8 +340,7 @@ try {
                 COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL THEN 1 END) as user_total_followups,
                 AVG(TIMESTAMPDIFF(DAY, ah.action_datetime, ah.follow_up_datetime)) as user_avg_followup_interval
             FROM action_history ah
-            JOIN customers c ON ah.customer_id = c.customer_id
-            JOIN users u ON c.assigned_user_id = u.user_id
+            JOIN users u ON ah.user_id = u.user_id
             WHERE ah.action_datetime >= DATE_SUB(NOW(), INTERVAL $days DAY)
             GROUP BY u.user_id, u.username
             ORDER BY user_overdue_count DESC

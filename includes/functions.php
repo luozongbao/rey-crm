@@ -2366,8 +2366,7 @@ function getUserActivityStats($user_id, $date_from = null, $date_to = null) {
                 COUNT(CASE WHEN ah.follow_up_datetime < NOW() THEN 1 END) as overdue_followups,
                 AVG(TIMESTAMPDIFF(HOUR, ah.action_datetime, ah.follow_up_datetime)) as avg_followup_time
             FROM action_history ah
-            JOIN customers c ON ah.customer_id = c.customer_id
-            WHERE c.assigned_user_id = ?
+            WHERE ah.user_id = ?
             AND DATE(ah.action_datetime) BETWEEN ? AND ?
         ");
         $stmt->execute([$user_id, $date_from, $date_to]);
