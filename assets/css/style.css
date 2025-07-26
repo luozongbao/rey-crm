@@ -232,9 +232,142 @@ main.container {
   height: 1.25rem;
 }
 
+/* Dropdown Navigation */
+.nav-item.dropdown {
+  position: relative;
+}
+
+.dropdown-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+}
+
+.dropdown-icon {
+  width: 0.875rem;
+  height: 0.875rem;
+  transition: transform 0.2s ease;
+}
+
+.nav-item.dropdown.show .dropdown-icon {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 180px;
+  background-color: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s ease;
+  z-index: 1000;
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 0;
+  display: block;
+}
+
+.nav-item.dropdown.show .dropdown-menu,
+.nav-item.dropdown:hover .dropdown-menu {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateY(0) !important;
+  display: block !important;
+}
+
+/* Debug: Add background color on dropdown hover */
+.nav-item.dropdown:hover {
+  background-color: rgba(37, 99, 235, 0.05);
+  border-radius: var(--radius);
+}
+
+.dropdown-link {
+  display: block;
+  padding: 0.5rem 1rem;
+  color: var(--gray-600);
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: var(--transition);
+}
+
+.dropdown-link:hover {
+  background-color: var(--gray-50);
+  color: var(--primary);
+}
+
+/* Admin Dashboard Link Styling */
+.nav-link.admin-link {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+  font-weight: 600;
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-link.admin-link::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.nav-link.admin-link:hover::before {
+  left: 100%;
+}
+
+.nav-link.admin-link:hover {
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+}
+
+.nav-link.admin-link.active {
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+/* Language Switcher */
+.language-switcher {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  margin-right: 1rem;
+}
+
+.language-switcher select {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius);
+  background-color: white;
+  color: var(--gray-700);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.language-switcher select:hover,
+.language-switcher select:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
 .user-menu {
   display: flex;
-  margin-left: auto;
+  margin-left: 0;
   padding-left: 2rem;
   border-left: 1px solid var(--gray-200);
 }
@@ -639,7 +772,7 @@ tr:hover {
 }
 
 /* Status Badges */
-body.dark-mode .satus-badge,
+body.dark-mode .status-badge,
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -716,6 +849,31 @@ body.dark-mode .status-closedwon,
 .status-closedwon {
   background-color: var(--primary-light);
   color: var(--primary-dark);
+}
+
+/* Performance badges */
+.activity-badge {
+  background-color: var(--primary-light);
+  color: var(--primary);
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.new-customers-badge {
+  background-color: var(--success-light);
+  color: var(--success);
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Card icon styles for new customers */
+.card-icon.new-customers {
+  background-color: var(--success-light);
+  color: var(--success);
 }
 
 /* Dashboard */
@@ -1502,6 +1660,55 @@ body.dark-mode .logout-btn:hover {
   color: #ffb4b4;
 }
 
+/* Dark mode dropdown styles */
+body.dark-mode .dropdown-menu {
+  background-color: var(--card-dark);
+  border-color: var(--border-dark);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .nav-item.dropdown.show .dropdown-menu,
+body.dark-mode .nav-item.dropdown:hover .dropdown-menu {
+  background-color: var(--card-dark) !important;
+  border-color: var(--border-dark) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateY(0) !important;
+  display: block !important;
+}
+
+body.dark-mode .dropdown-link {
+  color: var(--text-dark);
+}
+
+body.dark-mode .dropdown-link:hover {
+  background-color: var(--header-dark);
+  color: var(--primary-darkmode);
+}
+
+body.dark-mode .nav-link {
+  color: var(--text-dark);
+}
+
+body.dark-mode .nav-link:hover,
+body.dark-mode .nav-link.active {
+  color: var(--primary-darkmode);
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+/* Dark mode language switcher */
+body.dark-mode .language-switcher select {
+  background-color: var(--card-dark);
+  border-color: var(--border-dark);
+  color: var(--text-dark);
+}
+
+body.dark-mode .language-switcher select:hover,
+body.dark-mode .language-switcher select:focus {
+  border-color: var(--primary-darkmode);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
 body.dark-mode .profile-btn:hover {
   background-color: var(--border-dark);
   color: #fff;
@@ -1756,39 +1963,6 @@ body.dark-mode .customer-link {
 
 body.dark-mode .customer-link:hover {
     color: #60a5fa;
-}
-
-body.dark-mode .customer-link .province {
-  color: var(--gray-400);
-}
-
-/* Customer Links in Tables */
-.customer-link {
-  color: var(--primary);
-  text-decoration: none;
-  font-weight: 500;
-  transition: var(--transition);
-}
-
-.customer-link:hover {
-  color: var(--primary-dark);
-  text-decoration: underline;
-}
-
-.customer-link .province {
-  color: var(--gray-500);
-  font-weight: 400;
-  font-size: 0.85em;
-  margin-left: 0.25rem;
-}
-
-/* Dark mode customer links */
-body.dark-mode .customer-link {
-  color: var(--primary-darkmode);
-}
-
-body.dark-mode .customer-link:hover {
-  color: #60a5fa;
 }
 
 body.dark-mode .customer-link .province {
@@ -2352,3 +2526,499 @@ body.dark-mode .delete-user-section {
 body.dark-mode .password-reset-section h3 {
     color: var(--text-dark);
 }
+
+/* Mobile Navigation Styles */
+@media (max-width: 768px) {
+    .mobile-menu-button {
+        display: block;
+    }
+    
+    .header-content {
+        flex-wrap: wrap;
+    }
+    
+    .main-nav {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background-color: white;
+        border-top: 1px solid var(--gray-200);
+        box-shadow: var(--shadow-md);
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: all 0.3s ease;
+        z-index: 1000;
+        flex-direction: column;
+        padding: 1rem;
+        gap: 0;
+    }
+    
+    .main-nav.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+    
+    .nav-list {
+        flex-direction: column;
+        gap: 0;
+        width: 100%;
+    }
+    
+    .nav-item {
+        width: 100%;
+        border-bottom: 1px solid var(--gray-100);
+    }
+    
+    .nav-item:last-child {
+        border-bottom: none;
+    }
+    
+    .nav-link {
+        padding: 1rem;
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .dropdown-menu {
+        position: static;
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+        box-shadow: none;
+        border: none;
+        border-top: 1px solid var(--gray-100);
+        border-radius: 0;
+        background-color: var(--gray-50);
+        margin: 0;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+    }
+    
+    .nav-item.dropdown.show .dropdown-menu {
+        max-height: 200px;
+    }
+    
+    .dropdown-link {
+        padding: 0.75rem 1.5rem;
+        border-bottom: 1px solid var(--gray-100);
+    }
+    
+    .dropdown-link:last-child {
+        border-bottom: none;
+    }
+    
+    .user-menu {
+        margin-left: 0;
+        padding-left: 0;
+        border-left: none;
+        border-top: 1px solid var(--gray-200);
+        padding-top: 1rem;
+        margin-top: 1rem;
+        width: 100%;
+    }
+    
+    .user-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+        width: 100%;
+    }
+    
+    .user-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .language-switcher {
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+    
+    .language-switcher select {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid var(--gray-300);
+        border-radius: var(--radius);
+        background-color: white;
+    }
+    
+    /* Dark mode mobile styles */
+    body.dark-mode .main-nav {
+        background-color: var(--header-dark);
+        border-color: var(--border-dark);
+    }
+    
+    body.dark-mode .nav-item {
+        border-color: var(--border-dark);
+    }
+    
+    body.dark-mode .dropdown-menu {
+        background-color: var(--card-dark);
+        border-color: var(--border-dark);
+    }
+    
+    body.dark-mode .dropdown-link {
+        border-color: var(--border-dark);
+    }
+    
+    body.dark-mode .user-menu {
+        border-color: var(--border-dark);
+    }
+    
+    body.dark-mode .language-switcher select {
+        background-color: var(--input-dark);
+        border-color: var(--border-dark);
+        color: var(--text-dark);
+    }
+}
+
+/* Contact Channel Styling */
+.contact-channel-breakdown {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f9f9f9;
+    border-radius: 5px;
+}
+
+.contact-channel-breakdown h4 {
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.channel-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.channel-stat-card {
+    background: white;
+    padding: 15px;
+    border-radius: 5px;
+    border-left: 4px solid #007bff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.channel-stat-card h5 {
+    margin: 0 0 10px 0;
+    color: #555;
+    font-size: 14px;
+}
+
+.channel-stat-card .stat-number {
+    font-size: 24px;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.channel-stat-card .stat-subtitle {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+}
+
+/* Contact channel badges */
+.contact-channel-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.contact-channel-badge.email {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+
+.contact-channel-badge.phone-call {
+    background-color: #e8f5e8;
+    color: #388e3c;
+}
+
+.contact-channel-badge.whatsapp {
+    background-color: #e8f5e8;
+    color: #25d366;
+}
+
+.contact-channel-badge.sms {
+    background-color: #fff3e0;
+    color: #f57c00;
+}
+
+.contact-channel-badge.in-person-meeting {
+    background-color: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.contact-channel-badge.video-call {
+    background-color: #e0f2f1;
+    color: #00695c;
+}
+
+.contact-channel-badge.linkedin {
+    background-color: #e3f2fd;
+    color: #0077b5;
+}
+
+.contact-channel-badge.wechat {
+    background-color: #e8f5e8;
+    color: #00d262;
+}
+
+.contact-channel-badge.other {
+    background-color: #f5f5f5;
+    color: #616161;
+}
+
+/* Dark mode for contact channel */
+body.dark-mode .contact-channel-breakdown {
+    background: var(--card-dark);
+}
+
+body.dark-mode .contact-channel-breakdown h4 {
+    color: var(--text-dark);
+}
+
+body.dark-mode .channel-stat-card {
+    background: var(--input-dark);
+    border-left-color: var(--primary-darkmode);
+}
+
+body.dark-mode .channel-stat-card h5 {
+    color: var(--text-dark);
+}
+
+body.dark-mode .channel-stat-card .stat-number {
+    color: var(--primary-darkmode);
+}
+
+body.dark-mode .channel-stat-card .stat-subtitle {
+    color: var(--gray-400);
+}
+
+/* Metric card icons for contact channels */
+.metric-icon.meetings {
+    background: linear-gradient(135deg, #7b1fa2, #9c27b0);
+}
+
+.metric-icon.linkedin {
+    background: linear-gradient(135deg, #0077b5, #00a0dc);
+}
+
+.metric-icon.wechat {
+    background: linear-gradient(135deg, #00d262, #1aaa55);
+}
+
+/* Channel analytics specific styles */
+.channel-stats {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.channel-stat-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.channel-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.channel-stat-card h6 {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Responsive adjustments for performance tab */
+@media (max-width: 768px) {
+    .metrics-overview {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+    }
+    
+    .channel-stats {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+    
+    .channel-stat-card {
+        padding: 12px;
+    }
+}
+
+/* Activities Dashboard Styles */
+.activities-dashboard .card {
+    transition: var(--transition);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.activities-dashboard .card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.activities-dashboard .card-body {
+    padding: 1.5rem;
+}
+
+.activities-dashboard .card-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.activities-dashboard .card-text {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--gray-600);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.activities-dashboard .border-primary {
+    border-color: var(--primary) !important;
+}
+
+.activities-dashboard .border-warning {
+    border-color: var(--warning) !important;
+}
+
+.activities-dashboard .border-success {
+    border-color: var(--success) !important;
+}
+
+.activities-dashboard .border-danger {
+    border-color: var(--danger) !important;
+}
+
+.activities-dashboard .text-primary {
+    color: var(--primary) !important;
+}
+
+.activities-dashboard .text-warning {
+    color: var(--warning) !important;
+}
+
+.activities-dashboard .text-success {
+    color: var(--success) !important;
+}
+
+.activities-dashboard .text-danger {
+    color: var(--danger) !important;
+}
+
+.activities-dashboard .chart-container {
+    position: relative;
+    height: 300px;
+}
+
+.activities-dashboard .table-responsive {
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.activities-dashboard .table th {
+    font-weight: 600;
+    color: var(--gray-700);
+    background-color: var(--gray-50);
+    border-bottom: 2px solid var(--gray-200);
+}
+
+.activities-dashboard .table td {
+    vertical-align: middle;
+}
+
+.activities-dashboard .badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Dark mode support for dashboard */
+.dark-mode .activities-dashboard .card {
+    background-color: var(--card-dark);
+    border-color: var(--border-dark);
+    color: var(--text-dark);
+}
+
+.dark-mode .activities-dashboard .card-text {
+    color: var(--gray-400);
+}
+
+.dark-mode .activities-dashboard .table th {
+    background-color: var(--table-header-dark);
+    color: var(--text-dark);
+    border-bottom-color: var(--border-dark);
+}
+
+.dark-mode .activities-dashboard .table td {
+    background-color: var(--card-dark);
+    color: var(--text-dark);
+    border-top-color: var(--border-dark);
+}
+
+.dark-mode .activities-dashboard .table-striped > tbody > tr:nth-of-type(odd) > td {
+    background-color: var(--table-row-dark);
+}
+
+/* Filter form enhancements */
+.activities-dashboard .filter-form {
+    background: var(--gray-50);
+    padding: 1rem;
+    border-radius: var(--radius-lg);
+    margin-bottom: 2rem;
+}
+
+.dark-mode .activities-dashboard .filter-form {
+    background: var(--card-dark);
+}
+
+.activities-dashboard .input-group-text {
+    background-color: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    font-weight: 500;
+}
+
+.dark-mode .activities-dashboard .input-group-text {
+    background-color: var(--primary-darkmode);
+    border-color: var(--primary-darkmode);
+}
+
+/* Responsive canvas containers */
+.activities-dashboard canvas {
+    max-height: 300px !important;
+}
+
+@media (max-width: 768px) {
+    .activities-dashboard .card-title {
+        font-size: 2rem;
+    }
+    
+    .activities-dashboard .filter-form {
+        padding: 0.75rem;
+    }
+    
+    .activities-dashboard .filter-form .d-flex {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .activities-dashboard .filter-form .input-group,
+    .activities-dashboard .filter-form .form-select {
+        width: 100%;
+    }
+}
+
+

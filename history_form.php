@@ -23,8 +23,18 @@ if ($action == 'delete' && $history_id) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$isViewMode) {
+    // Validate CSRF token
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!validateCSRFToken($csrf_token)) {
+        http_response_code(403);
+        die('CSRF token validation failed');
+    }
+    
+    // Validate customer access
+    validateCustomerAccess($customer_id);
+    
     // Validate required fields
-    $required = ['action_datetime', 'action', 'response', 'next_step', 'follow_up_datetime'];
+    $required = ['action_datetime', 'action', 'contact_channel', 'response', 'next_step', 'follow_up_datetime'];
     foreach ($required as $field) {
         if (empty($_POST[$field])) {
             die(__('error') . ': ' . $field . ' ' . __('is_required'));
@@ -44,9 +54,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$isViewMode) {
         'customer_id' => $customer_id,
         'contact_id' => !empty($_POST['contact_id']) ? $_POST['contact_id'] : null,
         'action_datetime' => $action_datetime,
-        'action' => $_POST['action'],
-        'response' => $_POST['response'],
-        'next_step' => $_POST['next_step'],
+        'action' => sanitizeHtml(trim($_POST['action'])),
+        'contact_channel' => sanitizeHtml(trim($_POST['contact_channel'])),
+        'response' => sanitizeHtml(trim($_POST['response'])),
+        'next_step' => sanitizeHtml(trim($_POST['next_step'])),
         'follow_up_datetime' => $follow_up_datetime,
         'notes' => $_POST['notes'] ?? null
     ];
@@ -55,11 +66,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$isViewMode) {
     
     try {
         if ($action == 'add') {
-            $stmt = $pdo->prepare("INSERT INTO action_history 
-                                 (customer_id, contact_id, action_datetime, action, response, next_step, follow_up_datetime, notes) 
-                                 VALUES (:customer_id, :contact_id, :action_datetime, :action, :response, :next_step, :follow_up_datetime, :notes)");
-            $stmt->execute($data);
-            updateLastContactedDate($customer_id);
+            // Use the new addCustomerHistory function
+            $success = addCustomerHistory(
+                $customer_id,
+                $data['action'],
+                $data['contact_channel'],
+                $data['response'],
+                $data['next_step'],
+                $data['follow_up_datetime'],
+                $data['contact_id'],
+                $data['notes'],
+                $_SESSION['user_id'] // Explicitly pass the session user_id
+            );
+            
+            if (!$success) {
+                throw new Exception(__('error_adding_activity'));
+            }
         } else {
             // For edit, include history_id and verify the record exists
             $existing_history = getHistoryById($history_id);
@@ -68,11 +90,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$isViewMode) {
             }
             
             $data['history_id'] = $history_id;
+            $data['user_id'] = $_SESSION['user_id']; // Track who edited the record
             $stmt = $pdo->prepare("UPDATE action_history SET 
                                  customer_id = :customer_id, 
                                  contact_id = :contact_id, 
+                                 user_id = :user_id,
                                  action_datetime = :action_datetime, 
                                  action = :action, 
+                                 contact_channel = :contact_channel,
                                  response = :response, 
                                  next_step = :next_step, 
                                  follow_up_datetime = :follow_up_datetime, 
@@ -83,6 +108,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$isViewMode) {
         
         header("Location: customer_form.php?action=" . $source_action . "&id=$customer_id");
         exit;
+    } catch (Exception $e) {
+        die(__('error') . ': ' . $e->getMessage());
     } catch (PDOException $e) {
         die(__('database_error') . ': ' . $e->getMessage());
     }
@@ -159,6 +186,7 @@ $customer = getCustomerById($customer_id);
         
         <div class="form-container">
             <form method="post">
+                <?php echo csrfTokenField(); ?>
                 <input type="hidden" name="customer_id" value="<?php echo $customer_id; ?>">
                 
                 <div class="form-group">
@@ -186,6 +214,40 @@ $customer = getCustomerById($customer_id);
                     <textarea id="action" name="action" required <?php echo $isViewMode ? 'disabled' : ''; ?>><?php 
                         echo $history ? htmlspecialchars($history['action']) : ''; 
                     ?></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="contact_channel"><?php echo __('contact_channel'); ?> *</label>
+                    <select name="contact_channel" id="contact_channel" required <?php echo $isViewMode ? 'disabled' : ''; ?>>
+                        <option value=""><?php echo __('select_contact_channel'); ?></option>
+                        <option value="Email" <?php echo (isset($history['contact_channel']) && $history['contact_channel'] == 'Email') ? 'selected' : ''; ?>>
+                            <?php echo __('email'); ?>
+                        </option>
+                        <option value="Phone Call" <?php echo (isset($history['contact_channel']) && $history['contact_channel'] == 'Phone Call') ? 'selected' : ''; ?>>
+                            <?php echo __('phone_call'); ?>
+                        </option>
+                        <option value="WhatsApp" <?php echo (isset($history['contact_channel']) && $history['contact_channel'] == 'WhatsApp') ? 'selected' : ''; ?>>
+                            <?php echo __('whatsapp'); ?>
+                        </option>
+                        <option value="SMS" <?php echo (isset($history['contact_channel']) && $history['contact_channel'] == 'SMS') ? 'selected' : ''; ?>>
+                            <?php echo __('sms'); ?>
+                        </option>
+                        <option value="In-Person Meeting" <?php echo (isset($history['contact_channel']) && $history['contact_channel'] == 'In-Person Meeting') ? 'selected' : ''; ?>>
+                            <?php echo __('in_person_meeting'); ?>
+                        </option>
+                        <option value="Video Call" <?php echo (isset($history['contact_channel']) && $history['contact_channel'] == 'Video Call') ? 'selected' : ''; ?>>
+                            <?php echo __('video_call'); ?>
+                        </option>
+                        <option value="LinkedIn" <?php echo (isset($history['contact_channel']) && $history['contact_channel'] == 'LinkedIn') ? 'selected' : ''; ?>>
+                            <?php echo __('linkedin'); ?>
+                        </option>
+                        <option value="WeChat" <?php echo (isset($history['contact_channel']) && $history['contact_channel'] == 'WeChat') ? 'selected' : ''; ?>>
+                            <?php echo __('wechat'); ?>
+                        </option>
+                        <option value="Other" <?php echo (isset($history['contact_channel']) && $history['contact_channel'] == 'Other') ? 'selected' : ''; ?>>
+                            <?php echo __('other'); ?>
+                        </option>
+                    </select>
                 </div>
                 
                 <div class="form-group">
