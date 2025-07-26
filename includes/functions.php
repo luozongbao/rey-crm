@@ -3384,4 +3384,188 @@ function getSecurityAlerts($pdo) {
     }
 }
 
+function getActivitiesDashboardData($date_from, $date_to, $showOnlyMine = true) {
+    global $pdo;
+    
+    try {
+        $userFilter = "";
+        $params = [
+            ':date_from' => $date_from,
+            ':date_to' => $date_to
+        ];
+        
+        if ($showOnlyMine) {
+            $userFilter = " AND c.assigned_user_id = :current_user_id";
+            $params[':current_user_id'] = $_SESSION['user_id'];
+        }
+        
+        $data = [];
+        
+        // Total activities count
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as count
+            FROM action_history ah
+            JOIN customers c ON ah.customer_id = c.customer_id
+            WHERE DATE(ah.action_datetime) BETWEEN :date_from AND :date_to
+            $userFilter
+        ");
+        $stmt->execute($params);
+        $data['total_activities'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
+        
+        // Total followups count
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as count
+            FROM action_history ah
+            JOIN customers c ON ah.customer_id = c.customer_id
+            WHERE DATE(ah.follow_up_datetime) BETWEEN :date_from AND :date_to
+            $userFilter
+        ");
+        $stmt->execute($params);
+        $data['total_followups'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
+        
+        // Completed followups (activities where follow_up_datetime is in the past)
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as count
+            FROM action_history ah
+            JOIN customers c ON ah.customer_id = c.customer_id
+            WHERE DATE(ah.follow_up_datetime) BETWEEN :date_from AND :date_to
+            AND ah.follow_up_datetime < NOW()
+            $userFilter
+        ");
+        $stmt->execute($params);
+        $data['completed_followups'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
+        
+        // Overdue followups
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as count
+            FROM action_history ah
+            JOIN customers c ON ah.customer_id = c.customer_id
+            WHERE ah.follow_up_datetime < NOW()
+            AND ah.follow_up_datetime >= :date_from
+            $userFilter
+        ");
+        $stmt->execute($params);
+        $data['overdue_followups'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
+        
+        // Contact channel statistics
+        $stmt = $pdo->prepare("
+            SELECT ah.contact_channel, COUNT(*) as count
+            FROM action_history ah
+            JOIN customers c ON ah.customer_id = c.customer_id
+            WHERE DATE(ah.action_datetime) BETWEEN :date_from AND :date_to
+            $userFilter
+            GROUP BY ah.contact_channel
+            ORDER BY count DESC
+        ");
+        $stmt->execute($params);
+        $data['contact_channel_stats'] = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        
+        // Timeline statistics (daily breakdown)
+        $stmt = $pdo->prepare("
+            SELECT 
+                DATE(ah.action_datetime) as date,
+                COUNT(CASE WHEN ah.action_datetime IS NOT NULL THEN 1 END) as activities_count,
+                COUNT(CASE WHEN DATE(ah.follow_up_datetime) = DATE(ah.action_datetime) THEN 1 END) as followups_count
+            FROM action_history ah
+            JOIN customers c ON ah.customer_id = c.customer_id
+            WHERE DATE(ah.action_datetime) BETWEEN :date_from AND :date_to
+            $userFilter
+            GROUP BY DATE(ah.action_datetime)
+            ORDER BY date ASC
+        ");
+        $stmt->execute($params);
+        $data['timeline_stats'] = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        
+        // User performance (only for admin viewing all data)
+        if (!$showOnlyMine) {
+            $stmt = $pdo->prepare("
+                SELECT 
+                    u.username,
+                    u.user_id,
+                    COUNT(DISTINCT ah.history_id) as activities_count,
+                    COUNT(DISTINCT CASE WHEN ah.follow_up_datetime BETWEEN :date_from AND :date_to THEN ah.history_id END) as followups_count,
+                    COALESCE(ROUND(
+                        (COUNT(CASE WHEN ah.follow_up_datetime < NOW() THEN 1 END) * 100.0 / 
+                         NULLIF(COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL THEN 1 END), 0)), 1
+                    ), 0) as completion_rate
+                FROM users u
+                LEFT JOIN customers c ON c.assigned_user_id = u.user_id
+                LEFT JOIN action_history ah ON ah.customer_id = c.customer_id 
+                    AND DATE(ah.action_datetime) BETWEEN :date_from AND :date_to
+                WHERE u.role != 'admin' OR u.user_id = :current_user_id
+                GROUP BY u.user_id, u.username
+                HAVING activities_count > 0 OR followups_count > 0
+                ORDER BY activities_count DESC
+            ");
+            $params[':current_user_id'] = $_SESSION['user_id'];
+            $stmt->execute($params);
+            $data['user_performance'] = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            unset($params[':current_user_id']);
+        } else {
+            $data['user_performance'] = [];
+        }
+        
+        // Customer status performance
+        $stmt = $pdo->prepare("
+            SELECT 
+                c.status as customer_status,
+                COUNT(DISTINCT ah.history_id) as activities_count,
+                COUNT(DISTINCT CASE WHEN DATE(ah.follow_up_datetime) BETWEEN :date_from AND :date_to THEN ah.history_id END) as followups_count,
+                ROUND(AVG(CASE WHEN ah.action_datetime IS NOT NULL THEN DATEDIFF(ah.action_datetime, c.created_at) END), 1) as avg_response_days
+            FROM customers c
+            LEFT JOIN action_history ah ON ah.customer_id = c.customer_id 
+                AND DATE(ah.action_datetime) BETWEEN :date_from AND :date_to
+            WHERE 1=1 $userFilter
+            GROUP BY c.status
+            HAVING activities_count > 0 OR followups_count > 0
+            ORDER BY activities_count DESC
+        ");
+        $stmt->execute($params);
+        $data['status_performance'] = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        
+        // Recent activities
+        $recentParams = $params;
+        if ($showOnlyMine) {
+            $userJoin = "LEFT JOIN users u ON c.assigned_user_id = u.user_id";
+            $userSelect = "";
+        } else {
+            $userJoin = "LEFT JOIN users u ON c.assigned_user_id = u.user_id";
+            $userSelect = ", u.username";
+        }
+        
+        $stmt = $pdo->prepare("
+            SELECT 
+                ah.*,
+                c.company_name,
+                c.status as customer_status
+                $userSelect
+            FROM action_history ah
+            JOIN customers c ON ah.customer_id = c.customer_id
+            $userJoin
+            WHERE DATE(ah.action_datetime) BETWEEN :date_from AND :date_to
+            $userFilter
+            ORDER BY ah.action_datetime DESC
+            LIMIT 10
+        ");
+        $stmt->execute($recentParams);
+        $data['recent_activities'] = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        
+        return $data;
+        
+    } catch (PDOException $e) {
+        logError("Failed to get activities dashboard data: " . $e->getMessage());
+        return [
+            'total_activities' => 0,
+            'total_followups' => 0,
+            'completed_followups' => 0,
+            'overdue_followups' => 0,
+            'contact_channel_stats' => [],
+            'timeline_stats' => [],
+            'user_performance' => [],
+            'status_performance' => [],
+            'recent_activities' => []
+        ];
+    }
+}
+
 ?>

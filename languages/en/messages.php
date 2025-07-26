@@ -982,6 +982,31 @@ return [
     'rate_limiting' => 'Rate Limiting',
     'login_statistics' => 'Login Statistics',
 
+    // Activities Dashboard
+    'activities_dashboard' => 'Activities Dashboard',
+    'total_activities' => 'Total Activities',
+    'total_followups' => 'Total Follow-ups',
+    'completed_followups' => 'Completed Follow-ups',
+    'overdue_followups' => 'Overdue Follow-ups',
+    'activities_by_contact_channel' => 'Activities by Contact Channel',
+    'activities_timeline' => 'Activities Timeline',
+    'user_performance' => 'User Performance',
+    'customer_status_performance' => 'Customer Status Performance',
+    'completion_rate' => 'Completion Rate',
+    'avg_response_time' => 'Avg Response Time',
+    'days' => 'days',
+    'view_all_activities' => 'View All Activities',
+    'view_all_followups' => 'View All Follow-ups',
+    'from' => 'From',
+    'to' => 'To',
+    'all_users' => 'All Users',
+    'my_data_only' => 'My Data Only',
+    'filter' => 'Filter',
+    'user' => 'User',
+    'channel' => 'Channel',
+    'next_followup' => 'Next Follow-up',
+    'no_data_available' => 'No data available for the selected period',
+
     // Add more messages as needed
 ];
 ?>

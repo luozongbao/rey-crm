@@ -79,13 +79,14 @@ if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) !== 'login.ph
                         
                         <!-- Activities & Follow-ups Dropdown -->
                         <li class="nav-item dropdown">
-                            <a href="#" class="nav-link dropdown-toggle <?php echo in_array(basename($_SERVER['PHP_SELF']), ['all_activities.php', 'all_followups.php', 'history_form.php']) ? 'active' : ''; ?>">
+                            <a href="#" class="nav-link dropdown-toggle <?php echo in_array(basename($_SERVER['PHP_SELF']), ['activities_dashboard.php', 'all_activities.php', 'all_followups.php', 'history_form.php']) ? 'active' : ''; ?>">
                                 <?php echo __('activities'); ?>
                                 <svg class="dropdown-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                                 </svg>
                             </a>
                             <ul class="dropdown-menu">
+                                <li><a href="/activities_dashboard.php" class="dropdown-link"><?php echo __('activities_dashboard'); ?></a></li>
                                 <li><a href="/all_activities.php" class="dropdown-link"><?php echo __('all_activities'); ?></a></li>
                                 <li><a href="/all_followups.php" class="dropdown-link"><?php echo __('followups'); ?></a></li>
                                 <!-- <li><a href="/history_form.php" class="dropdown-link"><?php echo __('add_activity'); ?></a></li> -->

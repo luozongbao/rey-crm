@@ -1020,6 +1020,31 @@ return [
     'rate_limiting' => '速率限制',
     'login_statistics' => '登录统计',
 
+    // Activities Dashboard
+    'activities_dashboard' => '活动仪表板',
+    'total_activities' => '总活动数',
+    'total_followups' => '总跟进数',
+    'completed_followups' => '已完成跟进',
+    'overdue_followups' => '逾期跟进',
+    'activities_by_contact_channel' => '按联系渠道分类的活动',
+    'activities_timeline' => '活动时间线',
+    'user_performance' => '用户绩效',
+    'customer_status_performance' => '客户状态绩效',
+    'completion_rate' => '完成率',
+    'avg_response_time' => '平均响应时间',
+    'days' => '天',
+    'view_all_activities' => '查看所有活动',
+    'view_all_followups' => '查看所有跟进',
+    'from' => '从',
+    'to' => '到',
+    'all_users' => '所有用户',
+    'my_data_only' => '仅我的数据',
+    'filter' => '筛选',
+    'user' => '用户',
+    'channel' => '渠道',
+    'next_followup' => '下次跟进',
+    'no_data_available' => '所选时间段内无可用数据',
+
     // Add more messages as needed
 ];
 ?>

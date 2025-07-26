@@ -2856,4 +2856,169 @@ body.dark-mode .channel-stat-card .stat-subtitle {
     }
 }
 
+/* Activities Dashboard Styles */
+.activities-dashboard .card {
+    transition: var(--transition);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.activities-dashboard .card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.activities-dashboard .card-body {
+    padding: 1.5rem;
+}
+
+.activities-dashboard .card-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.activities-dashboard .card-text {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--gray-600);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.activities-dashboard .border-primary {
+    border-color: var(--primary) !important;
+}
+
+.activities-dashboard .border-warning {
+    border-color: var(--warning) !important;
+}
+
+.activities-dashboard .border-success {
+    border-color: var(--success) !important;
+}
+
+.activities-dashboard .border-danger {
+    border-color: var(--danger) !important;
+}
+
+.activities-dashboard .text-primary {
+    color: var(--primary) !important;
+}
+
+.activities-dashboard .text-warning {
+    color: var(--warning) !important;
+}
+
+.activities-dashboard .text-success {
+    color: var(--success) !important;
+}
+
+.activities-dashboard .text-danger {
+    color: var(--danger) !important;
+}
+
+.activities-dashboard .chart-container {
+    position: relative;
+    height: 300px;
+}
+
+.activities-dashboard .table-responsive {
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.activities-dashboard .table th {
+    font-weight: 600;
+    color: var(--gray-700);
+    background-color: var(--gray-50);
+    border-bottom: 2px solid var(--gray-200);
+}
+
+.activities-dashboard .table td {
+    vertical-align: middle;
+}
+
+.activities-dashboard .badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Dark mode support for dashboard */
+.dark-mode .activities-dashboard .card {
+    background-color: var(--card-dark);
+    border-color: var(--border-dark);
+    color: var(--text-dark);
+}
+
+.dark-mode .activities-dashboard .card-text {
+    color: var(--gray-400);
+}
+
+.dark-mode .activities-dashboard .table th {
+    background-color: var(--table-header-dark);
+    color: var(--text-dark);
+    border-bottom-color: var(--border-dark);
+}
+
+.dark-mode .activities-dashboard .table td {
+    background-color: var(--card-dark);
+    color: var(--text-dark);
+    border-top-color: var(--border-dark);
+}
+
+.dark-mode .activities-dashboard .table-striped > tbody > tr:nth-of-type(odd) > td {
+    background-color: var(--table-row-dark);
+}
+
+/* Filter form enhancements */
+.activities-dashboard .filter-form {
+    background: var(--gray-50);
+    padding: 1rem;
+    border-radius: var(--radius-lg);
+    margin-bottom: 2rem;
+}
+
+.dark-mode .activities-dashboard .filter-form {
+    background: var(--card-dark);
+}
+
+.activities-dashboard .input-group-text {
+    background-color: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    font-weight: 500;
+}
+
+.dark-mode .activities-dashboard .input-group-text {
+    background-color: var(--primary-darkmode);
+    border-color: var(--primary-darkmode);
+}
+
+/* Responsive canvas containers */
+.activities-dashboard canvas {
+    max-height: 300px !important;
+}
+
+@media (max-width: 768px) {
+    .activities-dashboard .card-title {
+        font-size: 2rem;
+    }
+    
+    .activities-dashboard .filter-form {
+        padding: 0.75rem;
+    }
+    
+    .activities-dashboard .filter-form .d-flex {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .activities-dashboard .filter-form .input-group,
+    .activities-dashboard .filter-form .form-select {
+        width: 100%;
+    }
+}
+
 
