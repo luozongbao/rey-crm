@@ -24,19 +24,30 @@ if ($action == 'delete' && $contact_id) {
 
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$isViewMode) {
+    // Validate CSRF token
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!validateCSRFToken($csrf_token)) {
+        http_response_code(403);
+        die('CSRF token validation failed');
+    }
+    
+    // Validate customer access
+    $customer_id = (int)$_POST['customer_id'];
+    validateCustomerAccess($customer_id);
+    
     // Validate required fields
     if (empty($_POST['name'])) {
         die(__('error') . ': ' . __('name_is_required'));
     }
 
     $data = [
-        'customer_id' => $_POST['customer_id'],
-        'name' => $_POST['name'],
-        'title' => $_POST['title'] ?? null,
-        'role' => $_POST['role'] ?? null,
-        'contact_number' => $_POST['contact_number'] ?? null,
-        'contact_email' => $_POST['contact_email'] ?? null,
-        'notes' => $_POST['notes'] ?? null
+        'customer_id' => $customer_id,
+        'name' => sanitizeHtml(trim($_POST['name'])),
+        'title' => !empty($_POST['title']) ? sanitizeHtml(trim($_POST['title'])) : null,
+        'role' => !empty($_POST['role']) ? sanitizeHtml(trim($_POST['role'])) : null,
+        'contact_number' => !empty($_POST['contact_number']) ? sanitizeHtml(trim($_POST['contact_number'])) : null,
+        'contact_email' => !empty($_POST['contact_email']) ? sanitizeHtml(trim($_POST['contact_email'])) : null,
+        'notes' => !empty($_POST['notes']) ? sanitizeHtml(trim($_POST['notes'])) : null
     ];
     
     // Validate email if provided
@@ -146,6 +157,7 @@ $customer = getCustomerById($customer_id);
 
         <div class="form-container">
             <form method="post">
+                <?php echo csrfTokenField(); ?>
                 <input type="hidden" name="customer_id" value="<?php echo $customer_id; ?>">
                 
                 <div class="form-group">

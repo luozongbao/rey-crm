@@ -41,6 +41,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($user && password_verify($password, $user['password'])) {
                     // Successful login
                     trackLoginAttempt($username, $ip_address, true);
+                    logSecurityEvent('successful_login', [
+                        'username' => $username,
+                        'ip_address' => $ip_address,
+                        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+                    ], $user['user_id']);
+                    
                     regenerateSession();
                     
                     // Update last login time
@@ -57,6 +63,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit;
                 } else {
                     trackLoginAttempt($username, $ip_address, false);
+                    logSecurityEvent('failed_login', [
+                        'username' => $username,
+                        'ip_address' => $ip_address,
+                        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+                    ]);
                     $error = __('invalid_credentials');
                 }
             } catch (PDOException $e) {

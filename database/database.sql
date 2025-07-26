@@ -156,3 +156,18 @@ CREATE TABLE IF NOT EXISTS login_attempts (
     INDEX idx_ip_time (ip_address, attempt_time),
     INDEX idx_username_time (username, attempt_time)
 );
+
+-- Security log table for Phase 2 implementation
+CREATE TABLE IF NOT EXISTS security_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    event_type VARCHAR(50) NOT NULL,
+    details JSON,
+    user_id INT,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    created_at DATETIME NOT NULL,
+    INDEX idx_event_type (event_type),
+    INDEX idx_user_id (user_id),
+    INDEX idx_created_at (created_at),
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
+);

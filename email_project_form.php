@@ -27,35 +27,89 @@ if ($is_edit) {
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $project_name = trim($_POST['project_name'] ?? '');
-    $cc = trim($_POST['cc'] ?? '');
-    $subject = trim($_POST['subject'] ?? '');
-    $message = $_POST['message'] ?? '';
+    // Validate CSRF token
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!validateCSRFToken($csrf_token)) {
+        http_response_code(403);
+        die('CSRF token validation failed');
+    }
+    
+    $project_name = sanitizeHtml(trim($_POST['project_name'] ?? ''));
+    $cc = sanitizeHtml(trim($_POST['cc'] ?? ''));
+    $subject = sanitizeHtml(trim($_POST['subject'] ?? ''));
+    $message = sanitizeHtml($_POST['message'] ?? '', true); // Allow basic HTML
     $attachments = '';
     
-    // Handle file uploads
+    // Initialize errors array
+    $errors = [];
+    // Handle file uploads with enhanced security
     if (!empty($_FILES['attachments']['name'][0])) {
         $upload_dir = 'uploads/email_attachments/';
         if (!is_dir($upload_dir)) {
             mkdir($upload_dir, 0755, true);
         }
         
+        // Define allowed file types for email attachments
+        $allowed_types = [
+            'pdf' => ['application/pdf'],
+            'doc' => ['application/msword'],
+            'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+            'xls' => ['application/vnd.ms-excel'],
+            'xlsx' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+            'ppt' => ['application/vnd.ms-powerpoint'],
+            'pptx' => ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
+            'txt' => ['text/plain'],
+            'jpg' => ['image/jpeg'],
+            'jpeg' => ['image/jpeg'],
+            'png' => ['image/png'],
+            'gif' => ['image/gif'],
+            'zip' => ['application/zip']
+        ];
+        
         $uploaded_files = [];
+        $upload_errors = [];
+        
         for ($i = 0; $i < count($_FILES['attachments']['name']); $i++) {
             if ($_FILES['attachments']['error'][$i] === UPLOAD_ERR_OK) {
-                $file_name = $_FILES['attachments']['name'][$i];
-                $file_tmp = $_FILES['attachments']['tmp_name'][$i];
-                $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                $file = [
+                    'name' => $_FILES['attachments']['name'][$i],
+                    'tmp_name' => $_FILES['attachments']['tmp_name'][$i],
+                    'size' => $_FILES['attachments']['size'][$i],
+                    'error' => $_FILES['attachments']['error'][$i]
+                ];
                 
-                // Generate unique filename
-                $new_filename = uniqid() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $file_name);
-                $upload_path = $upload_dir . $new_filename;
+                // Validate file upload
+                $validation = validateFileUpload($file, $allowed_types, 10485760); // 10MB limit
                 
-                if (move_uploaded_file($file_tmp, $upload_path)) {
-                    $uploaded_files[] = $upload_path;
+                if ($validation['valid']) {
+                    // Generate secure filename
+                    $secure_filename = generateSecureFilename($file['name']);
+                    $upload_path = $upload_dir . $secure_filename;
+                    
+                    if (move_uploaded_file($file['tmp_name'], $upload_path)) {
+                        $uploaded_files[] = $upload_path;
+                        
+                        // Log file upload
+                        logSecurityEvent('file_upload', [
+                            'original_filename' => $file['name'],
+                            'secure_filename' => $secure_filename,
+                            'file_size' => $file['size'],
+                            'upload_path' => $upload_path
+                        ]);
+                    } else {
+                        $upload_errors[] = "Failed to upload: " . htmlspecialchars($file['name']);
+                    }
+                } else {
+                    $upload_errors[] = htmlspecialchars($file['name']) . ": " . implode(', ', $validation['errors']);
                 }
             }
         }
+        
+        // Add upload errors to main errors array
+        if (!empty($upload_errors)) {
+            $errors = array_merge($errors ?? [], $upload_errors);
+        }
+        
         $attachments = json_encode($uploaded_files);
     } elseif ($is_edit && $project) {
         // Keep existing attachments if no new ones uploaded
@@ -132,6 +186,7 @@ include 'includes/header.php';
     <div class="card">
         <div class="card-body">
             <form method="POST" enctype="multipart/form-data" class="form">
+                <?php echo csrfTokenField(); ?>
                 <div class="form-group">
                     <label for="project_name" class="form-label"><?= __('project_name') ?> <span class="required">*</span></label>
                     <input type="text" 

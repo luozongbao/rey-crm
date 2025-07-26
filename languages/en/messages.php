@@ -933,6 +933,26 @@ return [
     'csrf_token_validation_failed' => 'Security token validation failed. Please refresh the page and try again.',
     'access_denied' => 'Access denied. You do not have permission to view this resource.',
     'session_timeout' => 'Your session has expired. Please log in again.',
+    
+    // Security logs
+    'security_logs' => 'Security Logs',
+    'view_security_logs' => 'View Security Logs',
+    'security_events' => 'Security Events',
+    'event_type' => 'Event Type',
+    'all_events' => 'All Events',
+    'all_users' => 'All Users',
+    'no_security_events_found' => 'No security events found.',
+    'view_details' => 'View Details',
+    'showing' => 'Showing',
+    'of' => 'of',
+    'events' => 'events',
+    'total' => 'total',
+    'filter' => 'Filter',
+    'date_from' => 'Date From',
+    'date_to' => 'Date To',
+    'ip_address' => 'IP Address',
+    'details' => 'Details',
+    'back_to_settings' => 'Back to Settings',
 
     // Add more messages as needed
 ];

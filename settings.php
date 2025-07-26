@@ -281,6 +281,9 @@ require_once 'includes/header.php';
     <div class="header">
         <h1><?= __('system_settings') ?></h1>
         <p><?= __('manage_system_settings_users') ?></p>
+        <div class="header-actions">
+            <a href="security_logs.php" class="btn btn-info"><?= __('view_security_logs') ?></a>
+        </div>
     </div>
 
 

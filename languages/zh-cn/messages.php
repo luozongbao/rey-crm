@@ -971,6 +971,26 @@ return [
     'csrf_token_validation_failed' => '安全令牌验证失败。请刷新页面后重试。',
     'access_denied' => '拒绝访问。您没有权限查看此资源。',
     'session_timeout' => '您的会话已过期。请重新登录。',
+    
+    // Security logs
+    'security_logs' => '安全日志',
+    'view_security_logs' => '查看安全日志',
+    'security_events' => '安全事件',
+    'event_type' => '事件类型',
+    'all_events' => '所有事件',
+    'all_users' => '所有用户',
+    'no_security_events_found' => '未找到安全事件。',
+    'view_details' => '查看详情',
+    'showing' => '显示',
+    'of' => '共',
+    'events' => '事件',
+    'total' => '总计',
+    'filter' => '筛选',
+    'date_from' => '开始日期',
+    'date_to' => '结束日期',
+    'ip_address' => 'IP地址',
+    'details' => '详情',
+    'back_to_settings' => '返回设置',
 
     // Add more messages as needed
 ];

@@ -23,6 +23,16 @@ if ($action == 'delete' && $history_id) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$isViewMode) {
+    // Validate CSRF token
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!validateCSRFToken($csrf_token)) {
+        http_response_code(403);
+        die('CSRF token validation failed');
+    }
+    
+    // Validate customer access
+    validateCustomerAccess($customer_id);
+    
     // Validate required fields
     $required = ['action_datetime', 'action', 'contact_channel', 'response', 'next_step', 'follow_up_datetime'];
     foreach ($required as $field) {
@@ -44,10 +54,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$isViewMode) {
         'customer_id' => $customer_id,
         'contact_id' => !empty($_POST['contact_id']) ? $_POST['contact_id'] : null,
         'action_datetime' => $action_datetime,
-        'action' => $_POST['action'],
-        'contact_channel' => $_POST['contact_channel'],
-        'response' => $_POST['response'],
-        'next_step' => $_POST['next_step'],
+        'action' => sanitizeHtml(trim($_POST['action'])),
+        'contact_channel' => sanitizeHtml(trim($_POST['contact_channel'])),
+        'response' => sanitizeHtml(trim($_POST['response'])),
+        'next_step' => sanitizeHtml(trim($_POST['next_step'])),
         'follow_up_datetime' => $follow_up_datetime,
         'notes' => $_POST['notes'] ?? null
     ];
@@ -161,6 +171,7 @@ $customer = getCustomerById($customer_id);
         
         <div class="form-container">
             <form method="post">
+                <?php echo csrfTokenField(); ?>
                 <input type="hidden" name="customer_id" value="<?php echo $customer_id; ?>">
                 
                 <div class="form-group">

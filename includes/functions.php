@@ -2975,4 +2975,167 @@ function isAccountLocked($username, $ip_address) {
     }
 }
 
+/**
+ * Enhanced Security Logging Functions
+ */
+function logSecurityEvent($event_type, $details, $user_id = null) {
+    global $pdo;
+    
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO security_log 
+            (event_type, details, user_id, ip_address, user_agent, created_at) 
+            VALUES (?, ?, ?, ?, ?, ?)
+        ");
+        
+        $stmt->execute([
+            $event_type,
+            json_encode($details),
+            $user_id ?? $_SESSION['user_id'] ?? null,
+            $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+            $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
+            getCurrentUTCDateTime()
+        ]);
+    } catch (PDOException $e) {
+        error_log("Failed to log security event: " . $e->getMessage());
+    }
+}
+
+/**
+ * Input Sanitization and XSS Protection Functions
+ */
+function sanitizeHtml($content, $allow_html = false) {
+    if (!$allow_html) {
+        return htmlspecialchars($content, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+    
+    // For rich text content, use basic HTML filtering
+    $allowed_tags = '<p><br><strong><em><ul><ol><li><h1><h2><h3><h4><h5><h6>';
+    $clean_content = strip_tags($content, $allowed_tags);
+    
+    // Remove potentially dangerous attributes
+    $clean_content = preg_replace('/\s*on\w+\s*=\s*["\'].*?["\']/i', '', $clean_content);
+    $clean_content = preg_replace('/\s*javascript\s*:/i', '', $clean_content);
+    
+    return $clean_content;
+}
+
+function sanitizeOutput($data) {
+    if (is_array($data)) {
+        return array_map('sanitizeOutput', $data);
+    }
+    return htmlspecialchars($data, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+}
+
+function validateFileUpload($file, $allowed_types = [], $max_size = 10485760) { // 10MB default
+    $errors = [];
+    
+    // Check if file was uploaded
+    if (!isset($file['tmp_name']) || empty($file['tmp_name'])) {
+        $errors[] = 'No file uploaded';
+        return ['valid' => false, 'errors' => $errors];
+    }
+    
+    // Check for upload errors
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        switch ($file['error']) {
+            case UPLOAD_ERR_INI_SIZE:
+            case UPLOAD_ERR_FORM_SIZE:
+                $errors[] = 'File too large';
+                break;
+            case UPLOAD_ERR_PARTIAL:
+                $errors[] = 'File upload incomplete';
+                break;
+            case UPLOAD_ERR_NO_FILE:
+                $errors[] = 'No file selected';
+                break;
+            default:
+                $errors[] = 'Upload error occurred';
+        }
+        return ['valid' => false, 'errors' => $errors];
+    }
+    
+    // Check file size
+    if ($file['size'] > $max_size) {
+        $errors[] = 'File exceeds maximum size of ' . formatBytes($max_size);
+        return ['valid' => false, 'errors' => $errors];
+    }
+    
+    // Check file type
+    $file_ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    $mime_type = mime_content_type($file['tmp_name']);
+    
+    if (!empty($allowed_types)) {
+        $allowed_extensions = array_keys($allowed_types);
+        if (!in_array($file_ext, $allowed_extensions)) {
+            $errors[] = 'File type not allowed. Allowed types: ' . implode(', ', $allowed_extensions);
+            return ['valid' => false, 'errors' => $errors];
+        }
+        
+        // Verify MIME type matches extension
+        if (!in_array($mime_type, $allowed_types[$file_ext])) {
+            $errors[] = 'File content does not match extension';
+            return ['valid' => false, 'errors' => $errors];
+        }
+    }
+    
+    // Check for dangerous content
+    $file_content = file_get_contents($file['tmp_name'], false, null, 0, 1024); // Read first 1KB
+    if (preg_match('/<\?php|<script|javascript:|vbscript:/i', $file_content)) {
+        $errors[] = 'File contains potentially dangerous content';
+        return ['valid' => false, 'errors' => $errors];
+    }
+    
+    return ['valid' => true, 'errors' => []];
+}
+
+function formatBytes($size, $precision = 2) {
+    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    for ($i = 0; $size > 1024 && $i < count($units) - 1; $i++) {
+        $size /= 1024;
+    }
+    return round($size, $precision) . ' ' . $units[$i];
+}
+
+function generateSecureFilename($original_filename) {
+    // Get file extension
+    $extension = strtolower(pathinfo($original_filename, PATHINFO_EXTENSION));
+    
+    // Generate secure filename
+    $secure_name = bin2hex(random_bytes(16)) . '_' . time();
+    
+    // Add extension if present
+    if (!empty($extension)) {
+        $secure_name .= '.' . $extension;
+    }
+    
+    return $secure_name;
+}
+
+/**
+ * Business Logic Validation Functions
+ */
+function validateBusinessRules($operation, $data) {
+    switch ($operation) {
+        case 'user_role_change':
+            // Prevent self-privilege escalation
+            if (isset($data['user_id']) && $data['user_id'] == $_SESSION['user_id'] && 
+                isset($data['new_role']) && $data['new_role'] == 'admin') {
+                logSecurityEvent('privilege_escalation_attempt', $data);
+                throw new Exception('Cannot change own role to admin');
+            }
+            break;
+            
+        case 'customer_assignment':
+            // Log customer assignment changes
+            logSecurityEvent('customer_assignment_change', $data);
+            break;
+            
+        case 'sensitive_data_access':
+            // Log access to sensitive data
+            logSecurityEvent('sensitive_data_access', $data);
+            break;
+    }
+}
+
 ?>

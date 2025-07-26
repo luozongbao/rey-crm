@@ -51,6 +51,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $stmt = $pdo->prepare("DELETE FROM users WHERE user_id = ?");
             if ($stmt->execute([$user_id])) {
+                // Log user deletion
+                logSecurityEvent('user_deleted', [
+                    'deleted_user_id' => $user_id,
+                    'deleted_username' => $user['username'],
+                    'deleted_by' => $_SESSION['username']
+                ]);
+                
                 $_SESSION['message'] = __('user_deleted_successfully');
                 header('Location: settings.php');
                 exit;
@@ -65,6 +72,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $reset_email = trim($_POST['reset_email']);
         
         if (!empty($reset_email)) {
+            // Log password reset request
+            logSecurityEvent('password_reset_requested', [
+                'target_user_id' => $user_id,
+                'target_username' => $user['username'],
+                'requested_by' => $_SESSION['username']
+            ]);
+            
             $reset_result = sendPasswordResetEmail($reset_email, $user['username'], $user_id);
             if ($reset_result['success']) {
                 $message = __('password_reset_email_sent_to') . ' ' . htmlspecialchars($reset_email);
