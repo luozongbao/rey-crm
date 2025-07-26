@@ -36,25 +36,32 @@ include 'includes/header.php';
             
             <!-- Filter Form -->
             <div class="filter-form">
-                <form method="GET" class="d-flex align-items-center gap-3">
-                    <div class="input-group">
-                        <span class="input-group-text"><?php echo __('from'); ?></span>
-                        <input type="date" name="date_from" class="form-control" value="<?php echo htmlspecialchars($date_from); ?>">
+                <form method="GET">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="date_from"><?php echo __('from'); ?>:</label>
+                            <input type="date" name="date_from" id="date_from" class="form-control" value="<?php echo htmlspecialchars($date_from); ?>">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="date_to"><?php echo __('to'); ?>:</label>
+                            <input type="date" name="date_to" id="date_to" class="form-control" value="<?php echo htmlspecialchars($date_to); ?>">
+                        </div>
+                        
+                        <?php if (isAdmin()): ?>
+                        <div class="form-group">
+                            <label for="user_filter"><?php echo __('view'); ?>:</label>
+                            <select name="user_filter" id="user_filter" class="form-control">
+                                <option value="all" <?php echo $user_filter === 'all' ? 'selected' : ''; ?>><?php echo __('all_users'); ?></option>
+                                <option value="mine" <?php echo $user_filter === 'mine' ? 'selected' : ''; ?>><?php echo __('my_data_only'); ?></option>
+                            </select>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-primary"><?php echo __('filter'); ?></button>
+                        </div>
                     </div>
-                    
-                    <div class="input-group">
-                        <span class="input-group-text"><?php echo __('to'); ?></span>
-                        <input type="date" name="date_to" class="form-control" value="<?php echo htmlspecialchars($date_to); ?>">
-                    </div>
-                    
-                    <?php if (isAdmin()): ?>
-                    <select name="user_filter" class="form-select">
-                        <option value="all" <?php echo $user_filter === 'all' ? 'selected' : ''; ?>><?php echo __('all_users'); ?></option>
-                        <option value="mine" <?php echo $user_filter === 'mine' ? 'selected' : ''; ?>><?php echo __('my_data_only'); ?></option>
-                    </select>
-                    <?php endif; ?>
-                    
-                    <button type="submit" class="btn btn-primary"><?php echo __('filter'); ?></button>
                 </form>
             </div>
         </div>
