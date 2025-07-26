@@ -39,11 +39,25 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Validate CSRF token
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!validateCSRFToken($csrf_token)) {
+        http_response_code(403);
+        die('CSRF token validation failed');
+    }
+    
     if (isset($_POST['delete_user']) && $is_edit && !$is_current_user) {
         // Handle delete user (only for other users)
         try {
             $stmt = $pdo->prepare("DELETE FROM users WHERE user_id = ?");
             if ($stmt->execute([$user_id])) {
+                // Log user deletion
+                logSecurityEvent('user_deleted', [
+                    'deleted_user_id' => $user_id,
+                    'deleted_username' => $user['username'],
+                    'deleted_by' => $_SESSION['username']
+                ]);
+                
                 $_SESSION['message'] = __('user_deleted_successfully');
                 header('Location: settings.php');
                 exit;
@@ -58,6 +72,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $reset_email = trim($_POST['reset_email']);
         
         if (!empty($reset_email)) {
+            // Log password reset request
+            logSecurityEvent('password_reset_requested', [
+                'target_user_id' => $user_id,
+                'target_username' => $user['username'],
+                'requested_by' => $_SESSION['username']
+            ]);
+            
             $reset_result = sendPasswordResetEmail($reset_email, $user['username'], $user_id);
             if ($reset_result['success']) {
                 $message = __('password_reset_email_sent_to') . ' ' . htmlspecialchars($reset_email);
@@ -173,6 +194,7 @@ include 'includes/header.php';
     <div class="card">
         <div class="card-body">
             <form method="POST" action="" class="user-form">
+                <?php echo csrfTokenField(); ?>
                 <div class="form-group">
                     <label for="username"><?php echo __('username'); ?>:</label>
                     <input type="text" 
@@ -233,6 +255,7 @@ include 'includes/header.php';
                     <h3><?php echo __('password_reset'); ?></h3>
                     <p><?php echo __('send_password_reset_link_to'); ?> <?php echo htmlspecialchars($user['email']); ?></p>
                     <form method="POST" action="" class="reset-form">
+                        <?php echo csrfTokenField(); ?>
                         <input type="hidden" name="reset_email" value="<?php echo htmlspecialchars($user['email']); ?>">
                         <button type="submit" name="send_reset" class="btn btn-warning">
                             <?php echo __('send_password_reset_link'); ?>
@@ -247,6 +270,7 @@ include 'includes/header.php';
                     <h3><?php echo __('delete_user'); ?></h3>
                     <p class="delete-warning"><?php echo __('delete_user_warning'); ?></p>
                     <form method="POST" action="" onsubmit="return confirm('<?php echo __('confirm_delete_user'); ?>');">
+                        <?php echo csrfTokenField(); ?>
                         <button type="submit" name="delete_user" class="btn btn-danger delete-user-btn">
                             <?php echo __('delete_user'); ?>
                         </button>

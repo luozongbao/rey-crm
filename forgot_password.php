@@ -4,9 +4,9 @@ require_once 'includes/functions.php';
 require_once 'vendor/autoload.php';
 session_start();
 
-// If already logged in, redirect to dashboard
+// If already logged in, redirect to customer dashboard
 if (isset($_SESSION['user_id'])) {
-    header('Location: dashboard.php');
+    header('Location: customer_dashboard.php');
     exit;
 }
 

@@ -145,3 +145,49 @@ CREATE TABLE IF NOT EXISTS sent_email_history (
     FOREIGN KEY (project_id) REFERENCES email_projects(project_id) ON DELETE SET NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Security tables for Phase 1 implementation
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ip_address VARCHAR(45) NOT NULL,
+    username VARCHAR(255),
+    attempt_time DATETIME NOT NULL,
+    success TINYINT(1) DEFAULT 0,
+    INDEX idx_ip_time (ip_address, attempt_time),
+    INDEX idx_username_time (username, attempt_time)
+);
+
+-- Security log table for Phase 2 implementation
+CREATE TABLE IF NOT EXISTS security_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    event_type VARCHAR(50) NOT NULL,
+    details JSON,
+    user_id INT,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    created_at DATETIME NOT NULL,
+    INDEX idx_event_type (event_type),
+    INDEX idx_user_id (user_id),
+    INDEX idx_created_at (created_at),
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
+);
+
+-- Rate limiting table for Phase 3 implementation
+CREATE TABLE IF NOT EXISTS rate_limits (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    rate_key VARCHAR(255) NOT NULL,
+    created_at DATETIME NOT NULL,
+    INDEX idx_rate_key (rate_key),
+    INDEX idx_created_at (created_at)
+);
+
+-- Security configuration table for Phase 3
+CREATE TABLE IF NOT EXISTS security_config (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    config_key VARCHAR(100) NOT NULL UNIQUE,
+    config_value TEXT,
+    is_encrypted TINYINT(1) DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_by INT,
+    FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL
+);

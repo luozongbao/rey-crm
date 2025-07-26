@@ -26,7 +26,7 @@ include 'includes/header.php';
     <div class="header">
         <h1 class="page-title"><?php echo __('customer_user_management'); ?></h1>
         <div class="header-actions">
-            <a href="dashboard.php" class="btn btn-secondary"><?php echo __('back_to_dashboard'); ?></a>
+            <a href="customer_dashboard.php" class="btn btn-secondary"><?php echo __('back_to_dashboard'); ?></a>
         </div>
     </div>
 

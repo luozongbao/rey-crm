@@ -5,48 +5,86 @@ require_once 'includes/functions.php';
 $current_language = initLanguage();
 $lang_info = getCurrentLanguageInfo();
 
-// If already logged in, redirect to dashboard
+// If already logged in, redirect to customer dashboard
 if (isset($_SESSION['user_id'])) {
-    redirectTo('dashboard.php');
+    redirectTo('customer_dashboard.php');
 }
 
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? '');
-    $password = trim($_POST['password'] ?? '');
-    
-    // Cleanup expired tokens occasionally (1% chance)
-    if (mt_rand(1, 100) === 1) {
-        cleanupExpiredTokens();
-    }
-    
-    if (empty($username) || empty($password)) {
-        $error = __('login_required');
+    // Validate CSRF token
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!validateCSRFToken($csrf_token)) {
+        http_response_code(403);
+        $error = 'CSRF token validation failed';
     } else {
-        try {
-            $stmt = $pdo->prepare("SELECT user_id, username, password, role FROM users WHERE username = ?");
-            $stmt->execute([$username]);
-            $user = $stmt->fetch();
-            
-            if ($user && password_verify($password, $user['password'])) {
-                // Update last login time
-                $updateStmt = $pdo->prepare("UPDATE users SET last_login = ? WHERE user_id = ?");
-                $updateStmt->execute([getCurrentUTCDateTime(), $user['user_id']]);
-                
-                // Set session variables
-                $_SESSION['user_id'] = $user['user_id'];
-                $_SESSION['username'] = $user['username'];
-                $_SESSION['role'] = $user['role'];
-                
-                header('Location: dashboard.php');
-                exit;
+        $username = trim($_POST['username'] ?? '');
+        $password = trim($_POST['password'] ?? '');
+        $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        
+        // Cleanup expired tokens occasionally (1% chance)
+        if (mt_rand(1, 100) === 1) {
+            cleanupExpiredTokens();
+        }
+        
+        if (empty($username) || empty($password)) {
+            $error = __('login_required');
+        } elseif (isAccountLocked($username, $ip_address)) {
+            $error = __('account_temporarily_locked');
+        } else {
+            // Check rate limiting for login attempts
+            $rate_key = 'login_' . $_SERVER['REMOTE_ADDR'];
+            if (!checkRateLimit($rate_key, 5, 300)) { // 5 attempts per 5 minutes
+                logSecurityEvent('rate_limit_exceeded', [
+                    'rate_key' => $rate_key,
+                    'ip_address' => $ip_address,
+                    'username' => $username
+                ]);
+                $error = "Too many login attempts. Please try again in 5 minutes.";
             } else {
-                $error = __('invalid_credentials');
+            try {
+                $stmt = $pdo->prepare("SELECT user_id, username, password, role FROM users WHERE username = ?");
+                $stmt->execute([$username]);
+                $user = $stmt->fetch();
+                
+                if ($user && password_verify($password, $user['password'])) {
+                    // Successful login
+                    trackLoginAttempt($username, $ip_address, true);
+                    logSecurityEvent('successful_login', [
+                        'username' => $username,
+                        'ip_address' => $ip_address,
+                        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+                    ], $user['user_id']);
+                    
+                    regenerateSession();
+                    
+                    // Update last login time
+                    $updateStmt = $pdo->prepare("UPDATE users SET last_login = ? WHERE user_id = ?");
+                    $updateStmt->execute([getCurrentUTCDateTime(), $user['user_id']]);
+                    
+                    // Set session variables
+                    $_SESSION['user_id'] = $user['user_id'];
+                    $_SESSION['username'] = $user['username'];
+                    $_SESSION['role'] = $user['role'];
+                    $_SESSION['last_activity'] = time();
+                    
+                    header('Location: customer_dashboard.php');
+                    exit;
+                } else {
+                    trackLoginAttempt($username, $ip_address, false);
+                    logSecurityEvent('failed_login', [
+                        'username' => $username,
+                        'ip_address' => $ip_address,
+                        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+                    ]);
+                    $error = __('invalid_credentials');
+                }
+            } catch (PDOException $e) {
+                $error = __('login_failed');
+                logError($e->getMessage());
             }
-        } catch (PDOException $e) {
-            $error = __('login_failed');
-            logError($e->getMessage());
+        }
         }
     }
 }
@@ -90,6 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <form method="POST" class="auth-form">
+                <?php echo csrfTokenField(); ?>
                 <div class="form-group">
                     <label for="username"><?php echo __('username'); ?></label>
                     <input type="text" 

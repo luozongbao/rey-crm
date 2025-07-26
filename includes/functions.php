@@ -729,12 +729,12 @@ function isAdmin() {
 }
 
 /**
- * Require admin role, redirect to dashboard if not admin
+ * Require admin role, redirect to customer dashboard if not admin
  */
 function requireAdmin() {
     requireLogin();
     if (!isAdmin()) {
-        header('Location: /dashboard.php');
+        header('Location: /customer_dashboard.php');
         exit;
     }
 }
@@ -2855,6 +2855,532 @@ function canEditCustomer($customer_id) {
     } catch (PDOException $e) {
         logError("Error checking edit permission: " . $e->getMessage());
         return false;
+    }
+}
+
+/**
+ * Authentication and Authorization Functions
+ */
+function checkAuth() {
+    return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
+}
+
+function hasRole($required_role) {
+    if (!checkAuth()) {
+        return false;
+    }
+    
+    $user_role = $_SESSION['role'] ?? '';
+    
+    // Admin has access to everything
+    if ($user_role === 'admin') {
+        return true;
+    }
+    
+    // Check specific role
+    return $user_role === $required_role;
+}
+
+/**
+ * CSRF Protection Functions
+ */
+function generateCSRFToken() {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    if (!isset($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function validateCSRFToken($token) {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+}
+
+function csrfTokenField() {
+    $token = generateCSRFToken();
+    return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($token) . '">';
+}
+
+/**
+ * Enhanced Session Security Functions
+ */
+function regenerateSession() {
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_regenerate_id(true);
+    }
+}
+
+function checkSessionTimeout() {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    if (isset($_SESSION['last_activity'])) {
+        if (time() - $_SESSION['last_activity'] > SESSION_TIMEOUT) {
+            session_unset();
+            session_destroy();
+            header('Location: /login.php?timeout=1');
+            exit;
+        }
+    }
+    $_SESSION['last_activity'] = time();
+}
+
+/**
+ * Access Control Functions
+ */
+function canUserAccessCustomer($user_id, $customer_id) {
+    global $pdo;
+    
+    // Admin can access all customers
+    if (isAdmin()) {
+        return true;
+    }
+    
+    // Regular users can only access assigned customers
+    try {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM customers WHERE customer_id = ? AND assigned_user_id = ?");
+        $stmt->execute([$customer_id, $user_id]);
+        
+        return $stmt->fetchColumn() > 0;
+    } catch (PDOException $e) {
+        logError("Error checking customer access: " . $e->getMessage());
+        return false;
+    }
+}
+
+function validateCustomerAccess($customer_id) {
+    if (!canUserAccessCustomer($_SESSION['user_id'], $customer_id)) {
+        http_response_code(403);
+        header('Location: /customer_dashboard.php?error=access_denied');
+        exit;
+    }
+}
+
+/**
+ * Login Attempt Tracking Functions
+ */
+function trackLoginAttempt($username, $ip_address, $success = false) {
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare("INSERT INTO login_attempts (username, ip_address, attempt_time, success) VALUES (?, ?, ?, ?)");
+        $stmt->execute([$username, $ip_address, getCurrentUTCDateTime(), $success ? 1 : 0]);
+    } catch (PDOException $e) {
+        logError("Failed to track login attempt: " . $e->getMessage());
+    }
+}
+
+function isAccountLocked($username, $ip_address) {
+    global $pdo;
+    $lockout_time = date('Y-m-d H:i:s', time() - LOCKOUT_DURATION);
+    
+    try {
+        // Check failed attempts from this IP or username
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) FROM login_attempts 
+            WHERE (username = ? OR ip_address = ?) 
+            AND attempt_time > ? 
+            AND success = 0
+        ");
+        $stmt->execute([$username, $ip_address, $lockout_time]);
+        
+        return $stmt->fetchColumn() >= MAX_LOGIN_ATTEMPTS;
+    } catch (PDOException $e) {
+        logError("Failed to check account lockout: " . $e->getMessage());
+        return false; // Default to not locked if we can't check
+    }
+}
+
+/**
+ * Enhanced Security Logging Functions
+ */
+function logSecurityEvent($event_type, $details, $user_id = null) {
+    global $pdo;
+    
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO security_log 
+            (event_type, details, user_id, ip_address, user_agent, created_at) 
+            VALUES (?, ?, ?, ?, ?, ?)
+        ");
+        
+        $stmt->execute([
+            $event_type,
+            json_encode($details),
+            $user_id ?? $_SESSION['user_id'] ?? null,
+            $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+            $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
+            getCurrentUTCDateTime()
+        ]);
+    } catch (PDOException $e) {
+        error_log("Failed to log security event: " . $e->getMessage());
+    }
+}
+
+/**
+ * Input Sanitization and XSS Protection Functions
+ */
+function sanitizeHtml($content, $allow_html = false) {
+    if (!$allow_html) {
+        return htmlspecialchars($content, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+    
+    // For rich text content, use basic HTML filtering
+    $allowed_tags = '<p><br><strong><em><ul><ol><li><h1><h2><h3><h4><h5><h6>';
+    $clean_content = strip_tags($content, $allowed_tags);
+    
+    // Remove potentially dangerous attributes
+    $clean_content = preg_replace('/\s*on\w+\s*=\s*["\'].*?["\']/i', '', $clean_content);
+    $clean_content = preg_replace('/\s*javascript\s*:/i', '', $clean_content);
+    
+    return $clean_content;
+}
+
+function sanitizeOutput($data) {
+    if (is_array($data)) {
+        return array_map('sanitizeOutput', $data);
+    }
+    return htmlspecialchars($data, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+}
+
+function validateFileUpload($file, $allowed_types = [], $max_size = 10485760) { // 10MB default
+    $errors = [];
+    
+    // Check if file was uploaded
+    if (!isset($file['tmp_name']) || empty($file['tmp_name'])) {
+        $errors[] = 'No file uploaded';
+        return ['valid' => false, 'errors' => $errors];
+    }
+    
+    // Check for upload errors
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        switch ($file['error']) {
+            case UPLOAD_ERR_INI_SIZE:
+            case UPLOAD_ERR_FORM_SIZE:
+                $errors[] = 'File too large';
+                break;
+            case UPLOAD_ERR_PARTIAL:
+                $errors[] = 'File upload incomplete';
+                break;
+            case UPLOAD_ERR_NO_FILE:
+                $errors[] = 'No file selected';
+                break;
+            default:
+                $errors[] = 'Upload error occurred';
+        }
+        return ['valid' => false, 'errors' => $errors];
+    }
+    
+    // Check file size
+    if ($file['size'] > $max_size) {
+        $errors[] = 'File exceeds maximum size of ' . formatBytes($max_size);
+        return ['valid' => false, 'errors' => $errors];
+    }
+    
+    // Check file type
+    $file_ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    $mime_type = mime_content_type($file['tmp_name']);
+    
+    if (!empty($allowed_types)) {
+        $allowed_extensions = array_keys($allowed_types);
+        if (!in_array($file_ext, $allowed_extensions)) {
+            $errors[] = 'File type not allowed. Allowed types: ' . implode(', ', $allowed_extensions);
+            return ['valid' => false, 'errors' => $errors];
+        }
+        
+        // Verify MIME type matches extension
+        if (!in_array($mime_type, $allowed_types[$file_ext])) {
+            $errors[] = 'File content does not match extension';
+            return ['valid' => false, 'errors' => $errors];
+        }
+    }
+    
+    // Check for dangerous content
+    $file_content = file_get_contents($file['tmp_name'], false, null, 0, 1024); // Read first 1KB
+    if (preg_match('/<\?php|<script|javascript:|vbscript:/i', $file_content)) {
+        $errors[] = 'File contains potentially dangerous content';
+        return ['valid' => false, 'errors' => $errors];
+    }
+    
+    return ['valid' => true, 'errors' => []];
+}
+
+function formatBytes($size, $precision = 2) {
+    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    for ($i = 0; $size > 1024 && $i < count($units) - 1; $i++) {
+        $size /= 1024;
+    }
+    return round($size, $precision) . ' ' . $units[$i];
+}
+
+function generateSecureFilename($original_filename) {
+    // Get file extension
+    $extension = strtolower(pathinfo($original_filename, PATHINFO_EXTENSION));
+    
+    // Generate secure filename
+    $secure_name = bin2hex(random_bytes(16)) . '_' . time();
+    
+    // Add extension if present
+    if (!empty($extension)) {
+        $secure_name .= '.' . $extension;
+    }
+    
+    return $secure_name;
+}
+
+/**
+ * Business Logic Validation Functions
+ */
+function validateBusinessRules($operation, $data) {
+    switch ($operation) {
+        case 'user_role_change':
+            // Prevent self-privilege escalation
+            if (isset($data['user_id']) && $data['user_id'] == $_SESSION['user_id'] && 
+                isset($data['new_role']) && $data['new_role'] == 'admin') {
+                logSecurityEvent('privilege_escalation_attempt', $data);
+                throw new Exception('Cannot change own role to admin');
+            }
+            break;
+            
+        case 'customer_assignment':
+            // Log customer assignment changes
+            logSecurityEvent('customer_assignment_change', $data);
+            break;
+            
+        case 'sensitive_data_access':
+            // Log access to sensitive data
+            logSecurityEvent('sensitive_data_access', $data);
+            break;
+    }
+}
+
+/**
+ * Data Encryption Functions for Phase 3
+ */
+function getEncryptionKey() {
+    // Ensure the ENCRYPTION_KEY environment variable is set
+    if (empty($_ENV['ENCRYPTION_KEY'])) {
+        throw new Exception('Encryption key is not set. Please configure the ENCRYPTION_KEY environment variable.');
+    }
+    
+    // Ensure key is exactly 32 bytes for AES-256
+    return hash('sha256', $_ENV['ENCRYPTION_KEY'], true);
+}
+
+function encryptData($data) {
+    if (empty($data)) {
+        return $data;
+    }
+    
+    try {
+        $key = getEncryptionKey();
+        $iv = random_bytes(16); // AES block size
+        $encrypted = openssl_encrypt($data, 'AES-256-CBC', $key, 0, $iv);
+        
+        if ($encrypted === false) {
+            throw new Exception('Encryption failed');
+        }
+        
+        // Combine IV and encrypted data, then base64 encode
+        return base64_encode($iv . $encrypted);
+    } catch (Exception $e) {
+        logError("Encryption failed: " . $e->getMessage());
+        return $data; // Return original data if encryption fails
+    }
+}
+
+function decryptData($encryptedData) {
+    if (empty($encryptedData)) {
+        return $encryptedData;
+    }
+    
+    try {
+        $key = getEncryptionKey();
+        $data = base64_decode($encryptedData);
+        
+        if ($data === false || strlen($data) < 16) {
+            return $encryptedData; // Return as-is if not properly encrypted
+        }
+        
+        $iv = substr($data, 0, 16);
+        $encrypted = substr($data, 16);
+        
+        $decrypted = openssl_decrypt($encrypted, 'AES-256-CBC', $key, 0, $iv);
+        
+        if ($decrypted === false) {
+            return $encryptedData; // Return original if decryption fails
+        }
+        
+        return $decrypted;
+    } catch (Exception $e) {
+        logError("Decryption failed: " . $e->getMessage());
+        return $encryptedData; // Return original data if decryption fails
+    }
+}
+
+/**
+ * Rate Limiting Functions
+ */
+function getRateLimitKey($action, $identifier = null) {
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    $identifier = $identifier ?? $ip;
+    return "rate_limit:{$action}:{$identifier}";
+}
+
+function checkRateLimit($action, $limit = 10, $window = 300, $identifier = null) {
+    global $pdo;
+    
+    $key = getRateLimitKey($action, $identifier);
+    $window_start = date('Y-m-d H:i:s', time() - $window);
+    
+    try {
+        // Clean up old entries
+        $cleanup_stmt = $pdo->prepare("DELETE FROM rate_limits WHERE created_at < ?");
+        $cleanup_stmt->execute([$window_start]);
+        
+        // Count current attempts
+        $count_stmt = $pdo->prepare("SELECT COUNT(*) FROM rate_limits WHERE rate_key = ? AND created_at > ?");
+        $count_stmt->execute([$key, $window_start]);
+        $count = $count_stmt->fetchColumn();
+        
+        if ($count >= $limit) {
+            logSecurityEvent('rate_limit_exceeded', [
+                'action' => $action,
+                'identifier' => $identifier,
+                'count' => $count,
+                'limit' => $limit
+            ]);
+            return false;
+        }
+        
+        // Record this attempt
+        $record_stmt = $pdo->prepare("INSERT INTO rate_limits (rate_key, created_at) VALUES (?, ?)");
+        $record_stmt->execute([$key, getCurrentUTCDateTime()]);
+        
+        return true;
+    } catch (PDOException $e) {
+        logError("Rate limiting check failed: " . $e->getMessage());
+        return true; // Allow if rate limiting fails
+    }
+}
+
+/**
+ * Enhanced Security Monitoring Functions
+ */
+function getSecurityMetrics($pdo) {
+    try {
+        $metrics = [];
+        
+        // Failed login attempts in last 24 hours
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM login_attempts WHERE success = 0 AND attempt_time > DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+        $stmt->execute();
+        $metrics['failed_logins_24h'] = $stmt->fetchColumn();
+        
+        // Successful logins in last 24 hours
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM login_attempts WHERE success = 1 AND attempt_time > DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+        $stmt->execute();
+        $metrics['successful_logins_24h'] = $stmt->fetchColumn();
+        
+        // Security events in last 24 hours
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM security_log WHERE created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+        $stmt->execute();
+        $metrics['security_events_24h'] = $stmt->fetchColumn();
+        
+        // Top event types in last 7 days
+        $stmt = $pdo->prepare("SELECT event_type, COUNT(*) as count FROM security_log WHERE created_at > DATE_SUB(NOW(), INTERVAL 7 DAY) GROUP BY event_type ORDER BY count DESC LIMIT 5");
+        $stmt->execute();
+        $metrics['top_events_7d'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Active users in last 24 hours
+        $stmt = $pdo->prepare("SELECT COUNT(DISTINCT user_id) FROM security_log WHERE user_id IS NOT NULL AND created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+        $stmt->execute();
+        $metrics['active_users_24h'] = $stmt->fetchColumn();
+        
+        // File uploads in last 7 days
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM security_log WHERE event_type = 'file_upload' AND created_at > DATE_SUB(NOW(), INTERVAL 7 DAY)");
+        $stmt->execute();
+        $metrics['file_uploads_7d'] = $stmt->fetchColumn();
+        
+        return $metrics;
+    } catch (PDOException $e) {
+        logError("Failed to get security metrics: " . $e->getMessage());
+        return [];
+    }
+}
+
+function getSecurityAlerts($pdo) {
+    $alerts = [];
+    
+    try {
+        // Check for suspicious activity patterns
+        
+        // 1. Multiple failed logins from same IP
+        $stmt = $pdo->prepare("
+            SELECT ip_address, COUNT(*) as attempts 
+            FROM login_attempts 
+            WHERE success = 0 AND attempt_time > DATE_SUB(NOW(), INTERVAL 1 HOUR)
+            GROUP BY ip_address 
+            HAVING attempts >= 5
+        ");
+        $stmt->execute();
+        $suspicious_ips = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        foreach ($suspicious_ips as $ip_data) {
+            $alerts[] = [
+                'type' => 'suspicious_login_attempts',
+                'severity' => 'high',
+                'message' => "Multiple failed login attempts from IP: {$ip_data['ip_address']} ({$ip_data['attempts']} attempts)",
+                'data' => $ip_data
+            ];
+        }
+        
+        // 2. Check for unusual file upload activity
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as uploads 
+            FROM security_log 
+            WHERE event_type = 'file_upload' AND created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)
+        ");
+        $stmt->execute();
+        $recent_uploads = $stmt->fetchColumn();
+        
+        if ($recent_uploads > 20) { // More than 20 uploads in an hour
+            $alerts[] = [
+                'type' => 'unusual_upload_activity',
+                'severity' => 'medium',
+                'message' => "Unusual file upload activity: {$recent_uploads} uploads in the last hour",
+                'data' => ['upload_count' => $recent_uploads]
+            ];
+        }
+        
+        // 3. Check for privilege escalation attempts
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as attempts 
+            FROM security_log 
+            WHERE event_type = 'privilege_escalation_attempt' AND created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)
+        ");
+        $stmt->execute();
+        $escalation_attempts = $stmt->fetchColumn();
+        
+        if ($escalation_attempts > 0) {
+            $alerts[] = [
+                'type' => 'privilege_escalation',
+                'severity' => 'critical',
+                'message' => "Privilege escalation attempts detected: {$escalation_attempts} attempts in the last 24 hours",
+                'data' => ['attempt_count' => $escalation_attempts]
+            ];
+        }
+        
+        return $alerts;
+    } catch (PDOException $e) {
+        logError("Failed to get security alerts: " . $e->getMessage());
+        return [];
     }
 }
 
