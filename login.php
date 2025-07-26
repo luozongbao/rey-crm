@@ -33,6 +33,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (isAccountLocked($username, $ip_address)) {
             $error = __('account_temporarily_locked');
         } else {
+            // Check rate limiting for login attempts
+            $rate_key = 'login_' . $_SERVER['REMOTE_ADDR'];
+            if (!checkRateLimit($rate_key, 5, 300)) { // 5 attempts per 5 minutes
+                logSecurityEvent('rate_limit_exceeded', [
+                    'rate_key' => $rate_key,
+                    'ip_address' => $ip_address,
+                    'username' => $username
+                ]);
+                $error = "Too many login attempts. Please try again in 5 minutes.";
+            } else {
             try {
                 $stmt = $pdo->prepare("SELECT user_id, username, password, role FROM users WHERE username = ?");
                 $stmt->execute([$username]);
@@ -74,6 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = __('login_failed');
                 logError($e->getMessage());
             }
+        }
         }
     }
 }

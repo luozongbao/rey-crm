@@ -171,3 +171,23 @@ CREATE TABLE IF NOT EXISTS security_log (
     INDEX idx_created_at (created_at),
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
 );
+
+-- Rate limiting table for Phase 3 implementation
+CREATE TABLE IF NOT EXISTS rate_limits (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    rate_key VARCHAR(255) NOT NULL,
+    created_at DATETIME NOT NULL,
+    INDEX idx_rate_key (rate_key),
+    INDEX idx_created_at (created_at)
+);
+
+-- Security configuration table for Phase 3
+CREATE TABLE IF NOT EXISTS security_config (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    config_key VARCHAR(100) NOT NULL UNIQUE,
+    config_value TEXT,
+    is_encrypted TINYINT(1) DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_by INT,
+    FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL
+);

@@ -120,11 +120,22 @@ if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) !== 'login.ph
                             </a>
                         </li>
                         
-                        <!-- Settings -->
-                        <li class="nav-item">
-                            <a href="/settings.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'settings.php' ? 'active' : ''; ?>">
+                        <!-- Settings Dropdown -->
+                        <li class="nav-item dropdown">
+                            <a href="#" class="nav-link dropdown-toggle <?php echo in_array(basename($_SERVER['PHP_SELF']), ['settings.php', 'security_dashboard.php', 'security_logs.php']) ? 'active' : ''; ?>">
                                 <?php echo __('settings'); ?>
                             </a>
+                            <div class="dropdown-menu">
+                                <a href="/settings.php" class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) === 'settings.php' ? 'active' : ''; ?>">
+                                    <i class="fas fa-cog"></i> <?php echo __('general_settings'); ?>
+                                </a>
+                                <a href="/security_dashboard.php" class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) === 'security_dashboard.php' ? 'active' : ''; ?>">
+                                    <i class="fas fa-shield-alt"></i> <?php echo __('security_dashboard'); ?>
+                                </a>
+                                <a href="/security_logs.php" class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) === 'security_logs.php' ? 'active' : ''; ?>">
+                                    <i class="fas fa-file-alt"></i> <?php echo __('security_logs'); ?>
+                                </a>
+                            </div>
                         </li>
                         <?php endif; ?>
                     </ul>
