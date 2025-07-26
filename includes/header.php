@@ -47,7 +47,7 @@ if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) !== 'login.ph
         <div class="container">
             <div class="header-content">
                 <h1 class="logo">
-                    <a href="/index.php" title="<?php echo __('rey_crm_dashboard'); ?>">
+                    <a href="<?php echo isset($_SESSION['user_id']) ? '/customer_dashboard.php' : '/index.php'; ?>" title="<?php echo __('rey_crm_dashboard'); ?>">
                         <span><?php echo __('rey_crm'); ?></span>
                     </a>
                 </h1>
@@ -62,21 +62,16 @@ if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) !== 'login.ph
 
                 <nav class="main-nav">
                     <ul class="nav-list">
-                        <li class="nav-item">
-                            <a href="/dashboard.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'dashboard.php' ? 'active' : ''; ?>">
-                                <?php echo __('dashboard'); ?>
-                            </a>
-                        </li>
-                        
                         <!-- Customer Management Dropdown -->
                         <li class="nav-item dropdown">
-                            <a href="#" class="nav-link dropdown-toggle <?php echo in_array(basename($_SERVER['PHP_SELF']), ['customers.php', 'customer_form.php']) ? 'active' : ''; ?>">
+                            <a href="#" class="nav-link dropdown-toggle <?php echo in_array(basename($_SERVER['PHP_SELF']), ['customers.php', 'customer_form.php', 'customer_dashboard.php']) ? 'active' : ''; ?>">
                                 <?php echo __('customers'); ?>
                                 <svg class="dropdown-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                                 </svg>
                             </a>
                             <ul class="dropdown-menu">
+                                <li><a href="/customer_dashboard.php" class="dropdown-link"><?php echo __('customer_dashboard'); ?></a></li>
                                 <li><a href="/customers.php" class="dropdown-link"><?php echo __('all_customers'); ?></a></li>
                                 <li><a href="/customer_form.php" class="dropdown-link"><?php echo __('add_customer'); ?></a></li>
                             </ul>

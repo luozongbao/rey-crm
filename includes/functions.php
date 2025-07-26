@@ -729,12 +729,12 @@ function isAdmin() {
 }
 
 /**
- * Require admin role, redirect to dashboard if not admin
+ * Require admin role, redirect to customer dashboard if not admin
  */
 function requireAdmin() {
     requireLogin();
     if (!isAdmin()) {
-        header('Location: /dashboard.php');
+        header('Location: /customer_dashboard.php');
         exit;
     }
 }
@@ -2959,7 +2959,7 @@ function canUserAccessCustomer($user_id, $customer_id) {
 function validateCustomerAccess($customer_id) {
     if (!canUserAccessCustomer($_SESSION['user_id'], $customer_id)) {
         http_response_code(403);
-        header('Location: /dashboard.php?error=access_denied');
+        header('Location: /customer_dashboard.php?error=access_denied');
         exit;
     }
 }

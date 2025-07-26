@@ -5,9 +5,9 @@ require_once 'includes/functions.php';
 $current_language = initLanguage();
 $lang_info = getCurrentLanguageInfo();
 
-// If already logged in, redirect to dashboard
+// If already logged in, redirect to customer dashboard
 if (isset($_SESSION['user_id'])) {
-    redirectTo('dashboard.php');
+    redirectTo('customer_dashboard.php');
 }
 
 $error = '';
@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['role'] = $user['role'];
                     $_SESSION['last_activity'] = time();
                     
-                    header('Location: dashboard.php');
+                    header('Location: customer_dashboard.php');
                     exit;
                 } else {
                     trackLoginAttempt($username, $ip_address, false);

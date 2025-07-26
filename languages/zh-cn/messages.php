@@ -929,6 +929,7 @@ return [
     'unique_customers' => '独特客户',
 
     // Dashboard redesign translations
+    'customer_dashboard' => '客户仪表板',
     'my_customer_dashboard' => '我的客户仪表板',
     'admin_dashboard_all' => '管理员仪表板 - 所有客户',
     'admin_dashboard_my' => '管理员仪表板 - 我的客户',

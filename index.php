@@ -29,7 +29,7 @@ require_once 'includes/header.php';
         <div class="action-buttons">
             <a href="customer_form.php?action=add" class="btn btn-large"><?php echo __('add_new_customer'); ?></a>
             <a href="customers.php" class="btn btn-large"><?php echo __('view_customer_list'); ?></a>
-            <a href="dashboard.php" class="btn btn-large"><?php echo __('view_statistics'); ?></a>
+            <a href="customer_dashboard.php" class="btn btn-large"><?php echo __('view_statistics'); ?></a>
         </div>
     </div>
 </div>

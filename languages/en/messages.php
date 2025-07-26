@@ -891,6 +891,7 @@ return [
     'unique_customers' => 'Unique Customers',
 
     // Dashboard redesign translations
+    'customer_dashboard' => 'Customer Dashboard',
     'my_customer_dashboard' => 'My Customer Dashboard',
     'admin_dashboard_all' => 'Admin Dashboard - All Customers',
     'admin_dashboard_my' => 'Admin Dashboard - My Customers',
