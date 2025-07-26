@@ -66,11 +66,12 @@ try {
         $action_text .= " (Reason: $reason)";
     }
     
-    $stmt = $pdo->prepare("
-        INSERT INTO action_history (customer_id, user_id, action_type, action_text, action_datetime) 
-        VALUES (?, ?, 'assignment_change', ?, NOW())
-    ");
-    $stmt->execute([$customer_id, $_SESSION['user_id'], $action_text]);
+    // Use the new addSystemAction function
+    $success = addSystemAction($customer_id, $action_text, $_SESSION['user_id'], "Quick assignment from dashboard");
+    
+    if (!$success) {
+        throw new Exception("Failed to log assignment action");
+    }
     
     $pdo->commit();
     

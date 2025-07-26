@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS action_history (
     history_id INT AUTO_INCREMENT PRIMARY KEY,
     customer_id INT NOT NULL,
     contact_id INT,
+    user_id INT,
     action_datetime DATETIME NOT NULL,
     action TEXT NOT NULL,
     contact_channel ENUM(
@@ -66,7 +67,8 @@ CREATE TABLE IF NOT EXISTS action_history (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE,
-    FOREIGN KEY (contact_id) REFERENCES contact_persons(contact_id) ON DELETE SET NULL
+    FOREIGN KEY (contact_id) REFERENCES contact_persons(contact_id) ON DELETE SET NULL,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
 -- Create settings table for system configuration

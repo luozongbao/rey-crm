@@ -88,17 +88,17 @@ function reassignCustomer($customer_id, $new_user_id, $reason = '') {
         $stmt = $pdo->prepare("UPDATE customers SET assigned_user_id = ?, updated_at = NOW() WHERE customer_id = ?");
         $stmt->execute([$new_user_id, $customer_id]);
         
-        // Log the reassignment in action_history
+        // Log the reassignment using the new system
         $log_note = "Customer reassigned from " . ($customer['current_user'] ?? 'unassigned') . " to " . $new_user['username'];
         if (!empty($reason)) {
             $log_note .= " (Reason: " . $reason . ")";
         }
         
-        $stmt = $pdo->prepare("
-            INSERT INTO action_history (customer_id, action_datetime, action, response, next_step, follow_up_datetime, notes) 
-            VALUES (?, NOW(), ?, '', '', DATE_ADD(NOW(), INTERVAL 30 DAY), ?)
-        ");
-        $stmt->execute([$customer_id, $log_note, "Admin reassignment"]);
+        $success = addSystemAction($customer_id, $log_note, $_SESSION['user_id'], "Admin reassignment");
+        
+        if (!$success) {
+            throw new Exception("Failed to log reassignment action");
+        }
         
         $pdo->commit();
         

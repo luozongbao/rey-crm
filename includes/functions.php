@@ -68,15 +68,17 @@ function getActionHistory($customer_id) {
 function getUpcomingFollowups($limit = 5) {
     global $pdo;
     try {
-        $stmt = $pdo->prepare("SELECT ah.*, c.company_name, cp.name as contact_name
+        $stmt = $pdo->prepare("SELECT ah.*, c.company_name, cp.name as contact_name, u.username as created_by_username
                               FROM action_history ah
                               JOIN customers c ON ah.customer_id = c.customer_id
                               LEFT JOIN contact_persons cp ON ah.contact_id = cp.contact_id
-                              WHERE ah.follow_up_datetime >= ?
+                              LEFT JOIN users u ON ah.user_id = u.user_id
+                              WHERE ah.follow_up_datetime >= :datetime
                               ORDER BY ah.follow_up_datetime ASC
                               LIMIT :limit");
         $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
-        $stmt->execute([getCurrentUTCDateTime()]);
+        $stmt->bindValue(':datetime', getCurrentUTCDateTime());
+        $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         error_log("Error getting upcoming followups: " . $e->getMessage());
@@ -87,10 +89,11 @@ function getUpcomingFollowups($limit = 5) {
 function getRecentActivities($limit = 10) {
     global $pdo;
     try {
-        $stmt = $pdo->prepare("SELECT ah.*, c.company_name, cp.name as contact_name
+        $stmt = $pdo->prepare("SELECT ah.*, c.company_name, cp.name as contact_name, u.username as created_by_username
                               FROM action_history ah
                               JOIN customers c ON ah.customer_id = c.customer_id
                               LEFT JOIN contact_persons cp ON ah.contact_id = cp.contact_id
+                              LEFT JOIN users u ON ah.user_id = u.user_id
                               ORDER BY ah.action_datetime DESC
                               LIMIT :limit");
         $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
@@ -573,16 +576,19 @@ function getSortedCustomers($search = '', $location = '', $sort = 'created_at', 
 function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '', $sort = 'follow_up_datetime', $order = 'asc', $customer_status = '', $showOnlyMine = true) {
     global $pdo;
     
-    $query = "SELECT ah.*, c.company_name, c.status as customer_status, c.province, c.customer_id
+    $query = "SELECT ah.*, c.company_name, c.status as customer_status, c.province, c.customer_id,
+                     u.username as created_by_username, au.username as assigned_username
               FROM action_history ah
               JOIN customers c ON ah.customer_id = c.customer_id
+              LEFT JOIN users u ON ah.user_id = u.user_id
+              LEFT JOIN users au ON c.assigned_user_id = au.user_id
               WHERE 1=1";
     
     $params = [];
     
-    // Add user assignment filter
+    // Add user activity filter - show followups created by current user
     if ($showOnlyMine) {
-        $query .= " AND c.assigned_user_id = :current_user_id";
+        $query .= " AND ah.user_id = :current_user_id";
         $params[':current_user_id'] = $_SESSION['user_id'];
     }
     
@@ -636,16 +642,19 @@ function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '',
 function getFilteredActivities($customer_id = '', $date_from = '', $date_to = '', $sort = 'action_datetime', $order = 'desc', $customer_status = '', $showOnlyMine = true) {
     global $pdo;
     
-    $query = "SELECT ah.*, c.company_name, c.status as customer_status, c.province, c.customer_id
+    $query = "SELECT ah.*, c.company_name, c.status as customer_status, c.province, c.customer_id,
+                     u.username as created_by_username, au.username as assigned_username
               FROM action_history ah
               JOIN customers c ON ah.customer_id = c.customer_id
+              LEFT JOIN users u ON ah.user_id = u.user_id
+              LEFT JOIN users au ON c.assigned_user_id = au.user_id
               WHERE 1=1";
     
     $params = [];
     
-    // Add user assignment filter
+    // Add user activity filter - show activities created by current user
     if ($showOnlyMine) {
-        $query .= " AND c.assigned_user_id = :current_user_id";
+        $query .= " AND ah.user_id = :current_user_id";
         $params[':current_user_id'] = $_SESSION['user_id'];
     }
     
@@ -2227,17 +2236,17 @@ function bulkUnassignCustomers($customer_ids, $reason = '') {
                 $stmt = $pdo->prepare("UPDATE customers SET assigned_user_id = NULL WHERE customer_id = ?");
                 $stmt->execute([$customer_id]);
                 
-                // Log the action in action_history table
+                // Log the action using the new system
                 $action_text = "Customer unassigned from user";
                 if ($reason) {
                     $action_text .= " (Reason: $reason)";
                 }
                 
-                $stmt = $pdo->prepare("
-                    INSERT INTO action_history (customer_id, action_datetime, action, response, next_step, follow_up_datetime, notes) 
-                    VALUES (?, NOW(), ?, '', '', DATE_ADD(NOW(), INTERVAL 30 DAY), ?)
-                ");
-                $stmt->execute([$customer_id, $action_text, "Bulk unassignment by admin"]);
+                $success = addSystemAction($customer_id, $action_text, $_SESSION['user_id'], "Bulk unassignment by admin");
+                
+                if (!$success) {
+                    error_log("Failed to log bulk unassignment for customer $customer_id");
+                }
                 
                 $success_count++;
             }
@@ -2290,17 +2299,17 @@ function autoDistributeCustomers($customer_ids, $reason = '') {
             $stmt = $pdo->prepare("UPDATE customers SET assigned_user_id = ? WHERE customer_id = ?");
             $stmt->execute([$assigned_user['user_id'], $customer_id]);
             
-            // Log the action in action_history table
+            // Log the action using the new system
             $action_text = "Customer auto-assigned to " . $assigned_user['username'];
             if ($reason) {
                 $action_text .= " (Reason: $reason)";
             }
             
-            $stmt = $pdo->prepare("
-                INSERT INTO action_history (customer_id, action_datetime, action, response, next_step, follow_up_datetime, notes) 
-                VALUES (?, NOW(), ?, '', '', DATE_ADD(NOW(), INTERVAL 30 DAY), ?)
-            ");
-            $stmt->execute([$customer_id, $action_text, "Auto-distribution by admin"]);
+            $success = addSystemAction($customer_id, $action_text, $_SESSION['user_id'], "Auto-distribution by admin");
+            
+            if (!$success) {
+                error_log("Failed to log auto-assignment for customer $customer_id");
+            }
             
             $success_count++;
             $user_index++;
@@ -2767,11 +2776,13 @@ function getDashboardFollowups($limit = 5, $user_id = null, $show_all = false) {
                     c.company_name,
                     c.customer_id,
                     cp.name as contact_name,
-                    u.username as assigned_username
+                    u.username as created_by_username,
+                    au.username as assigned_username
                 FROM action_history ah
                 JOIN customers c ON ah.customer_id = c.customer_id
                 LEFT JOIN contact_persons cp ON ah.contact_id = cp.contact_id
-                LEFT JOIN users u ON c.assigned_user_id = u.user_id
+                LEFT JOIN users u ON ah.user_id = u.user_id
+                LEFT JOIN users au ON c.assigned_user_id = au.user_id
                 $whereClause
                 ORDER BY ah.follow_up_datetime ASC
                 LIMIT :limit";
@@ -2813,11 +2824,13 @@ function getDashboardActivities($limit = 5, $user_id = null, $show_all = false) 
                     c.company_name,
                     c.customer_id,
                     cp.name as contact_name,
-                    u.username as assigned_username
+                    u.username as created_by_username,
+                    au.username as assigned_username
                 FROM action_history ah
                 JOIN customers c ON ah.customer_id = c.customer_id
                 LEFT JOIN contact_persons cp ON ah.contact_id = cp.contact_id
-                LEFT JOIN users u ON c.assigned_user_id = u.user_id
+                LEFT JOIN users u ON ah.user_id = u.user_id
+                LEFT JOIN users au ON c.assigned_user_id = au.user_id
                 $whereClause
                 ORDER BY ah.action_datetime DESC
                 LIMIT :limit";
@@ -3395,7 +3408,7 @@ function getActivitiesDashboardData($date_from, $date_to, $showOnlyMine = true) 
         ];
         
         if ($showOnlyMine) {
-            $userFilter = " AND c.assigned_user_id = :current_user_id";
+            $userFilter = " AND ah.user_id = :current_user_id";
             $params[':current_user_id'] = $_SESSION['user_id'];
         }
         
@@ -3489,8 +3502,7 @@ function getActivitiesDashboardData($date_from, $date_to, $showOnlyMine = true) 
                          NULLIF(COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL THEN 1 END), 0)), 1
                     ), 0) as completion_rate
                 FROM users u
-                LEFT JOIN customers c ON c.assigned_user_id = u.user_id
-                LEFT JOIN action_history ah ON ah.customer_id = c.customer_id 
+                LEFT JOIN action_history ah ON ah.user_id = u.user_id 
                     AND DATE(ah.action_datetime) BETWEEN :date_from AND :date_to
                 WHERE u.role != 'admin' OR u.user_id = :current_user_id
                 GROUP BY u.user_id, u.username
@@ -3525,23 +3537,18 @@ function getActivitiesDashboardData($date_from, $date_to, $showOnlyMine = true) 
         
         // Recent activities
         $recentParams = $params;
-        if ($showOnlyMine) {
-            $userJoin = "LEFT JOIN users u ON c.assigned_user_id = u.user_id";
-            $userSelect = "";
-        } else {
-            $userJoin = "LEFT JOIN users u ON c.assigned_user_id = u.user_id";
-            $userSelect = ", u.username";
-        }
         
         $stmt = $pdo->prepare("
             SELECT 
                 ah.*,
                 c.company_name,
-                c.status as customer_status
-                $userSelect
+                c.status as customer_status,
+                u.username as created_by_username,
+                au.username as assigned_username
             FROM action_history ah
             JOIN customers c ON ah.customer_id = c.customer_id
-            $userJoin
+            LEFT JOIN users u ON ah.user_id = u.user_id
+            LEFT JOIN users au ON c.assigned_user_id = au.user_id
             WHERE DATE(ah.action_datetime) BETWEEN :date_from AND :date_to
             $userFilter
             ORDER BY ah.action_datetime DESC
@@ -3566,6 +3573,121 @@ function getActivitiesDashboardData($date_from, $date_to, $showOnlyMine = true) 
             'recent_activities' => []
         ];
     }
+}
+
+/**
+ * Add customer activity/history with user tracking
+ * 
+ * @param int $customer_id Customer ID
+ * @param string $action Action description
+ * @param string $contact_channel Contact channel used
+ * @param string $response Customer response
+ * @param string $next_step Next step planned
+ * @param string $follow_up_datetime Follow-up date and time
+ * @param int|null $contact_id Contact person ID (optional)
+ * @param string|null $notes Additional notes (optional)
+ * @param int|null $user_id User who created the activity (defaults to session user)
+ * @return bool Success status
+ */
+function addCustomerHistory($customer_id, $action, $contact_channel = 'Other', $response = '', $next_step = '', $follow_up_datetime = null, $contact_id = null, $notes = null, $user_id = null) {
+    global $pdo;
+    
+    // Default user_id to current session user
+    if ($user_id === null) {
+        $user_id = $_SESSION['user_id'] ?? null;
+    }
+    
+    // Validate required parameters
+    if (empty($customer_id) || empty($action)) {
+        error_log("addCustomerHistory: Missing required parameters");
+        return false;
+    }
+    
+    // Set default follow-up date if not provided (30 days from now)
+    if ($follow_up_datetime === null) {
+        $follow_up_datetime = date('Y-m-d H:i:s', strtotime('+30 days'));
+    }
+    
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO action_history (
+                customer_id, contact_id, user_id, action_datetime, action, 
+                contact_channel, response, next_step, follow_up_datetime, notes
+            ) VALUES (?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?)
+        ");
+        
+        $result = $stmt->execute([
+            $customer_id,
+            $contact_id,
+            $user_id,
+            $action,
+            $contact_channel,
+            $response,
+            $next_step,
+            $follow_up_datetime,
+            $notes
+        ]);
+        
+        if ($result) {
+            // Update last contacted date for customer
+            updateLastContactedDate($customer_id);
+        }
+        
+        return $result;
+        
+    } catch (PDOException $e) {
+        error_log("Error in addCustomerHistory: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Add follow-up activity (alias for addCustomerHistory with focus on follow-up)
+ * 
+ * @param int $customer_id Customer ID
+ * @param string $follow_up_action Follow-up action description
+ * @param string $follow_up_datetime When to follow up
+ * @param string $contact_channel Contact channel to use
+ * @param string $notes Additional notes
+ * @param int|null $contact_id Contact person ID (optional)
+ * @param int|null $user_id User who created the follow-up (defaults to session user)
+ * @return bool Success status
+ */
+function addFollowup($customer_id, $follow_up_action, $follow_up_datetime, $contact_channel = 'Other', $notes = null, $contact_id = null, $user_id = null) {
+    return addCustomerHistory(
+        $customer_id,
+        "Follow-up scheduled: " . $follow_up_action,
+        $contact_channel,
+        '', // response (empty for new follow-ups)
+        $follow_up_action, // next_step
+        $follow_up_datetime,
+        $contact_id,
+        $notes,
+        $user_id
+    );
+}
+
+/**
+ * Add system action to history (for automated actions like assignments)
+ * 
+ * @param int $customer_id Customer ID
+ * @param string $action_description System action description
+ * @param int|null $user_id User who triggered the action (defaults to session user)
+ * @param string|null $notes Additional notes
+ * @return bool Success status
+ */
+function addSystemAction($customer_id, $action_description, $user_id = null, $notes = null) {
+    return addCustomerHistory(
+        $customer_id,
+        $action_description,
+        'Other', // contact_channel
+        'System Action', // response
+        'Monitor for updates', // next_step
+        date('Y-m-d H:i:s', strtotime('+30 days')), // follow_up_datetime
+        null, // contact_id
+        $notes,
+        $user_id
+    );
 }
 
 ?>

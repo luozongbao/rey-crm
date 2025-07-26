@@ -63,14 +63,14 @@ try {
     $stmt = $pdo->prepare("UPDATE customers SET assigned_user_id = NULL WHERE customer_id = ?");
     $stmt->execute([$customer_id]);
     
-    // Log the action in action_history table
+    // Log the action using the new system
     $action_text = "Customer unassigned from " . $customer['username'] . " via customer form";
     
-    $stmt = $pdo->prepare("
-        INSERT INTO action_history (customer_id, action_datetime, action, response, next_step, follow_up_datetime, notes) 
-        VALUES (?, NOW(), ?, '', '', DATE_ADD(NOW(), INTERVAL 30 DAY), ?)
-    ");
-    $stmt->execute([$customer_id, $action_text, "Customer form unassignment"]);
+    $success = addSystemAction($customer_id, $action_text, $_SESSION['user_id'], "Customer form unassignment");
+    
+    if (!$success) {
+        throw new Exception("Failed to log unassignment action");
+    }
     
     $pdo->commit();
     

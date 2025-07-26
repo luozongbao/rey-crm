@@ -66,11 +66,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$isViewMode) {
     
     try {
         if ($action == 'add') {
-            $stmt = $pdo->prepare("INSERT INTO action_history 
-                                 (customer_id, contact_id, action_datetime, action, contact_channel, response, next_step, follow_up_datetime, notes) 
-                                 VALUES (:customer_id, :contact_id, :action_datetime, :action, :contact_channel, :response, :next_step, :follow_up_datetime, :notes)");
-            $stmt->execute($data);
-            updateLastContactedDate($customer_id);
+            // Use the new addCustomerHistory function
+            $success = addCustomerHistory(
+                $customer_id,
+                $data['action'],
+                $data['contact_channel'],
+                $data['response'],
+                $data['next_step'],
+                $data['follow_up_datetime'],
+                $data['contact_id'],
+                $data['notes'],
+                $_SESSION['user_id'] // Explicitly pass the session user_id
+            );
+            
+            if (!$success) {
+                throw new Exception(__('error_adding_activity'));
+            }
         } else {
             // For edit, include history_id and verify the record exists
             $existing_history = getHistoryById($history_id);
@@ -79,9 +90,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$isViewMode) {
             }
             
             $data['history_id'] = $history_id;
+            $data['user_id'] = $_SESSION['user_id']; // Track who edited the record
             $stmt = $pdo->prepare("UPDATE action_history SET 
                                  customer_id = :customer_id, 
                                  contact_id = :contact_id, 
+                                 user_id = :user_id,
                                  action_datetime = :action_datetime, 
                                  action = :action, 
                                  contact_channel = :contact_channel,
@@ -95,6 +108,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !$isViewMode) {
         
         header("Location: customer_form.php?action=" . $source_action . "&id=$customer_id");
         exit;
+    } catch (Exception $e) {
+        die(__('error') . ': ' . $e->getMessage());
     } catch (PDOException $e) {
         die(__('database_error') . ': ' . $e->getMessage());
     }
