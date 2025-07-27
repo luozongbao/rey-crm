@@ -1,3 +1,24 @@
+-- Create users table for user management first (referenced by other tables)
+CREATE TABLE IF NOT EXISTS users (
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role ENUM('user', 'admin') DEFAULT 'user',
+    preferred_language VARCHAR(10) DEFAULT 'en',
+    -- Personal email settings
+    smtp_host VARCHAR(255) DEFAULT NULL,
+    smtp_port INT DEFAULT NULL,
+    smtp_username VARCHAR(255) DEFAULT NULL,
+    smtp_password VARCHAR(255) DEFAULT NULL,
+    smtp_from_email VARCHAR(255) DEFAULT NULL,
+    smtp_from_name VARCHAR(255) DEFAULT NULL,
+    smtp_encryption ENUM('tls', 'ssl', 'none') DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    last_login TIMESTAMP NULL
+);
+
 -- Create customers table with website field
 CREATE TABLE IF NOT EXISTS customers (
     customer_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -24,10 +45,12 @@ CREATE TABLE IF NOT EXISTS customers (
     assigned_user_id INT NULL,
     created_by_user_id INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (assigned_user_id) REFERENCES users(user_id) ON DELETE SET NULL,
+    FOREIGN KEY (created_by_user_id) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
--- Rest of the tables remain the same
+-- Create contact_persons table
 CREATE TABLE IF NOT EXISTS contact_persons (
     contact_id INT AUTO_INCREMENT PRIMARY KEY,
     customer_id INT NOT NULL,
@@ -42,6 +65,7 @@ CREATE TABLE IF NOT EXISTS contact_persons (
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE
 );
 
+-- Create action_history table (now all referenced tables exist)
 CREATE TABLE IF NOT EXISTS action_history (
     history_id INT AUTO_INCREMENT PRIMARY KEY,
     customer_id INT NOT NULL,
@@ -83,35 +107,7 @@ CREATE TABLE IF NOT EXISTS settings (
 -- Insert default settings
 INSERT IGNORE INTO settings (setting_name, value) VALUES
 ('items_per_page', '10');
-
--- Create users table for user management
-CREATE TABLE IF NOT EXISTS users (
-    user_id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
-    email VARCHAR(100) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
-    role ENUM('user', 'admin') DEFAULT 'user',
-    preferred_language VARCHAR(10) DEFAULT 'en',
-    -- Personal email settings
-    smtp_host VARCHAR(255) DEFAULT NULL,
-    smtp_port INT DEFAULT NULL,
-    smtp_username VARCHAR(255) DEFAULT NULL,
-    smtp_password VARCHAR(255) DEFAULT NULL,
-    smtp_from_email VARCHAR(255) DEFAULT NULL,
-    smtp_from_name VARCHAR(255) DEFAULT NULL,
-    smtp_encryption ENUM('tls', 'ssl', 'none') DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    last_login TIMESTAMP NULL
-);
-
--- Add foreign key constraints for customer assignment
-ALTER TABLE customers ADD CONSTRAINT fk_customers_assigned_user 
-    FOREIGN KEY (assigned_user_id) REFERENCES users(user_id) ON DELETE SET NULL;
-ALTER TABLE customers ADD CONSTRAINT fk_customers_created_by 
-    FOREIGN KEY (created_by_user_id) REFERENCES users(user_id) ON DELETE SET NULL;
-
-
+-- Create password_reset_tokens table
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
