@@ -2,8 +2,18 @@
 require_once 'includes/functions.php';
 session_start();
 
-// Get status counts for dashboard summary
-$statusCounts = getCustomerStatusCounts();
+// Get status counts for dashboard summary (only if database is configured)
+$statusCounts = [];
+if (isset($pdo)) {
+    $statusCounts = getCustomerStatusCounts();
+} else {
+    // Default counts for when database is not configured
+    $statusCounts = [
+        'Active' => 0,
+        'Inactive' => 0,
+        'Prospect' => 0
+    ];
+}
 
 require_once 'includes/header.php';
 ?>
