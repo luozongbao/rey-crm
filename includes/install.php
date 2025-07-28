@@ -72,6 +72,11 @@ define('DEBUG_MODE', false);
 // Password reset configuration
 define('PASSWORD_RESET_EXPIRY_HOURS', 24); // Token validity in hours
 
+// Security configuration
+define('LOCKOUT_DURATION', 900); // Account lockout duration in seconds (15 minutes)
+define('SESSION_TIMEOUT', 3600); // Session timeout in seconds (1 hour)
+define('MAX_LOGIN_ATTEMPTS', 5); // Maximum login attempts before lockout
+
 // Session configuration
 ini_set('session.cookie_httponly', 1);
 ini_set('session.cookie_secure', 0);
