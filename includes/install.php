@@ -59,6 +59,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_SESSION['install_phase']))
                 // Connection successful, create config file
                 $configContent = <<<EOT
 <?php
+// Production PHP settings - suppress debug output
+error_reporting(0);
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
+ini_set('log_errors', 1);
+ini_set('log_errors_max_len', 1024);
+
 // Database configuration
 define('DB_HOST', '{$dbHost}');
 define('DB_NAME', '{$dbName}');
