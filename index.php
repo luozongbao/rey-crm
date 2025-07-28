@@ -1,6 +1,5 @@
 <?php 
 require_once 'includes/functions.php';
-session_start();
 
 // Get status counts for dashboard summary
 $statusCounts = getCustomerStatusCounts();

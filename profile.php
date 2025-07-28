@@ -1,7 +1,6 @@
 <?php
 // filepath: /home/zongbao/var/www/rey-crm/profile.php
 require_once 'includes/functions.php';
-session_start();
 
 // Check if user is logged in
 requireLogin();

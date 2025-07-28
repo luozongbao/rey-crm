@@ -1,6 +1,5 @@
 <?php
 require_once 'includes/functions.php';
-session_start();
 
 requireAdmin(); // Only admins can view security logs
 
