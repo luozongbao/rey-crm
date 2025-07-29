@@ -1,71 +1,124 @@
 <?php
 require_once 'includes/functions.php';
 
-session_start();
+// Initialize language system
+$current_language = initLanguage();
+$lang_info = getCurrentLanguageInfo();
 
-// If already logged in, redirect to dashboard
+// If already logged in, redirect to customer dashboard
 if (isset($_SESSION['user_id'])) {
-    redirectTo('dashboard.php');
+    redirectTo('customer_dashboard.php');
 }
 
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? '');
-    $password = trim($_POST['password'] ?? '');
-    
-    // Cleanup expired tokens occasionally (1% chance)
-    if (mt_rand(1, 100) === 1) {
-        cleanupExpiredTokens();
-    }
-    
-    if (empty($username) || empty($password)) {
-        $error = "Please enter both username and password.";
+    // Validate CSRF token
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!validateCSRFToken($csrf_token)) {
+        http_response_code(403);
+        $error = 'CSRF token validation failed';
     } else {
-        try {
-            $stmt = $pdo->prepare("SELECT user_id, username, password, role FROM users WHERE username = ?");
-            $stmt->execute([$username]);
-            $user = $stmt->fetch();
-            
-            if ($user && password_verify($password, $user['password'])) {
-                // Update last login time
-                $updateStmt = $pdo->prepare("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE user_id = ?");
-                $updateStmt->execute([$user['user_id']]);
-                
-                // Set session variables
-                $_SESSION['user_id'] = $user['user_id'];
-                $_SESSION['username'] = $user['username'];
-                $_SESSION['role'] = $user['role'];
-                
-                header('Location: dashboard.php');
-                exit;
+        $username = trim($_POST['username'] ?? '');
+        $password = trim($_POST['password'] ?? '');
+        $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        
+        // Cleanup expired tokens occasionally (1% chance)
+        if (mt_rand(1, 100) === 1) {
+            cleanupExpiredTokens();
+        }
+        
+        if (empty($username) || empty($password)) {
+            $error = __('login_required');
+        } elseif (isAccountLocked($username, $ip_address)) {
+            $error = __('account_temporarily_locked');
+        } else {
+            // Check rate limiting for login attempts
+            $rate_key = 'login_' . $_SERVER['REMOTE_ADDR'];
+            if (!checkRateLimit($rate_key, 5, 300)) { // 5 attempts per 5 minutes
+                logSecurityEvent('rate_limit_exceeded', [
+                    'rate_key' => $rate_key,
+                    'ip_address' => $ip_address,
+                    'username' => $username
+                ]);
+                $error = "Too many login attempts. Please try again in 5 minutes.";
             } else {
-                $error = "Invalid username or password.";
+            try {
+                $stmt = $pdo->prepare("SELECT user_id, username, password, role FROM users WHERE username = ?");
+                $stmt->execute([$username]);
+                $user = $stmt->fetch();
+                
+                if ($user && password_verify($password, $user['password'])) {
+                    // Successful login
+                    trackLoginAttempt($username, $ip_address, true);
+                    logSecurityEvent('successful_login', [
+                        'username' => $username,
+                        'ip_address' => $ip_address,
+                        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+                    ], $user['user_id']);
+                    
+                    regenerateSession();
+                    
+                    // Update last login time
+                    $updateStmt = $pdo->prepare("UPDATE users SET last_login = ? WHERE user_id = ?");
+                    $updateStmt->execute([getCurrentUTCDateTime(), $user['user_id']]);
+                    
+                    // Set session variables
+                    $_SESSION['user_id'] = $user['user_id'];
+                    $_SESSION['username'] = $user['username'];
+                    $_SESSION['role'] = $user['role'];
+                    $_SESSION['last_activity'] = time();
+                    
+                    header('Location: customer_dashboard.php');
+                    exit;
+                } else {
+                    trackLoginAttempt($username, $ip_address, false);
+                    logSecurityEvent('failed_login', [
+                        'username' => $username,
+                        'ip_address' => $ip_address,
+                        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+                    ]);
+                    $error = __('invalid_credentials');
+                }
+            } catch (PDOException $e) {
+                $error = __('login_failed');
+                logError($e->getMessage());
             }
-        } catch (PDOException $e) {
-            $error = "Login failed. Please try again.";
-            logError($e->getMessage());
+        }
         }
     }
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo htmlspecialchars($current_language); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Rey CRM</title>
+    <title><?php echo __('login'); ?> - <?php echo __('rey_crm'); ?></title>
     <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="stylesheet" href="/assets/css/language.css">
+    <script src="/assets/js/language.js" defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body class="auth-page">
+<body class="auth-page" <?php echo $lang_info['direction'] === 'rtl' ? 'class="rtl"' : ''; ?>>
     <div class="auth-container">
         <div class="auth-card">
             <div class="auth-header">
-                <h1 class="auth-title">Welcome to Rey CRM</h1>
-                <p class="auth-subtitle">Sign in to your account</p>
+                <h1 class="auth-title"><?php echo __('login_title'); ?></h1>
+                <p class="auth-subtitle"><?php echo __('login_subtitle'); ?></p>
+                
+                <!-- Language switcher for login page -->
+                <div class="language-switcher" style="margin-top: 1rem; text-align: center;">
+                    <select id="language-select" onchange="switchLanguage(this.value)" title="<?php echo __('select_language'); ?>">
+                        <?php foreach (getAvailableLanguages() as $code => $info): ?>
+                            <option value="<?php echo htmlspecialchars($code); ?>" <?php echo $code === $current_language ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($info['flag'] . ' ' . $info['native_name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
             </div>
 
             <?php if ($error): ?>
@@ -75,8 +128,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <form method="POST" class="auth-form">
+                <?php echo csrfTokenField(); ?>
                 <div class="form-group">
-                    <label for="username">Username</label>
+                    <label for="username"><?php echo __('username'); ?></label>
                     <input type="text" 
                            id="username" 
                            name="username" 
@@ -86,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <div class="form-group">
-                    <label for="password">Password</label>
+                    <label for="password"><?php echo __('password'); ?></label>
                     <input type="password" 
                            id="password" 
                            name="password" 
@@ -95,11 +149,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-block">
-                    Sign In
+                    <?php echo __('sign_in'); ?>
                 </button>
                 
                 <div class="auth-links">
-                    <a href="forgot_password.php" class="text-link">Forgot Password?</a>
+                    <a href="forgot_password.php" class="text-link"><?php echo __('forgot_password'); ?></a>
                 </div>
             </form>
         </div>

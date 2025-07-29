@@ -1,6 +1,5 @@
 <?php 
 require_once 'includes/functions.php';
-session_start();
 
 // Get status counts for dashboard summary
 $statusCounts = getCustomerStatusCounts();
@@ -11,13 +10,13 @@ require_once 'includes/header.php';
 <div class="index-container">
     <div class="quick-stats">
         <div class="header">
-            <h1>Welcome to Rey CRM</h1>
-            <p>Your customer management dashboard</p>
+            <h1><?php echo __('welcome_to_rey_crm'); ?></h1>
+            <p><?php echo __('customer_management_dashboard'); ?></p>
         </div>
         <div class="stats-grid">
             <?php foreach ($statusCounts as $status => $count): ?>
             <div class="stat-box">
-                <div class="stat-title"><?php echo htmlspecialchars($status); ?></div>
+                <div class="stat-title"><?php echo htmlspecialchars(__($status)); ?></div>
                 <div class="stat-value"><?php echo $count; ?></div>
             </div>
             <?php endforeach; ?>
@@ -25,11 +24,11 @@ require_once 'includes/header.php';
     </div>
 
     <div class="quick-actions">
-        <h2>Quick Actions</h2>
+        <h2><?php echo __('quick_actions'); ?></h2>
         <div class="action-buttons">
-            <a href="customer_form.php?action=add" class="btn btn-large">Add New Customer</a>
-            <a href="customers.php" class="btn btn-large">View Customer List</a>
-            <a href="dashboard.php" class="btn btn-large">View Statistics</a>
+            <a href="customer_form.php?action=add" class="btn btn-large"><?php echo __('add_new_customer'); ?></a>
+            <a href="customers.php" class="btn btn-large"><?php echo __('view_customer_list'); ?></a>
+            <a href="customer_dashboard.php" class="btn btn-large"><?php echo __('view_statistics'); ?></a>
         </div>
     </div>
 </div>

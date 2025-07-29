@@ -1,13 +1,40 @@
 {
     "name": "rey/crm",
-    "description": "Rey CRM system",
+    "description": "Rey CRM System - Professional PHP-based Customer Relationship Management",
+    "version": "2.0.0",
     "type": "project",
+    "keywords": ["crm", "customer-management", "php", "mysql", "business"],
+    "homepage": "https://github.com/luozongbao/rey-crm",
+    "license": "MIT",
     "require": {
+        "php": "^8.0",
         "phpmailer/phpmailer": "^6.8"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "ReyCRM\\": "src/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "security-check": "composer audit"
     },
     "authors": [
         {
-            "name": "Rey CRM Team"
+            "name": "luozongbao",
+            "email": "luozongbao@example.com",
+            "role": "Lead Developer"
+        },
+        {
+            "name": "Rey CRM Team",
+            "homepage": "https://github.com/luozongbao/rey-crm"
         }
-    ]
+    ],
+    "support": {
+        "issues": "https://github.com/luozongbao/rey-crm/issues",
+        "source": "https://github.com/luozongbao/rey-crm"
+    }
 }
