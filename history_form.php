@@ -1,6 +1,5 @@
 <?php 
 require_once 'includes/functions.php';
-session_start();
 
 $action = $_GET['action'] ?? 'add';
 $history_id = $_GET['id'] ?? 0;

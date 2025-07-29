@@ -59,6 +59,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_SESSION['install_phase']))
                 // Connection successful, create config file
                 $configContent = <<<EOT
 <?php
+// Production PHP settings - suppress debug output
+error_reporting(0);
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
+ini_set('log_errors', 1);
+ini_set('log_errors_max_len', 1024);
+
 // Database configuration
 define('DB_HOST', '{$dbHost}');
 define('DB_NAME', '{$dbName}');
@@ -71,6 +78,11 @@ define('DEBUG_MODE', false);
 
 // Password reset configuration
 define('PASSWORD_RESET_EXPIRY_HOURS', 24); // Token validity in hours
+
+// Security configuration
+define('LOCKOUT_DURATION', 900); // Account lockout duration in seconds (15 minutes)
+define('SESSION_TIMEOUT', 3600); // Session timeout in seconds (1 hour)
+define('MAX_LOGIN_ATTEMPTS', 5); // Maximum login attempts before lockout
 
 // Session configuration
 ini_set('session.cookie_httponly', 1);
