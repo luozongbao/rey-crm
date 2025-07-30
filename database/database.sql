@@ -19,7 +19,60 @@ CREATE TABLE IF NOT EXISTS users (
     last_login TIMESTAMP NULL
 );
 
--- Create customers table with website field
+-- Create customer status tables first (referenced by customers table)
+CREATE TABLE IF NOT EXISTS customer_statuses (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    status_key VARCHAR(50) UNIQUE NOT NULL,
+    sort_order INT DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Create status translations table for internationalization
+CREATE TABLE IF NOT EXISTS customer_status_translations (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    status_id INT NOT NULL,
+    locale VARCHAR(5) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (status_id) REFERENCES customer_statuses(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_status_locale (status_id, locale)
+);
+
+-- Insert the new status definitions
+INSERT IGNORE INTO customer_statuses (status_key, sort_order, is_active) VALUES
+('lead', 0, TRUE),
+('prospect', 1, TRUE),
+('qualified', 2, TRUE),
+('not_qualified', 3, TRUE),
+('new_customer', 4, TRUE),
+('active_customer', 5, TRUE),
+('lost_customer', 6, TRUE);
+
+-- Insert English translations
+INSERT IGNORE INTO customer_status_translations (status_id, locale, name, description) VALUES
+((SELECT id FROM customer_statuses WHERE status_key = 'lead'), 'en', 'Lead', 'Initial interest but not yet qualified'),
+((SELECT id FROM customer_statuses WHERE status_key = 'prospect'), 'en', 'Prospect', 'Customer who has been screened and matches target profile'),
+((SELECT id FROM customer_statuses WHERE status_key = 'qualified'), 'en', 'Qualified', 'Customer in active negotiation process'),
+((SELECT id FROM customer_statuses WHERE status_key = 'not_qualified'), 'en', 'Not Qualified', 'Customer determined to not be a good fit'),
+((SELECT id FROM customer_statuses WHERE status_key = 'new_customer'), 'en', 'New Customer', 'Customer who has made their first purchase'),
+((SELECT id FROM customer_statuses WHERE status_key = 'active_customer'), 'en', 'Active Customer', 'Returning customer with ongoing business'),
+((SELECT id FROM customer_statuses WHERE status_key = 'lost_customer'), 'en', 'Lost Customer', 'Customer who is no longer doing business with us');
+
+-- Insert Chinese translations
+INSERT IGNORE INTO customer_status_translations (status_id, locale, name, description) VALUES
+((SELECT id FROM customer_statuses WHERE status_key = 'lead'), 'zh-cn', '潜在客户', '初步兴趣但尚未经过深入评估'),
+((SELECT id FROM customer_statuses WHERE status_key = 'prospect'), 'zh-cn', '意向客户', '经过初步筛选符合目标客户'),
+((SELECT id FROM customer_statuses WHERE status_key = 'qualified'), 'zh-cn', '洽谈客户', '正在积极谈判过程中的客户'),
+((SELECT id FROM customer_statuses WHERE status_key = 'not_qualified'), 'zh-cn', '无效客户', '确定不适合的客户'),
+((SELECT id FROM customer_statuses WHERE status_key = 'new_customer'), 'zh-cn', '成交客户', '已完成首次购买的客户'),
+((SELECT id FROM customer_statuses WHERE status_key = 'active_customer'), 'zh-cn', '回头客户', '有持续业务往来的回头客户'),
+((SELECT id FROM customer_statuses WHERE status_key = 'lost_customer'), 'zh-cn', '失去客户', '不再与我们有业务往来的客户');
+
+-- Create customers table with new status system
 CREATE TABLE IF NOT EXISTS customers (
     customer_id INT AUTO_INCREMENT PRIMARY KEY,
     company_name VARCHAR(100) NOT NULL,
@@ -30,24 +83,38 @@ CREATE TABLE IF NOT EXISTS customers (
     contact_phone VARCHAR(50),
     contact_email VARCHAR(100),
     website VARCHAR(100),
-    status ENUM('Prospect', 
-                'Qualified', 
-                'Not Qualified', 
-                'New Customer', 
-                'Active Customer', 
-                'Inactive Customer',
-                'Lost Customer',
-                'Closed Lost',
-                'Closed Won'
-                 ) DEFAULT 'Prospect',
+    status_id INT NOT NULL DEFAULT 1,
+    status_changed_at TIMESTAMP NULL,
+    status_changed_by INT NULL,
     notes TEXT,
     last_contacted_date TIMESTAMP NULL,
     assigned_user_id INT NULL,
     created_by_user_id INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (status_id) REFERENCES customer_statuses(id) ON DELETE RESTRICT,
+    FOREIGN KEY (status_changed_by) REFERENCES users(user_id) ON DELETE SET NULL,
     FOREIGN KEY (assigned_user_id) REFERENCES users(user_id) ON DELETE SET NULL,
-    FOREIGN KEY (created_by_user_id) REFERENCES users(user_id) ON DELETE SET NULL
+    FOREIGN KEY (created_by_user_id) REFERENCES users(user_id) ON DELETE SET NULL,
+    INDEX idx_customers_status_id (status_id),
+    INDEX idx_customers_status_changed_at (status_changed_at)
+);
+
+-- Create customer status history table for timeline tracking
+CREATE TABLE IF NOT EXISTS customer_status_history (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT NOT NULL,
+    from_status_id INT NULL,
+    to_status_id INT NOT NULL,
+    changed_by INT NOT NULL,
+    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    notes TEXT,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE,
+    FOREIGN KEY (from_status_id) REFERENCES customer_statuses(id) ON DELETE SET NULL,
+    FOREIGN KEY (to_status_id) REFERENCES customer_statuses(id) ON DELETE RESTRICT,
+    FOREIGN KEY (changed_by) REFERENCES users(user_id) ON DELETE RESTRICT,
+    INDEX idx_customer_changed_at (customer_id, changed_at),
+    INDEX idx_changed_at (changed_at)
 );
 
 -- Create contact_persons table
@@ -134,14 +201,17 @@ CREATE TABLE IF NOT EXISTS email_projects (
 -- Table for Sent Email History
 CREATE TABLE IF NOT EXISTS sent_email_history (
     email_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL,
     sent_datetime DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     to_email VARCHAR(255) NOT NULL,
     cc VARCHAR(255),
     project_id INT,
     subject VARCHAR(255),
     attachments TEXT, -- JSON or comma-separated file locations
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_user_id (user_id),
     FOREIGN KEY (project_id) REFERENCES email_projects(project_id) ON DELETE SET NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
 -- Security tables for Phase 1 implementation

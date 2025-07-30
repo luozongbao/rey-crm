@@ -10,8 +10,14 @@ function switchLanguage(langCode) {
     // Set language preference in cookie
     document.cookie = `language=${langCode}; path=/; max-age=${30 * 24 * 60 * 60}`;
     
-    // Redirect with language parameter to ensure immediate effect
-    window.location.href = window.location.pathname + '?lang=' + langCode;
+    // Get current URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Update or add the language parameter
+    urlParams.set('lang', langCode);
+    
+    // Redirect with all existing parameters plus language parameter
+    window.location.href = window.location.pathname + '?' + urlParams.toString();
 }
 
 /**

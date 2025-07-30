@@ -3,6 +3,71 @@ require_once 'includes/functions.php';
 
 requireLogin();
 
+// Handle CSV export
+if (isset($_GET['export']) && $_GET['export'] === 'csv') {
+    // Get the same filter parameters
+    $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+    $location = isset($_GET['location']) ? trim($_GET['location']) : '';
+    $sort = isset($_GET['sort']) ? trim($_GET['sort']) : 'created_at';
+    $order = isset($_GET['order']) ? trim($_GET['order']) : 'desc';
+    
+    // SECURITY: Always restrict to user's own customers only for export
+    // Ignore the show_only_mine parameter and force it to true for security
+    $showOnlyMine = true;
+    
+    // Get all customers (not paginated) with the same filters, but restricted to user's customers
+    $result = getPaginatedCustomers(1, 999999, $search, $location, $sort, $order, $showOnlyMine);
+    $customers = $result['data'];
+    
+    // Set headers for CSV download
+    $username = $_SESSION['username'] ?? 'user';
+    $filename = $username . '_customers_data_' . date('Y-m-d_H-i-s') . '.csv';
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Cache-Control: no-cache, must-revalidate');
+    header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
+
+    // Create file handle
+    $output = fopen('php://output', 'w');
+
+    // Add BOM for UTF-8 encoding (helps with Excel)
+    fwrite($output, "\xEF\xBB\xBF");
+
+    // Write CSV headers
+    $headers = [
+        __('company_name'),
+        __('status'),
+        __('location'),
+        __('contact_phone'),
+        __('contact_email'),
+        __('website'),
+        __('assigned_to'),
+        __('created_date'),
+        __('last_contact')
+    ];
+    fputcsv($output, $headers);
+
+    // Write data rows
+    foreach ($customers as $customer) {
+        $row = [
+            $customer['company_name'],
+            $customer['status_name'] ?? __('unknown'),
+            $customer['location'] ?? '',
+            $customer['contact_phone'] ?? '',
+            $customer['contact_email'] ?? '',
+            $customer['website'] ?? '',
+            $customer['assigned_to_username'] ?? __('unassigned'),
+            formatDateTime($customer['created_at'], 'Y-m-d'),
+            $customer['last_contact'] ? formatDateTimeCompact($customer['last_contact']) : __('no_contact')
+        ];
+        
+        fputcsv($output, $row);
+    }
+
+    fclose($output);
+    exit;
+}
+
 // Get page state either from session (if restoring) or from GET parameters
 if (isset($_GET['restore']) && isset($_SESSION['last_page_state'])) {
     $state = $_SESSION['last_page_state'];
@@ -213,12 +278,16 @@ require_once 'includes/header.php';
                         }
                     ?></td>
                     <td><?php echo $customer['last_contact'] ? formatDateTimeCompact($customer['last_contact']) : __('never'); ?></td>
-                    <td><span class="status-badge status-<?php echo str_replace(' ', '', strtolower($customer['status'])); ?>">
-                        <?php echo htmlspecialchars(__($customer['status'])); ?>
+                    <td><span class="status-badge status-<?php echo isset($customer['status_key']) ? str_replace(['_', '-'], '', $customer['status_key']) : 'unknown'; ?>">
+                        <?php echo isset($customer['status_name']) ? htmlspecialchars($customer['status_name']) : __('unknown_status'); ?>
                     </span></td>
                     <td>
-                        <a href="customer_form.php?action=view&id=<?php echo $customer['customer_id']; ?>" class="btn"><?php echo __('view'); ?></a>
-                        <a href="customer_form.php?action=edit&id=<?php echo $customer['customer_id']; ?>" class="btn"><?php echo __('edit'); ?></a>
+                        <?php if (canEditCustomer($customer['customer_id'])): ?>
+                            <a href="customer_form.php?action=view&id=<?php echo $customer['customer_id']; ?>" class="btn"><?php echo __('view'); ?></a>
+                            <a href="customer_form.php?action=edit&id=<?php echo $customer['customer_id']; ?>" class="btn"><?php echo __('edit'); ?></a>
+                        <?php else: ?>
+                            <span class="text-muted"><?php echo __('no_permission'); ?></span>
+                        <?php endif; ?>
                     </td>
                 </tr>
                 <?php endforeach; ?>
@@ -263,5 +332,20 @@ require_once 'includes/header.php';
                 ?>
             </div>
         </div>
+        
+        <!-- Export to CSV button -->
+        <?php if (!empty($customers)): ?>
+        <div class="export-section" style="margin-top: 20px; padding: 20px; background: #f9f9f9; border-radius: 8px; text-align: center;">
+            <h3 style="margin-bottom: 15px;"><?= __('export') ?></h3>
+            <a href="?<?= http_build_query(array_merge($_GET, ['export' => 'csv'])) ?>" 
+               class="btn btn-secondary" 
+               style="padding: 10px 20px; margin: 5px; text-decoration: none; border-radius: 5px; background-color: #28a745; color: white;">
+                📄 <?= __('export_to_csv') ?>
+            </a>
+            <p style="margin-top: 10px; color: #666; font-size: 14px;">
+                <?= __('export_your_customers') ?>
+            </p>
+        </div>
+        <?php endif; ?>
     </div>
 <?php require_once 'includes/footer.php'; ?>

@@ -34,22 +34,31 @@ if (!$customer_id || !$user_id) {
 try {
     global $pdo;
     
+    // Check if PDO connection exists
+    if (!$pdo) {
+        logError("Quick assign failed - PDO connection not available");
+        echo json_encode(['success' => false, 'message' => 'Database connection not available']);
+        exit;
+    }
+    
     // Verify customer exists
     $stmt = $pdo->prepare("SELECT company_name FROM customers WHERE customer_id = ?");
     $stmt->execute([$customer_id]);
     $customer = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$customer) {
+        logError("Quick assign failed - Customer not found: $customer_id");
         echo json_encode(['success' => false, 'message' => 'Customer not found']);
         exit;
     }
     
     // Verify user exists
-    $stmt = $pdo->prepare("SELECT username FROM users WHERE user_id = ? AND active = 1");
+    $stmt = $pdo->prepare("SELECT username FROM users WHERE user_id = ?");
     $stmt->execute([$user_id]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$user) {
+        logError("Quick assign failed - User not found: $user_id");
         echo json_encode(['success' => false, 'message' => 'User not found or inactive']);
         exit;
     }
@@ -58,7 +67,11 @@ try {
     
     // Assign customer
     $stmt = $pdo->prepare("UPDATE customers SET assigned_user_id = ? WHERE customer_id = ?");
-    $stmt->execute([$user_id, $customer_id]);
+    $updateResult = $stmt->execute([$user_id, $customer_id]);
+    
+    if (!$updateResult) {
+        throw new Exception("Failed to update customer assignment");
+    }
     
     // Log the action
     $action_text = "Customer assigned to " . $user['username'];
@@ -80,9 +93,11 @@ try {
         'message' => "Customer '{$customer['company_name']}' successfully assigned to {$user['username']}"
     ]);
     
-} catch (PDOException $e) {
-    $pdo->rollback();
+} catch (Exception $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     logError("Error in quick assign: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'An error occurred while assigning the customer']);
+    echo json_encode(['success' => false, 'message' => 'An error occurred while assigning the customer.']);
 }
 ?>
