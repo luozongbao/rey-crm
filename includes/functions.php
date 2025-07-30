@@ -4096,4 +4096,122 @@ function getCustomerStatusOverview($user_id = null, $show_all = false) {
     }
 }
 
+/**
+ * Get detailed customer status summary with time filtering
+ */
+function getCustomerStatusSummary($user_id = null, $show_all = false, $date_from = null, $date_to = null) {
+    global $pdo;
+    
+    try {
+        $whereClause = ['1=1'];
+        $params = [];
+        
+        // Handle user filtering
+        if (!$show_all && $user_id) {
+            $whereClause[] = 'c.assigned_user_id = :user_id';
+            $params[':user_id'] = $user_id;
+        }
+        
+        // Handle date filtering (filter by customer creation date)
+        if ($date_from && $date_to) {
+            $whereClause[] = 'DATE(c.created_at) BETWEEN :date_from AND :date_to';
+            $params[':date_from'] = $date_from;
+            $params[':date_to'] = $date_to;
+        }
+        
+        $sql = "SELECT 
+                    COALESCE(cs.status_key, 'unassigned') as status_key,
+                    COALESCE(cst.name, cs.status_key, 'Unassigned') as status_name,
+                    COUNT(*) as count,
+                    COUNT(CASE WHEN c.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) as new_this_week,
+                    COUNT(CASE WHEN c.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as new_this_month,
+                    MAX(c.created_at) as latest_customer_date,
+                    ROUND(AVG(DATEDIFF(NOW(), c.created_at)), 0) as avg_days_in_status
+                FROM customers c
+                LEFT JOIN customer_statuses cs ON c.status_id = cs.id
+                LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id 
+                    AND cst.locale = :language
+                WHERE " . implode(' AND ', $whereClause) . "
+                GROUP BY cs.status_key, cst.name, cs.sort_order
+                ORDER BY cs.sort_order ASC, COUNT(*) DESC";
+        
+        $params[':language'] = getCurrentLanguage();
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logError("Error getting customer status summary: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get all users' status summaries for admin view
+ */
+function getAllUsersStatusSummary($date_from = null, $date_to = null) {
+    global $pdo;
+    
+    try {
+        $whereClause = ['1=1'];
+        $params = [];
+        
+        // Handle date filtering
+        if ($date_from && $date_to) {
+            $whereClause[] = 'DATE(c.created_at) BETWEEN :date_from AND :date_to';
+            $params[':date_from'] = $date_from;
+            $params[':date_to'] = $date_to;
+        }
+        
+        $sql = "SELECT 
+                    u.user_id,
+                    u.username,
+                    COALESCE(cs.status_key, 'unassigned') as status_key,
+                    COALESCE(cst.name, cs.status_key, 'Unassigned') as status_name,
+                    COUNT(*) as count
+                FROM users u
+                LEFT JOIN customers c ON u.user_id = c.assigned_user_id
+                LEFT JOIN customer_statuses cs ON c.status_id = cs.id
+                LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id 
+                    AND cst.locale = :language
+                WHERE " . implode(' AND ', $whereClause) . "
+                GROUP BY u.user_id, u.username, cs.status_key, cst.name, cs.sort_order
+                HAVING COUNT(*) > 0
+                ORDER BY u.username ASC, cs.sort_order ASC, COUNT(*) DESC";
+        
+        $params[':language'] = getCurrentLanguage();
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Group by user
+        $grouped = [];
+        foreach ($result as $row) {
+            $user_id = $row['user_id'];
+            if (!isset($grouped[$user_id])) {
+                $grouped[$user_id] = [
+                    'user_id' => $user_id,
+                    'username' => $row['username'],
+                    'statuses' => [],
+                    'total_customers' => 0
+                ];
+            }
+            $grouped[$user_id]['statuses'][] = [
+                'status_key' => $row['status_key'],
+                'status_name' => $row['status_name'],
+                'count' => (int)$row['count']
+            ];
+            $grouped[$user_id]['total_customers'] += (int)$row['count'];
+        }
+        
+        return array_values($grouped);
+    } catch (PDOException $e) {
+        logError("Error getting all users status summary: " . $e->getMessage());
+        return [];
+    }
+}
+
 ?>

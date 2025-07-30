@@ -29,6 +29,10 @@ if ($isAdmin && ($viewMode === 'all' || $viewMode === 'unassigned')) {
     }
 }
 
+// Handle status summary date filtering
+$statusDateFrom = $_GET['status_date_from'] ?? null;
+$statusDateTo = $_GET['status_date_to'] ?? null;
+
 // Determine data scope based on role and view mode
 $showAll = $isAdmin && ($viewMode === 'all' || $viewMode === 'unassigned');
 $userId = ($showAll) ? null : $currentUserId;
@@ -44,14 +48,14 @@ try {
         $userPerformance = getUserPerformanceStats();
         $assignmentStats = getCustomersByAssignment();
         $allUsers = getAllUsers();
-        $statusOverview = getCustomerStatusOverview($userId, $showAll);
+        $statusOverview = getCustomerStatusSummary($userId, $showAll, $statusDateFrom, $statusDateTo);
     } else {
         // Regular user dashboard data
         $customerStats = getDashboardCustomerStats($currentUserId, false);
         $customerData = getDashboardCustomers(10, $currentUserId, false, 'recent');
         $upcomingFollowups = getDashboardFollowups(5, $currentUserId, false);
         $recentActivities = getDashboardActivities(5, $currentUserId, false);
-        $statusOverview = getCustomerStatusOverview($currentUserId, false);
+        $statusOverview = getCustomerStatusSummary($currentUserId, false, $statusDateFrom, $statusDateTo);
     }
 } catch (Exception $e) {
     die("Error loading dashboard data: " . $e->getMessage());
@@ -154,17 +158,82 @@ require_once 'includes/header.php';
 
         <!-- Customer Status Overview Card -->
         <div class="dashboard-card">
-            <h2><?php echo __('status_overview'); ?></h2>
+            <h2>
+                <?php echo __('status_summary'); ?>
+                <a href="#" class="btn btn-sm btn-outline-secondary" onclick="showStatusFilters()" title="<?php echo __('filter_by_time'); ?>">
+                    <i class="fas fa-filter"></i>
+                </a>
+            </h2>
+            
+            <!-- Time Filter (Hidden by default) -->
+            <div id="status-filters" class="status-filters" style="display: none;">
+                <form method="GET" class="inline-filter-form">
+                    <?php if ($isAdmin): ?>
+                        <input type="hidden" name="view" value="<?php echo htmlspecialchars($viewMode); ?>">
+                        <?php if ($userFilter): ?>
+                            <input type="hidden" name="user_filter" value="<?php echo htmlspecialchars($userFilter); ?>">
+                        <?php endif; ?>
+                        <?php if ($statusFilter): ?>
+                            <input type="hidden" name="status_filter" value="<?php echo htmlspecialchars($statusFilter); ?>">
+                        <?php endif; ?>
+                    <?php endif; ?>
+                    
+                    <div class="filter-row">
+                        <label for="status_date_from"><?php echo __('from'); ?>:</label>
+                        <input type="date" name="status_date_from" id="status_date_from" 
+                               value="<?php echo $_GET['status_date_from'] ?? date('Y-m-d', strtotime('-30 days')); ?>" 
+                               class="form-control form-control-sm">
+                        
+                        <label for="status_date_to"><?php echo __('to'); ?>:</label>
+                        <input type="date" name="status_date_to" id="status_date_to" 
+                               value="<?php echo $_GET['status_date_to'] ?? date('Y-m-d'); ?>" 
+                               class="form-control form-control-sm">
+                        
+                        <button type="submit" class="btn btn-sm btn-primary"><?php echo __('apply'); ?></button>
+                    </div>
+                </form>
+            </div>
+            
             <div class="status-overview">
                 <?php if (!empty($statusOverview)): ?>
-                    <?php foreach ($statusOverview as $status): ?>
-                    <div class="status-item">
-                        <span class="status-badge status-<?= str_replace(['_', '-'], '', $status['status_key']) ?>">
-                            <?= htmlspecialchars($status['status_name']) ?>
-                        </span>
-                        <span class="status-count"><?= $status['count'] ?></span>
+                    <div class="status-summary-grid">
+                        <?php foreach ($statusOverview as $status): ?>
+                        <div class="status-summary-item">
+                            <div class="status-header">
+                                <span class="status-badge status-<?= str_replace(['_', '-'], '', $status['status_key']) ?>">
+                                    <?= htmlspecialchars($status['status_name']) ?>
+                                </span>
+                                <span class="status-main-count"><?= number_format($status['count']) ?></span>
+                            </div>
+                            
+                            <?php if (!$isAdmin || $viewMode === 'my'): ?>
+                            <!-- Show detailed info for user's own customers -->
+                            <div class="status-details">
+                                <?php if ($status['new_this_week'] > 0): ?>
+                                <div class="status-detail">
+                                    <span class="detail-label"><?php echo __('new_this_week'); ?>:</span>
+                                    <span class="detail-value"><?= $status['new_this_week'] ?></span>
+                                </div>
+                                <?php endif; ?>
+                                
+                                <?php if ($status['new_this_month'] > 0): ?>
+                                <div class="status-detail">
+                                    <span class="detail-label"><?php echo __('new_this_month'); ?>:</span>
+                                    <span class="detail-value"><?= $status['new_this_month'] ?></span>
+                                </div>
+                                <?php endif; ?>
+                                
+                                <?php if ($status['avg_days_in_status'] > 0): ?>
+                                <div class="status-detail">
+                                    <span class="detail-label"><?php echo __('avg_days'); ?>:</span>
+                                    <span class="detail-value"><?= $status['avg_days_in_status'] ?></span>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                        <?php endforeach; ?>
                     </div>
-                    <?php endforeach; ?>
                 <?php else: ?>
                     <p class="no-data"><?php echo __('no_customers_found'); ?></p>
                 <?php endif; ?>
@@ -531,6 +600,97 @@ require_once 'includes/header.php';
     font-size: 0.9rem;
 }
 
+/* Enhanced Status Summary Styles */
+.status-filters {
+    margin: 15px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+}
+
+.inline-filter-form .filter-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.inline-filter-form label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #495057;
+    margin: 0;
+}
+
+.inline-filter-form .form-control-sm {
+    padding: 4px 8px;
+    font-size: 13px;
+    border-radius: 4px;
+}
+
+.status-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.status-summary-item {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    border: 1px solid #e9ecef;
+    transition: box-shadow 0.2s ease;
+}
+
+.status-summary-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.status-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.status-main-count {
+    font-size: 24px;
+    font-weight: bold;
+    color: #495057;
+}
+
+.status-details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.status-detail {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+}
+
+.detail-label {
+    color: #6c757d;
+}
+
+.detail-value {
+    font-weight: 600;
+    color: #495057;
+}
+
+/* Status badge enhancements */
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
 /* Responsive Design */
 @media (max-width: 1200px) {
     .stats-row {
@@ -594,5 +754,16 @@ body.dark-mode .activity-item {
     border-left-color: #60a5fa;
 }
 </style>
+
+<script>
+function showStatusFilters() {
+    const filters = document.getElementById('status-filters');
+    if (filters.style.display === 'none') {
+        filters.style.display = 'block';
+    } else {
+        filters.style.display = 'none';
+    }
+}
+</script>
 
 <?php require_once 'includes/footer.php'; ?>
