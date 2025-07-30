@@ -154,58 +154,31 @@ $all_statuses = getCustomerStatusOptions();
                 </div>
             </div>
 
-            <?php if (!empty($all_users_summary)): ?>
-            <div class="users-summary-table">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th><?php echo __('user'); ?></th>
-                            <th><?php echo __('total_customers'); ?></th>
-                            <?php foreach ($all_statuses as $status_key): ?>
-                            <th class="status-column"><?php echo __($status_key); ?></th>
-                            <?php endforeach; ?>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($all_users_summary as $user_summary): ?>
-                        <tr>
-                            <td>
-                                <strong><?php echo htmlspecialchars($user_summary['username']); ?></strong>
-                                <div class="user-actions">
-                                    <a href="?tab=status_summary&view_mode=single_user&user_id=<?php echo $user_summary['user_id']; ?>&as_of_datetime=<?php echo urlencode($as_of_datetime); ?>" 
-                                       class="btn btn-sm btn-outline-primary">
-                                        <?php echo __('view_details'); ?>
-                                    </a>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="total-count"><?php echo number_format($user_summary['total_customers']); ?></span>
-                            </td>
+            <?php if (!empty($all_users_summary) && !empty($all_users_summary['statuses'])): ?>
+            <div class="aggregated-summary">
+                <div class="total-customers-card">
+                    <h5><?php echo __('total_customers'); ?>: <?php echo number_format($all_users_summary['total_customers']); ?></h5>
+                </div>
+                
+                <div class="status-summary-grid">
+                    <?php foreach ($all_users_summary['statuses'] as $status): ?>
+                    <div class="status-card">
+                        <div class="status-header">
+                            <span class="status-badge status-<?php echo str_replace(['_', '-'], '', $status['status_key']); ?>">
+                                <?php echo htmlspecialchars($status['status_name']); ?>
+                            </span>
+                            <span class="status-count"><?php echo number_format($status['count']); ?></span>
+                        </div>
+                        <div class="status-percentage">
                             <?php 
-                            // Create status lookup array
-                            $user_statuses = [];
-                            foreach ($user_summary['statuses'] as $status) {
-                                $user_statuses[$status['status_key']] = $status['count'];
-                            }
+                            $percentage = $all_users_summary['total_customers'] > 0 ? 
+                                round(($status['count'] / $all_users_summary['total_customers']) * 100, 1) : 0;
                             ?>
-                            <?php foreach ($all_statuses as $status_key): ?>
-                            <td class="status-cell">
-                                <?php 
-                                $count = $user_statuses[$status_key] ?? 0;
-                                if ($count > 0): 
-                                ?>
-                                    <span class="status-count-badge status-<?php echo str_replace(['_', '-'], '', $status_key); ?>">
-                                        <?php echo number_format($count); ?>
-                                    </span>
-                                <?php else: ?>
-                                    <span class="zero-count">0</span>
-                                <?php endif; ?>
-                            </td>
-                            <?php endforeach; ?>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                            <span class="percentage"><?php echo $percentage; ?>%</span>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
             </div>
             <?php else: ?>
                 <div class="no-data">
@@ -268,9 +241,8 @@ $all_statuses = getCustomerStatusOptions();
     display: flex;
     flex-direction: column;
     justify-content: end;
-    flex: 1 1 auto;
-    min-width: 300px;
-    margin-top: 15px;
+    flex: 0 0 auto;
+    min-width: 350px;
 }
 
 .filter-form .form-row .button-group label {
@@ -281,10 +253,32 @@ $all_statuses = getCustomerStatusOptions();
 
 .filter-form .form-row .button-container {
     display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
+    gap: 8px;
+    flex-wrap: nowrap;
     align-items: center;
-    width: 100%;
+    white-space: nowrap;
+}
+
+.filter-form .form-row .button-container .btn {
+    font-size: 13px;
+    padding: 6px 10px;
+    white-space: nowrap;
+}
+
+@media (max-width: 1400px) {
+    .filter-form .form-row {
+        flex-wrap: wrap;
+    }
+    
+    .filter-form .form-row .button-group {
+        flex-basis: 100%;
+        margin-top: 15px;
+        min-width: unset;
+    }
+    
+    .filter-form .form-row .button-container {
+        justify-content: flex-start;
+    }
 }
 
 @media (max-width: 1200px) {
@@ -400,6 +394,42 @@ $all_statuses = getCustomerStatusOptions();
 .detail-value {
     font-weight: 600;
     color: #495057;
+}
+
+/* All Users Aggregated Summary Styles */
+.aggregated-summary {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.total-customers-card {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+.total-customers-card h5 {
+    margin: 0;
+    font-size: 18px;
+    color: #495057;
+    font-weight: 600;
+}
+
+.status-percentage {
+    margin-top: 10px;
+    text-align: center;
+}
+
+.percentage {
+    font-size: 14px;
+    color: #6c757d;
+    font-weight: 600;
 }
 
 /* All Users Table Styles */
