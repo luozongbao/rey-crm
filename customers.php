@@ -213,8 +213,8 @@ require_once 'includes/header.php';
                         }
                     ?></td>
                     <td><?php echo $customer['last_contact'] ? formatDateTimeCompact($customer['last_contact']) : __('never'); ?></td>
-                    <td><span class="status-badge status-<?php echo str_replace(' ', '', strtolower($customer['status'])); ?>">
-                        <?php echo htmlspecialchars(__($customer['status'])); ?>
+                    <td><span class="status-badge status-<?php echo isset($customer['status_key']) ? str_replace(['_', '-'], '', $customer['status_key']) : 'unknown'; ?>">
+                        <?php echo isset($customer['status_name']) ? htmlspecialchars($customer['status_name']) : __('unknown_status'); ?>
                     </span></td>
                     <td>
                         <a href="customer_form.php?action=view&id=<?php echo $customer['customer_id']; ?>" class="btn"><?php echo __('view'); ?></a>

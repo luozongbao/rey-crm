@@ -230,40 +230,52 @@ try {
     if (!empty($start_date) && !empty($end_date)) {
         $funnel_query = "
             SELECT 
-                status,
+                cs.status_key,
+                cst.name as status_name,
                 COUNT(*) as count,
-                AVG(DATEDIFF(NOW(), created_at)) as avg_days_in_status
-            FROM customers 
-            WHERE (created_at BETWEEN ? AND ? OR updated_at BETWEEN ? AND ?)
-            GROUP BY status
+                AVG(DATEDIFF(NOW(), c.created_at)) as avg_days_in_status
+            FROM customers c
+            LEFT JOIN customer_statuses cs ON c.status_id = cs.id
+            LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id AND cst.locale = ?
+            WHERE (c.created_at BETWEEN ? AND ? OR c.updated_at BETWEEN ? AND ?)
+            GROUP BY cs.status_key, cst.name
             ORDER BY 
-                CASE status 
-                    WHEN 'Prospect' THEN 1 
-                    WHEN 'Active' THEN 2 
-                    WHEN 'Inactive' THEN 3 
-                    ELSE 4 
+                CASE cs.status_key 
+                    WHEN 'prospect' THEN 1 
+                    WHEN 'qualified' THEN 2
+                    WHEN 'new_customer' THEN 3
+                    WHEN 'active_customer' THEN 4 
+                    WHEN 'not_qualified' THEN 5
+                    WHEN 'lost_customer' THEN 6
+                    ELSE 7 
                 END
         ";
-        $funnel_params = [$start_date . ' 00:00:00', $end_date . ' 23:59:59', $start_date . ' 00:00:00', $end_date . ' 23:59:59'];
+        $funnel_params = [getCurrentLanguage(), $start_date . ' 00:00:00', $end_date . ' 23:59:59', $start_date . ' 00:00:00', $end_date . ' 23:59:59'];
     } else {
         $days = intval($date_range);
         $funnel_query = "
             SELECT 
-                status,
+                cs.status_key,
+                cst.name as status_name,
                 COUNT(*) as count,
-                AVG(DATEDIFF(NOW(), created_at)) as avg_days_in_status
-            FROM customers 
-            WHERE (created_at >= DATE_SUB(NOW(), INTERVAL $days DAY) OR updated_at >= DATE_SUB(NOW(), INTERVAL $days DAY))
-            GROUP BY status
+                AVG(DATEDIFF(NOW(), c.created_at)) as avg_days_in_status
+            FROM customers c
+            LEFT JOIN customer_statuses cs ON c.status_id = cs.id
+            LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id AND cst.locale = ?
+            WHERE (c.created_at >= DATE_SUB(NOW(), INTERVAL $days DAY) OR c.updated_at >= DATE_SUB(NOW(), INTERVAL $days DAY))
+            GROUP BY cs.status_key, cst.name
             ORDER BY 
-                CASE status 
-                    WHEN 'Prospect' THEN 1 
-                    WHEN 'Active' THEN 2 
-                    WHEN 'Inactive' THEN 3 
-                    ELSE 4 
+                CASE cs.status_key 
+                    WHEN 'prospect' THEN 1 
+                    WHEN 'qualified' THEN 2
+                    WHEN 'new_customer' THEN 3
+                    WHEN 'active_customer' THEN 4 
+                    WHEN 'not_qualified' THEN 5
+                    WHEN 'lost_customer' THEN 6
+                    ELSE 7 
                 END
         ";
-        $funnel_params = [];
+        $funnel_params = [getCurrentLanguage()];
     }
     
     $stmt = $pdo->prepare($funnel_query);
@@ -638,9 +650,10 @@ try {
                             ah.contact_channel,
                             COUNT(*) as count,
                             COUNT(DISTINCT ah.customer_id) as unique_customers,
-                            ROUND(AVG(CASE WHEN c.status IN ('New Customer', 'Active Customer', 'Closed Won') THEN 1 ELSE 0 END) * 100, 1) as success_rate
+                            ROUND(AVG(CASE WHEN cs.status_key IN ('new_customer', 'active_customer') THEN 1 ELSE 0 END) * 100, 1) as success_rate
                         FROM action_history ah
                         JOIN customers c ON ah.customer_id = c.customer_id
+                        LEFT JOIN customer_statuses cs ON c.status_id = cs.id
                         WHERE ah.action_datetime BETWEEN ? AND ?
                         GROUP BY ah.contact_channel
                         ORDER BY count DESC
@@ -653,9 +666,10 @@ try {
                             ah.contact_channel,
                             COUNT(*) as count,
                             COUNT(DISTINCT ah.customer_id) as unique_customers,
-                            ROUND(AVG(CASE WHEN c.status IN ('New Customer', 'Active Customer', 'Closed Won') THEN 1 ELSE 0 END) * 100, 1) as success_rate
+                            ROUND(AVG(CASE WHEN cs.status_key IN ('new_customer', 'active_customer') THEN 1 ELSE 0 END) * 100, 1) as success_rate
                         FROM action_history ah
                         JOIN customers c ON ah.customer_id = c.customer_id
+                        LEFT JOIN customer_statuses cs ON c.status_id = cs.id
                         WHERE ah.action_datetime >= DATE_SUB(NOW(), INTERVAL $days DAY)
                         GROUP BY ah.contact_channel
                         ORDER BY count DESC
@@ -700,12 +714,12 @@ try {
                     ?>
                         <div class="funnel-stage">
                             <div class="stage-info">
-                                <div class="stage-name"><?php echo $stage['status']; ?></div>
+                                <div class="stage-name"><?php echo $stage['status_name']; ?></div>
                                 <div class="stage-count"><?php echo $stage['count']; ?> <?php echo __('customers'); ?></div>
                                 <div class="stage-percentage"><?php echo round($percentage, 1); ?>%</div>
                             </div>
                             <div class="stage-bar">
-                                <div class="stage-fill stage-<?php echo strtolower($stage['status']); ?>" 
+                                <div class="stage-fill stage-<?php echo str_replace(['_', '-'], '', $stage['status_key']); ?>" 
                                      style="width: <?php echo $percentage; ?>%"></div>
                             </div>
                         </div>
@@ -1050,6 +1064,71 @@ try {
     font-weight: 500;
 }
 
+/* Form Controls */
+.form-control, .form-select {
+    padding: 0.375rem 0.75rem;
+    margin-bottom: 0;
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #495057;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus, .form-select:focus {
+    color: #495057;
+    background-color: #fff;
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.form-control-sm, .form-select-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8125rem;
+    border-radius: 0.2rem;
+}
+
+.btn {
+    display: inline-block;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #212529;
+    text-align: center;
+    text-decoration: none;
+    vertical-align: middle;
+    cursor: pointer;
+    user-select: none;
+    background-color: transparent;
+    border: 1px solid transparent;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    border-radius: 0.25rem;
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.btn-primary {
+    color: #fff;
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.btn-primary:hover {
+    color: #fff;
+    background-color: #0056b3;
+    border-color: #004085;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8125rem;
+    border-radius: 0.2rem;
+}
+
 /* Metrics Overview */
 .metrics-overview {
     display: grid;
@@ -1084,6 +1163,9 @@ try {
 .metric-icon.customers { background: #28a745; }
 .metric-icon.emails { background: #6f42c1; }
 .metric-icon.calls { background: #fd7e14; }
+.metric-icon.meetings { background: #e83e8c; }
+.metric-icon.linkedin { background: #0077b5; }
+.metric-icon.wechat { background: #07c160; }
 .metric-icon.followups { background: #20c997; }
 .metric-icon.response { background: #6610f2; }
 .metric-icon.new-customers { background: #17a2b8; }
@@ -1201,6 +1283,15 @@ try {
 .table {
     margin-bottom: 0;
     font-size: 0.9rem;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th,
+.table td {
+    padding: 0.75rem;
+    vertical-align: top;
+    border-top: 1px solid #dee2e6;
 }
 
 .table th {
@@ -1209,6 +1300,11 @@ try {
     font-weight: 600;
     color: #495057;
     font-size: 0.8rem;
+    border-top: none;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.05);
 }
 
 .activity-badge {
@@ -1482,8 +1578,11 @@ try {
 }
 
 .stage-prospect { background: #ffc107; }
-.stage-active { background: #28a745; }
-.stage-inactive { background: #6c757d; }
+.stage-qualified { background: #17a2b8; }
+.stage-notqualified { background: #dc3545; }
+.stage-newcustomer { background: #28a745; }
+.stage-activecustomer { background: #007bff; }
+.stage-lostcustomer { background: #6c757d; }
 
 /* Activity Trend */
 .activity-trend {
@@ -1682,6 +1781,27 @@ try {
     
     .metrics-overview {
         grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+    
+    .metric-card {
+        padding: 15px;
+        gap: 12px;
+    }
+    
+    .metric-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+    
+    .metric-value {
+        font-size: 1.5rem;
+    }
+    
+    .date-filter-form {
+        flex-direction: column;
+        gap: 10px;
     }
     
     .funnel-stage {
@@ -1698,6 +1818,106 @@ try {
     .trend-chart {
         height: 100px;
     }
+}
+
+@media (max-width: 480px) {
+    .metrics-overview {
+        grid-template-columns: 1fr;
+    }
+    
+    .metric-card {
+        padding: 12px;
+        gap: 10px;
+    }
+    
+    .performance-section,
+    .analytics-section {
+        padding: 15px;
+    }
+    
+    .response-metrics {
+        grid-template-columns: 1fr;
+    }
+    
+    .followup-summary {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Dark Mode Support */
+body.dark-mode .performance-content {
+    background: transparent;
+}
+
+body.dark-mode .metric-card {
+    background: #2d3748;
+    border-color: #4a5568;
+    color: #e2e8f0;
+}
+
+body.dark-mode .metric-value {
+    color: #e2e8f0;
+}
+
+body.dark-mode .metric-label {
+    color: #a0aec0;
+}
+
+body.dark-mode .performance-section,
+body.dark-mode .analytics-section {
+    background: #2d3748;
+    border-color: #4a5568;
+    color: #e2e8f0;
+}
+
+body.dark-mode .performance-section h4,
+body.dark-mode .analytics-section h4,
+body.dark-mode .performance-section h5,
+body.dark-mode .analytics-section h5 {
+    color: #e2e8f0;
+    border-color: #4a5568;
+}
+
+body.dark-mode .performer-item {
+    background: #4a5568;
+    color: #e2e8f0;
+}
+
+body.dark-mode .performer-name {
+    color: #e2e8f0;
+}
+
+body.dark-mode .performer-stats {
+    color: #a0aec0;
+}
+
+body.dark-mode .table th {
+    background: #4a5568;
+    color: #e2e8f0;
+    border-color: #718096;
+}
+
+body.dark-mode .table td {
+    color: #e2e8f0;
+    border-color: #4a5568;
+}
+
+body.dark-mode .table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .form-control,
+body.dark-mode .form-select {
+    background-color: #4a5568;
+    border-color: #718096;
+    color: #e2e8f0;
+}
+
+body.dark-mode .form-control:focus,
+body.dark-mode .form-select:focus {
+    background-color: #4a5568;
+    border-color: #80bdff;
+    color: #e2e8f0;
 }
 </style>
 
