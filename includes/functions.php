@@ -553,71 +553,53 @@ function updateCustomer($id, $data) {
         // Check if assigned_user_id is provided and user has permission to assign
         $updateAssignment = isset($data['assigned_user_id']) && canAssignCustomer($id);
         
+        // Build the SQL query based on what needs to be updated
+        $sql = "UPDATE customers SET 
+                company_name = ?, address = ?, country = ?, province = ?,
+                company_type = ?, contact_phone = ?, contact_email = ?, 
+                website = ?, status_id = ?, notes = ?";
+        
+        $params = [
+            $data['company_name'],
+            $data['address'],
+            $data['country'],
+            $data['province'],
+            $data['company_type'],
+            $data['contact_phone'],
+            $data['contact_email'],
+            $data['website'],
+            $new_status_id,
+            $data['notes']
+        ];
+        
+        // Add assignment update if user has permission
         if ($updateAssignment) {
             // Convert empty string to NULL for unassignment
             $assigned_user_id = $data['assigned_user_id'];
             if ($assigned_user_id === '' || $assigned_user_id === null) {
                 $assigned_user_id = null;
             }
-            
-            $stmt = $pdo->prepare("UPDATE customers SET 
-                                  company_name = ?, address = ?, country = ?, province = ?,
-                                  company_type = ?, contact_phone = ?, contact_email = ?, 
-                                  website = ?, status_id = ?, notes = ?, assigned_user_id = ?,
-                                  " . ($status_changed ? "status_changed_at = NOW(), status_changed_by = ?, " : "") . "
-                                  updated_at = NOW()
-                                  WHERE customer_id = ?");
-            
-            $params = [
-                $data['company_name'],
-                $data['address'],
-                $data['country'],
-                $data['province'],
-                $data['company_type'],
-                $data['contact_phone'],
-                $data['contact_email'],
-                $data['website'],
-                $new_status_id,
-                $data['notes'],
-                $assigned_user_id
-            ];
-            
-            if ($status_changed) {
-                $params[] = $_SESSION['user_id'];
-            }
-            
-            $params[] = $id;
-            
-        } else {
-            $stmt = $pdo->prepare("UPDATE customers SET 
-                                  company_name = ?, address = ?, country = ?, province = ?,
-                                  company_type = ?, contact_phone = ?, contact_email = ?, 
-                                  website = ?, status_id = ?, notes = ?,
-                                  " . ($status_changed ? "status_changed_at = NOW(), status_changed_by = ?, " : "") . "
-                                  updated_at = NOW()
-                                  WHERE customer_id = ?");
-            
-            $params = [
-                $data['company_name'],
-                $data['address'],
-                $data['country'],
-                $data['province'],
-                $data['company_type'],
-                $data['contact_phone'],
-                $data['contact_email'],
-                $data['website'],
-                $new_status_id,
-                $data['notes']
-            ];
-            
-            if ($status_changed) {
-                $params[] = $_SESSION['user_id'];
-            }
-            
-            $params[] = $id;
+            $sql .= ", assigned_user_id = ?";
+            $params[] = $assigned_user_id;
         }
         
+        // Add status change tracking if status changed
+        if ($status_changed) {
+            $sql .= ", status_changed_at = NOW(), status_changed_by = ?";
+            $params[] = $_SESSION['user_id'];
+        }
+        
+        $sql .= ", updated_at = NOW() WHERE customer_id = ?";
+        $params[] = $id;
+        
+        $stmt = $pdo->prepare($sql);
+        
         $success = $stmt->execute($params);
+        
+        if (!$success) {
+            $errorInfo = $stmt->errorInfo();
+            throw new Exception("SQL execution failed: " . implode(', ', $errorInfo));
+        }
         
         // Record status change in history if status changed
         if ($success && $status_changed) {
@@ -632,7 +614,7 @@ function updateCustomer($id, $data) {
         
     } catch (Exception $e) {
         $pdo->rollBack();
-        error_log("Error updating customer: " . $e->getMessage());
+        logError("Error updating customer ID $id: " . $e->getMessage() . " | Data: " . print_r($data, true));
         return false;
     }
 }
@@ -4093,6 +4075,118 @@ function getCustomerStatusOverview($user_id = null, $show_all = false) {
     } catch (PDOException $e) {
         logError("Error getting customer status overview: " . $e->getMessage());
         return [];
+    }
+}
+
+/**
+ * Get detailed customer status summary at a specific point in time
+ */
+function getCustomerStatusSummary($user_id = null, $show_all = false, $as_of_datetime = null) {
+    global $pdo;
+    
+    try {
+        $whereClause = ['c.created_at <= :as_of_datetime'];
+        $params = [];
+        
+        // Default to current time if not specified
+        if (!$as_of_datetime) {
+            $as_of_datetime = date('Y-m-d H:i:s');
+        }
+        $params[':as_of_datetime'] = $as_of_datetime;
+        
+        // Handle user filtering
+        if (!$show_all && $user_id) {
+            $whereClause[] = 'c.assigned_user_id = :user_id';
+            $params[':user_id'] = $user_id;
+        } elseif (!$show_all && $user_id === null) {
+            // Show only unassigned customers (where assigned_user_id is NULL)
+            $whereClause[] = 'c.assigned_user_id IS NULL';
+        }
+        
+        $sql = "SELECT 
+                    COALESCE(cs.status_key, 'unassigned') as status_key,
+                    COALESCE(cst.name, cs.status_key, 'Unassigned') as status_name,
+                    COUNT(*) as count,
+                    COUNT(CASE WHEN c.created_at >= DATE_SUB(:as_of_datetime_week, INTERVAL 7 DAY) THEN 1 END) as new_this_week,
+                    COUNT(CASE WHEN c.created_at >= DATE_SUB(:as_of_datetime_month, INTERVAL 30 DAY) THEN 1 END) as new_this_month,
+                    MAX(c.created_at) as latest_customer_date,
+                    ROUND(AVG(DATEDIFF(:as_of_datetime_avg, c.created_at)), 0) as avg_days_in_status
+                FROM customers c
+                LEFT JOIN customer_statuses cs ON c.status_id = cs.id
+                LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id 
+                    AND cst.locale = :language
+                WHERE " . implode(' AND ', $whereClause) . "
+                GROUP BY cs.status_key, cst.name, cs.sort_order
+                ORDER BY cs.sort_order ASC, COUNT(*) DESC";
+        
+        $params[':language'] = getCurrentLanguage();
+        $params[':as_of_datetime_week'] = $as_of_datetime;
+        $params[':as_of_datetime_month'] = $as_of_datetime;
+        $params[':as_of_datetime_avg'] = $as_of_datetime;
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logError("Error getting customer status summary: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get all users' status summaries for admin view at a specific point in time
+ */
+function getAllUsersStatusSummary($as_of_datetime = null) {
+    global $pdo;
+    
+    try {
+        $params = [];
+        
+        // Default to current time if not specified
+        if (!$as_of_datetime) {
+            $as_of_datetime = date('Y-m-d H:i:s');
+        }
+        $params[':as_of_datetime'] = $as_of_datetime;
+        $params[':language'] = getCurrentLanguage();
+        
+        // Get aggregated status summary across all non-admin users
+        $sql = "SELECT 
+                    COALESCE(cs.status_key, 'unassigned') as status_key,
+                    COALESCE(cst.name, cs.status_key, 'Unassigned') as status_name,
+                    COUNT(c.customer_id) as count,
+                    COALESCE(cs.sort_order, 999) as sort_order
+                FROM customers c
+                LEFT JOIN customer_statuses cs ON c.status_id = cs.id
+                LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id 
+                    AND cst.locale = :language
+                WHERE c.created_at <= :as_of_datetime
+                GROUP BY cs.status_key, cst.name, cs.sort_order
+                ORDER BY cs.sort_order ASC, COUNT(c.customer_id) DESC";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Format the result as aggregated data
+        $aggregated_summary = [
+            'statuses' => [],
+            'total_customers' => 0
+        ];
+        
+        foreach ($result as $row) {
+            $aggregated_summary['statuses'][] = [
+                'status_key' => $row['status_key'],
+                'status_name' => $row['status_name'],
+                'count' => (int)$row['count']
+            ];
+            $aggregated_summary['total_customers'] += (int)$row['count'];
+        }
+        
+        return $aggregated_summary;
+    } catch (PDOException $e) {
+        logError("Error getting all users status summary: " . $e->getMessage());
+        return ['statuses' => [], 'total_customers' => 0];
     }
 }
 

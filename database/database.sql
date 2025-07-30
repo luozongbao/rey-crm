@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS customer_status_translations (
 
 -- Insert the new status definitions
 INSERT IGNORE INTO customer_statuses (status_key, sort_order, is_active) VALUES
+('lead', 0, TRUE),
 ('prospect', 1, TRUE),
 ('qualified', 2, TRUE),
 ('not_qualified', 3, TRUE),
@@ -53,7 +54,8 @@ INSERT IGNORE INTO customer_statuses (status_key, sort_order, is_active) VALUES
 
 -- Insert English translations
 INSERT IGNORE INTO customer_status_translations (status_id, locale, name, description) VALUES
-((SELECT id FROM customer_statuses WHERE status_key = 'prospect'), 'en', 'Prospect', 'Potential customer showing initial interest'),
+((SELECT id FROM customer_statuses WHERE status_key = 'lead'), 'en', 'Lead', 'Initial interest but not yet qualified'),
+((SELECT id FROM customer_statuses WHERE status_key = 'prospect'), 'en', 'Prospect', 'Customer who has been screened and matches target profile'),
 ((SELECT id FROM customer_statuses WHERE status_key = 'qualified'), 'en', 'Qualified', 'Customer in active negotiation process'),
 ((SELECT id FROM customer_statuses WHERE status_key = 'not_qualified'), 'en', 'Not Qualified', 'Customer determined to not be a good fit'),
 ((SELECT id FROM customer_statuses WHERE status_key = 'new_customer'), 'en', 'New Customer', 'Customer who has made their first purchase'),
@@ -62,7 +64,8 @@ INSERT IGNORE INTO customer_status_translations (status_id, locale, name, descri
 
 -- Insert Chinese translations
 INSERT IGNORE INTO customer_status_translations (status_id, locale, name, description) VALUES
-((SELECT id FROM customer_statuses WHERE status_key = 'prospect'), 'zh-cn', '潜在客户', '显示初步兴趣的潜在客户'),
+((SELECT id FROM customer_statuses WHERE status_key = 'lead'), 'zh-cn', '潜在客户', '初步兴趣但尚未经过深入评估'),
+((SELECT id FROM customer_statuses WHERE status_key = 'prospect'), 'zh-cn', '意向客户', '经过初步筛选符合目标客户'),
 ((SELECT id FROM customer_statuses WHERE status_key = 'qualified'), 'zh-cn', '洽谈客户', '正在积极谈判过程中的客户'),
 ((SELECT id FROM customer_statuses WHERE status_key = 'not_qualified'), 'zh-cn', '无效客户', '确定不适合的客户'),
 ((SELECT id FROM customer_statuses WHERE status_key = 'new_customer'), 'zh-cn', '成交客户', '已完成首次购买的客户'),

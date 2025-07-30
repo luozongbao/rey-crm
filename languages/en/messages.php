@@ -1153,6 +1153,36 @@ return [
     'cancel' => 'Cancel',
     'unsaved_changes' => 'Unsaved Changes',
 
+    // Status Summary
+    'status_summary' => 'Status Summary',
+    'customer_status_summary' => 'Customer Status Summary',
+    'all_users_overview' => 'All Users Overview',
+    'single_user_detailed' => 'Single User Detailed',
+    'view_mode' => 'View Mode',
+    'select_user' => 'Select User',
+    'as_of_time' => 'As of Time',
+    'apply_filters' => 'Apply Filters',
+    'clear_filters' => 'Clear Filters',
+    'filter_by_time' => 'Filter by Time',
+    'period' => 'Period',
+    'new_this_week' => 'New This Week',
+    'new_this_month' => 'New This Month',
+    'avg_days_in_status' => 'Avg Days in Status',
+    'avg_days' => 'Avg Days',
+    'days' => 'Days',
+    'view_details' => 'View Details',
+    'export_summary' => 'Export Summary',
+    'all_users_status_overview' => 'All Users Status Overview',
+    'user_not_found' => 'User not found',
+    'no_customers_found_at_time' => 'No customers found at the specified time',
+    'no_data_found_at_time' => 'No data found at the specified time',
+    'total_customers' => 'Total Customers',
+    'from' => 'From',
+    'to' => 'To',
+    'apply' => 'Apply',
+    'now' => 'Now',
+    'set_to_now' => 'Set to Now',
+
     // Add more messages as needed
 ];
 ?>

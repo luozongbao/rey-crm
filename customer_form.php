@@ -7,6 +7,8 @@ $action = $_GET['action'] ?? 'add';
 $customer_id = (int)($_GET['id'] ?? 0);
 $isViewMode = $action === 'view';
 $isEditMode = $action === 'edit';
+$error_message = '';
+$success_message = '';
 
 // Validate customer access for view/edit operations
 if (($action === 'view' || $action === 'edit') && $customer_id) {
@@ -43,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
         'contact_phone' => $_POST['contact_phone'] ?? null,
         'contact_email' => $_POST['contact_email'] ?? null,
         'website' => $_POST['website'] ?? null,
-        'status_key' => $_POST['status'] ?? 'prospect', // Use status_key instead of status
+        'status_key' => $_POST['status'] ?? 'lead', // Use status_key instead of status
         'notes' => $_POST['notes'] ?? null
     ];
     
@@ -58,60 +60,74 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
     if (!empty($data['contact_email'])) {
         $email_validation = validate_cc_emails($data['contact_email']);
         if (!$email_validation['valid']) {
-            die("Error: " . $email_validation['message']);
+            $error_message = "Error: " . $email_validation['message'];
         }
     }
     
-    global $pdo;
+    // Check for duplicate company name when adding new customer
+    if ($action == 'add' && empty($error_message)) {
+        $stmt = $pdo->prepare("SELECT customer_id FROM customers WHERE company_name = ?");
+        $stmt->execute([$data['company_name']]);
+        if ($stmt->fetch()) {
+            $error_message = "Error: A customer with the company name '" . htmlspecialchars($data['company_name']) . "' already exists in the database.";
+        }
+    }
     
-    try {
-        if ($action == 'add') {
-            // Start transaction
-            $pdo->beginTransaction();
-            
-            // Use the addCustomer function which handles assignment
-            if (addCustomer($data)) {
-                $customer_id = $pdo->lastInsertId();
+    // Only proceed if no errors
+    if (empty($error_message)) {
+        global $pdo;
+        
+        try {
+            if ($action == 'add') {
+                // Start transaction
+                $pdo->beginTransaction();
                 
-                // Create main contact
-                $mainContact = [
-                    'customer_id' => $customer_id,
-                    'name' => 'Company Main Contact',
-                    'title' => 'Primary Contact',
-                    'role' => 'Main Contact',
-                    'contact_number' => $_POST['contact_phone'] ?? null,
-                    'contact_email' => $_POST['contact_email'] ?? null,
-                    'notes' => 'Automatically created as main contact'
-                ];
-                
-                $stmt = $pdo->prepare("INSERT INTO contact_persons 
-                                      (customer_id, name, title, role, contact_number, contact_email, notes) 
-                                      VALUES (?, ?, ?, ?, ?, ?, ?)");
-                $stmt->execute(array_values($mainContact));
-                
-                // Commit transaction
-                $pdo->commit();
-                
-                header("Location: customers.php?restore=1");
-                exit;
+                // Use the addCustomer function which handles assignment
+                if (addCustomer($data)) {
+                    $customer_id = $pdo->lastInsertId();
+                    
+                    // Create main contact
+                    $mainContact = [
+                        'customer_id' => $customer_id,
+                        'name' => 'Company Main Contact',
+                        'title' => 'Primary Contact',
+                        'role' => 'Main Contact',
+                        'contact_number' => $_POST['contact_phone'] ?? null,
+                        'contact_email' => $_POST['contact_email'] ?? null,
+                        'notes' => 'Automatically created as main contact'
+                    ];
+                    
+                    $stmt = $pdo->prepare("INSERT INTO contact_persons 
+                                          (customer_id, name, title, role, contact_number, contact_email, notes) 
+                                          VALUES (?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute(array_values($mainContact));
+                    
+                    // Commit transaction
+                    $pdo->commit();
+                    
+                    header("Location: customers.php?restore=1");
+                    exit;
+                } else {
+                    $pdo->rollBack();
+                    $error_message = "Error adding customer";
+                }
             } else {
+                // Use the updateCustomer function which handles assignment
+                if (updateCustomer($customer_id, $data)) {
+                    header("Location: customers.php?restore=1");
+                    exit;
+                } else {
+                    // Log detailed error information
+                    logError("Customer update failed - Customer ID: $customer_id, Data: " . print_r($data, true));
+                    $error_message = "Error updating customer. Please check the form data and try again.";
+                }
+            }
+        } catch (PDOException $e) {
+            if ($action == 'add' && isset($pdo)) {
                 $pdo->rollBack();
-                die("Error adding customer");
             }
-        } else {
-            // Use the updateCustomer function which handles assignment
-            if (updateCustomer($customer_id, $data)) {
-                header("Location: customers.php?restore=1");
-                exit;
-            } else {
-                die("Error updating customer");
-            }
+            $error_message = "Database error: " . $e->getMessage();
         }
-    } catch (PDOException $e) {
-        if ($action == 'add' && isset($pdo)) {
-            $pdo->rollBack();
-        }
-        die("Database error: " . $e->getMessage());
     }
 }
 
@@ -153,6 +169,18 @@ require_once 'includes/header.php';
             <a href="<?php echo htmlspecialchars($backUrl); ?>" class="btn"><?php echo __('back'); ?></a>
         </div>
         
+        <?php if (!empty($error_message)): ?>
+            <div class="alert alert-danger">
+                <?php echo htmlspecialchars($error_message); ?>
+            </div>
+        <?php endif; ?>
+        
+        <?php if (!empty($success_message)): ?>
+            <div class="alert alert-success">
+                <?php echo htmlspecialchars($success_message); ?>
+            </div>
+        <?php endif; ?>
+        
         <form method="post">
             <?php echo csrfTokenField(); ?>
             <!-- Row 1: Company Name and Status -->
@@ -168,7 +196,7 @@ require_once 'includes/header.php';
                     <select id="status" name="status" <?php echo $isViewMode ? 'disabled' : ''; ?>>
                         <?php
                         $statusOptions = getCustomerStatusOptions();
-                        $currentStatusKey = $customer ? ($customer['status_key'] ?? 'prospect') : 'prospect';
+                        $currentStatusKey = $customer ? ($customer['status_key'] ?? 'lead') : 'lead';
                         foreach ($statusOptions as $statusKey => $statusName):
                             $selected = ($currentStatusKey == $statusKey) ? 'selected' : '';
                         ?>
@@ -438,6 +466,7 @@ require_once 'includes/header.php';
 // Email validation for contact_email field
 document.addEventListener('DOMContentLoaded', function() {
     const contactEmailInput = document.getElementById('contact_email');
+    const companyNameInput = document.getElementById('company_name');
     
     if (contactEmailInput && !contactEmailInput.disabled) {
         contactEmailInput.addEventListener('blur', function() {
@@ -448,6 +477,22 @@ document.addEventListener('DOMContentLoaded', function() {
             // Clear any existing validation styles when user starts typing
             this.classList.remove('is-invalid', 'is-valid');
             const feedback = document.getElementById('contact-email-feedback');
+            if (feedback) {
+                feedback.remove();
+            }
+        });
+    }
+    
+    // Company name validation for duplicates (only for add action)
+    if (companyNameInput && !companyNameInput.disabled && '<?php echo $action; ?>' === 'add') {
+        companyNameInput.addEventListener('blur', function() {
+            checkCompanyNameDuplicate(this);
+        });
+
+        companyNameInput.addEventListener('input', function() {
+            // Clear any existing validation styles when user starts typing
+            this.classList.remove('is-invalid', 'is-valid');
+            const feedback = document.getElementById('company-name-feedback');
             if (feedback) {
                 feedback.remove();
             }
@@ -577,6 +622,57 @@ if (assignmentSelect && unassignBtn) {
         } else if (this.value !== '<?php echo $customer['assigned_user_id'] ?? ''; ?>') {
             unassignBtn.style.display = 'none';
         }
+    });
+}
+
+function checkCompanyNameDuplicate(input) {
+    const companyName = input.value.trim();
+    
+    // Remove existing feedback
+    const existingFeedback = document.getElementById('company-name-feedback');
+    if (existingFeedback) {
+        existingFeedback.remove();
+    }
+    
+    if (companyName === '') {
+        input.classList.remove('is-invalid', 'is-valid');
+        return;
+    }
+    
+    // Check for duplicate company name via AJAX
+    fetch('ajax_handlers/check_duplicate_company.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            company_name: companyName
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        const feedback = document.createElement('div');
+        feedback.id = 'company-name-feedback';
+        feedback.className = 'form-feedback';
+        
+        if (data.exists) {
+            input.classList.add('is-invalid');
+            input.classList.remove('is-valid');
+            feedback.className += ' invalid-feedback';
+            feedback.textContent = 'A customer with this company name already exists.';
+        } else {
+            input.classList.add('is-valid');
+            input.classList.remove('is-invalid');
+            feedback.className += ' valid-feedback';
+            feedback.textContent = 'Company name is available.';
+        }
+        
+        input.parentNode.appendChild(feedback);
+    })
+    .catch(error => {
+        console.error('Error checking company name:', error);
+        // Don't show error to user, just clear validation
+        input.classList.remove('is-invalid', 'is-valid');
     });
 }
 </script>

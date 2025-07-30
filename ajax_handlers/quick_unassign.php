@@ -32,6 +32,12 @@ if (!$customer_id) {
 try {
     global $pdo;
     
+    // Check if PDO connection exists
+    if (!$pdo) {
+        echo json_encode(['success' => false, 'message' => 'Database connection not available']);
+        exit;
+    }
+    
     // Get current assignment info
     $stmt = $pdo->prepare("
         SELECT c.company_name, c.assigned_user_id, u.username 
@@ -74,8 +80,10 @@ try {
         'message' => "Customer '{$customer['company_name']}' successfully unassigned from {$customer['username']}"
     ]);
     
-} catch (PDOException $e) {
-    $pdo->rollback();
+} catch (Exception $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     logError("Error in quick unassign: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'An error occurred while unassigning the customer']);
 }

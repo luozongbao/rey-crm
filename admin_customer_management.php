@@ -11,7 +11,7 @@ $current_page = 'admin_customer_management';
 
 // Get current tab
 $active_tab = $_GET['tab'] ?? 'dashboard';
-$valid_tabs = ['dashboard', 'bulk_assignment', 'user_overview', 'performance', 'reports'];
+$valid_tabs = ['dashboard', 'bulk_assignment', 'user_overview', 'performance', 'reports', 'status_summary'];
 if (!in_array($active_tab, $valid_tabs)) {
     $active_tab = 'dashboard';
 }
@@ -43,6 +43,8 @@ include 'includes/header.php';
                href="?tab=performance"><?php echo __('performance'); ?></a>
             <a class="nav-link <?php echo $active_tab === 'reports' ? 'active' : ''; ?>" 
                href="?tab=reports"><?php echo __('reports'); ?></a>
+            <a class="nav-link <?php echo $active_tab === 'status_summary' ? 'active' : ''; ?>" 
+               href="?tab=status_summary"><?php echo __('status_summary'); ?></a>
         </nav>
     </div>
 
@@ -58,6 +60,8 @@ include 'includes/header.php';
             <?php include 'includes/admin_performance_tab.php'; ?>
         <?php elseif ($active_tab === 'reports'): ?>
             <?php include 'includes/admin_reports_tab.php'; ?>
+        <?php elseif ($active_tab === 'status_summary'): ?>
+            <?php include 'includes/admin_status_summary_tab.php'; ?>
         <?php endif; ?>
     </div>
 </div>
