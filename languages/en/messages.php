@@ -275,6 +275,7 @@ return [
     'name' => 'Name',
     'actions' => 'Actions',
     'location' => 'Location',
+    'export_your_customers' => 'export your customers',
     
     // All Activities page
     'all_customers' => 'All Customers',

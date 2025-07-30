@@ -283,6 +283,7 @@ return [
     'name' => '姓名',
     'actions' => '操作',
     'location' => '地区',
+    'export_your_customers' => '导出您的客户',
     
     // All Activities page
     'all_customers' => '所有客户',
