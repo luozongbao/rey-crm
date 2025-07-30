@@ -62,13 +62,21 @@ function getContactPersons($customer_id) {
 
 function getActionHistory($customer_id) {
     global $pdo;
-    $stmt = $pdo->prepare("SELECT ah.*, cp.name as contact_name 
-                          FROM action_history ah
-                          LEFT JOIN contact_persons cp ON ah.contact_id = cp.contact_id
-                          WHERE ah.customer_id = ? 
-                          ORDER BY ah.action_datetime DESC");
-    $stmt->execute([$customer_id]);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    try {
+        $stmt = $pdo->prepare("SELECT ah.*, cp.name as contact_name 
+                              FROM action_history ah
+                              LEFT JOIN contact_persons cp ON ah.contact_id = cp.contact_id
+                              WHERE ah.customer_id = ? 
+                              ORDER BY ah.action_datetime DESC");
+        $stmt->execute([$customer_id]);
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return $result;
+    } catch (PDOException $e) {
+        error_log("getActionHistory error: " . $e->getMessage());
+        return [];
+    }
 }
 
 function getUpcomingFollowups($limit = 5) {
@@ -273,7 +281,7 @@ function getFilteredCustomers($conditions = [], $params = []) {
              cst.status_name
              FROM customers c
              LEFT JOIN customer_statuses cs ON c.status_id = cs.id
-             LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id AND cst.language = ?";
+             LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id AND cst.locale = ?";
     
     // Add language parameter
     if (empty($params)) {
@@ -2281,7 +2289,7 @@ function getUnassignedCustomers() {
                    cst.status_name
             FROM customers c
             LEFT JOIN customer_statuses cs ON c.status_id = cs.id
-            LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id AND cst.language = ?
+            LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id AND cst.locale = ?
             WHERE c.assigned_user_id IS NULL
             ORDER BY c.created_at DESC
         ");

@@ -5,14 +5,23 @@
  */
 
 // This file should be included where needed, with $customer_id and $messages already available
-if (!isset($customer_id) || !isset($messages)) {
-    die('Required variables not set');
+if (!isset($customer_id) || !isset($messages) || !$customer_id) {
+    echo '<div class="alert alert-warning">Status timeline requires a valid customer.</div>';
+    return;
 }
 
 require_once __DIR__ . '/customer_status_functions.php';
 
 // Get the customer's status timeline
-$status_timeline = getCustomerStatusTimeline($customer_id, $current_locale ?? 'en');
+try {
+    if (!function_exists('getCustomerStatusTimeline')) {
+        require_once __DIR__ . '/customer_status_functions.php';
+    }
+    $status_timeline = getCustomerStatusTimeline($customer_id, $current_locale ?? 'en');
+} catch (Exception $e) {
+    error_log("Error in customer_status_timeline.php: " . $e->getMessage());
+    $status_timeline = [];
+}
 ?>
 
 <div class="status-timeline-container">
