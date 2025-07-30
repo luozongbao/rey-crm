@@ -16,8 +16,15 @@ $all_users = getAllUsers();
 
 // Get status summary data based on view mode
 if ($view_mode === 'single_user' && !empty($selected_user)) {
-    $status_summary = getCustomerStatusSummary($selected_user, false, $as_of_datetime);
-    $user_info = getUserWorkloadStats($selected_user);
+    if ($selected_user === 'unassigned') {
+        // Get unassigned customers summary
+        $status_summary = getCustomerStatusSummary(null, false, $as_of_datetime);
+        $user_info = ['username' => __('unassigned_customers')];
+    } else {
+        // Get specific user's summary
+        $status_summary = getCustomerStatusSummary($selected_user, false, $as_of_datetime);
+        $user_info = getUserWorkloadStats($selected_user);
+    }
 } else {
     $all_users_summary = getAllUsersStatusSummary($as_of_datetime);
 }
@@ -56,9 +63,12 @@ $all_statuses = getCustomerStatusOptions();
                 </div>
                 
                 <div class="form-group" id="user-filter-group" style="<?php echo $view_mode === 'all_users' ? 'display: none;' : ''; ?>">
-                    <label for="user_id"><?php echo __('select_user'); ?>:</label>
+                    <label for="user_id"><?php echo __('user'); ?>:</label>
                     <select name="user_id" id="user_id" class="form-control">
                         <option value=""><?php echo __('select_user'); ?></option>
+                        <option value="unassigned" <?php echo $selected_user == 'unassigned' ? 'selected' : ''; ?>>
+                            <?php echo __('unassigned_customers'); ?>
+                        </option>
                         <?php foreach ($all_users as $user): ?>
                         <option value="<?php echo $user['user_id']; ?>" 
                                 <?php echo $selected_user == $user['user_id'] ? 'selected' : ''; ?>>

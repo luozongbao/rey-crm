@@ -4116,6 +4116,9 @@ function getCustomerStatusSummary($user_id = null, $show_all = false, $as_of_dat
         if (!$show_all && $user_id) {
             $whereClause[] = 'c.assigned_user_id = :user_id';
             $params[':user_id'] = $user_id;
+        } elseif (!$show_all && $user_id === null) {
+            // Show only unassigned customers (where assigned_user_id is NULL)
+            $whereClause[] = 'c.assigned_user_id IS NULL';
         }
         
         $sql = "SELECT 
@@ -4172,12 +4175,10 @@ function getAllUsersStatusSummary($as_of_datetime = null) {
                     COUNT(c.customer_id) as count,
                     COALESCE(cs.sort_order, 999) as sort_order
                 FROM customers c
-                LEFT JOIN users u ON c.assigned_user_id = u.user_id
                 LEFT JOIN customer_statuses cs ON c.status_id = cs.id
                 LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id 
                     AND cst.locale = :language
-                WHERE (u.role != 'admin' OR u.user_id IS NULL)
-                    AND c.created_at <= :as_of_datetime
+                WHERE c.created_at <= :as_of_datetime
                 GROUP BY cs.status_key, cst.name, cs.sort_order
                 ORDER BY cs.sort_order ASC, COUNT(c.customer_id) DESC";
         
