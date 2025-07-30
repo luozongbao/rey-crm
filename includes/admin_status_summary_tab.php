@@ -3,16 +3,12 @@
 
 // Get filter parameters
 $selected_user = $_GET['user_id'] ?? '';
-$date_from = $_GET['date_from'] ?? '';
-$date_to = $_GET['date_to'] ?? '';
+$as_of_datetime = $_GET['as_of_datetime'] ?? '';
 $view_mode = $_GET['view_mode'] ?? 'all_users'; // 'all_users' or 'single_user'
 
-// Set default date range if not provided (last 30 days)
-if (!$date_from) {
-    $date_from = date('Y-m-d', strtotime('-30 days'));
-}
-if (!$date_to) {
-    $date_to = date('Y-m-d');
+// Default to current time if not provided
+if (!$as_of_datetime) {
+    $as_of_datetime = date('Y-m-d H:i:s');
 }
 
 // Get all users for the dropdown
@@ -20,10 +16,10 @@ $all_users = getAllUsers();
 
 // Get status summary data based on view mode
 if ($view_mode === 'single_user' && !empty($selected_user)) {
-    $status_summary = getCustomerStatusSummary($selected_user, false, $date_from, $date_to);
+    $status_summary = getCustomerStatusSummary($selected_user, false, $as_of_datetime);
     $user_info = getUserWorkloadStats($selected_user);
 } else {
-    $all_users_summary = getAllUsersStatusSummary($date_from, $date_to);
+    $all_users_summary = getAllUsersStatusSummary($as_of_datetime);
 }
 
 // Get all possible statuses for consistent display
@@ -73,15 +69,10 @@ $all_statuses = getCustomerStatusOptions();
                 </div>
                 
                 <div class="form-group">
-                    <label for="date_from"><?php echo __('from_date'); ?>:</label>
-                    <input type="date" name="date_from" id="date_from" 
-                           value="<?php echo htmlspecialchars($date_from); ?>" class="form-control">
-                </div>
-                
-                <div class="form-group">
-                    <label for="date_to"><?php echo __('to_date'); ?>:</label>
-                    <input type="date" name="date_to" id="date_to" 
-                           value="<?php echo htmlspecialchars($date_to); ?>" class="form-control">
+                    <label for="as_of_datetime"><?php echo __('as_of_time'); ?>:</label>
+                    <input type="datetime-local" name="as_of_datetime" id="as_of_datetime" 
+                           value="<?php echo date('Y-m-d\TH:i', strtotime($as_of_datetime)); ?>" 
+                           class="form-control">
                 </div>
                 
                 <div class="form-group">
@@ -91,6 +82,9 @@ $all_statuses = getCustomerStatusOptions();
                     <a href="?tab=status_summary" class="btn btn-secondary">
                         <i class="fas fa-times"></i> <?php echo __('clear_filters'); ?>
                     </a>
+                    <button type="button" class="btn btn-info" onclick="setCurrentTime()">
+                        <i class="fas fa-clock"></i> <?php echo __('set_to_now'); ?>
+                    </button>
                 </div>
             </div>
         </form>
@@ -104,7 +98,7 @@ $all_statuses = getCustomerStatusOptions();
             <div class="user-header">
                 <h4><?php echo htmlspecialchars($user_info['username']); ?>'s <?php echo __('customer_status_summary'); ?></h4>
                 <div class="date-range">
-                    <?php echo __('period'); ?>: <?php echo formatDate($date_from); ?> - <?php echo formatDate($date_to); ?>
+                    <?php echo __('as_of_time'); ?>: <?php echo formatDateTime($as_of_datetime); ?>
                 </div>
             </div>
 
@@ -136,7 +130,7 @@ $all_statuses = getCustomerStatusOptions();
                     <?php endforeach; ?>
                 <?php else: ?>
                     <div class="no-data">
-                        <p><?php echo __('no_customers_found_for_period'); ?></p>
+                        <p><?php echo __('no_customers_found_at_time'); ?></p>
                     </div>
                 <?php endif; ?>
             </div>
@@ -153,7 +147,7 @@ $all_statuses = getCustomerStatusOptions();
             <div class="summary-header">
                 <h4><?php echo __('all_users_status_overview'); ?></h4>
                 <div class="date-range">
-                    <?php echo __('period'); ?>: <?php echo formatDate($date_from); ?> - <?php echo formatDate($date_to); ?>
+                    <?php echo __('as_of_time'); ?>: <?php echo formatDateTime($as_of_datetime); ?>
                 </div>
             </div>
 
@@ -175,7 +169,7 @@ $all_statuses = getCustomerStatusOptions();
                             <td>
                                 <strong><?php echo htmlspecialchars($user_summary['username']); ?></strong>
                                 <div class="user-actions">
-                                    <a href="?tab=status_summary&view_mode=single_user&user_id=<?php echo $user_summary['user_id']; ?>&date_from=<?php echo $date_from; ?>&date_to=<?php echo $date_to; ?>" 
+                                    <a href="?tab=status_summary&view_mode=single_user&user_id=<?php echo $user_summary['user_id']; ?>&as_of_datetime=<?php echo urlencode($as_of_datetime); ?>" 
                                        class="btn btn-sm btn-outline-primary">
                                         <?php echo __('view_details'); ?>
                                     </a>
@@ -212,7 +206,7 @@ $all_statuses = getCustomerStatusOptions();
             </div>
             <?php else: ?>
                 <div class="no-data">
-                    <p><?php echo __('no_data_found_for_period'); ?></p>
+                    <p><?php echo __('no_data_found_at_time'); ?></p>
                 </div>
             <?php endif; ?>
         </div>
@@ -245,7 +239,7 @@ $all_statuses = getCustomerStatusOptions();
 
 .filter-form .form-row {
     display: grid;
-    grid-template-columns: 200px 200px 150px 150px 1fr;
+    grid-template-columns: 200px 200px 200px 1fr;
     gap: 15px;
     align-items: end;
 }
@@ -463,15 +457,13 @@ function exportStatusSummary() {
     // Get current filter parameters
     const viewMode = document.getElementById('view_mode').value;
     const userId = document.getElementById('user_id').value;
-    const dateFrom = document.getElementById('date_from').value;
-    const dateTo = document.getElementById('date_to').value;
+    const asOfDatetime = document.getElementById('as_of_datetime').value;
     
     // Build export URL
     let exportUrl = 'export_status_summary.php?';
     const params = new URLSearchParams({
         view_mode: viewMode,
-        date_from: dateFrom,
-        date_to: dateTo
+        as_of_datetime: asOfDatetime
     });
     
     if (viewMode === 'single_user' && userId) {
@@ -480,5 +472,17 @@ function exportStatusSummary() {
     
     exportUrl += params.toString();
     window.open(exportUrl, '_blank');
+}
+
+function setCurrentTime() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    
+    const currentDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+    document.getElementById('as_of_datetime').value = currentDateTime;
 }
 </script>

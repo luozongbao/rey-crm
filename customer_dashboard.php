@@ -30,8 +30,7 @@ if ($isAdmin && ($viewMode === 'all' || $viewMode === 'unassigned')) {
 }
 
 // Handle status summary date filtering
-$statusDateFrom = $_GET['status_date_from'] ?? null;
-$statusDateTo = $_GET['status_date_to'] ?? null;
+$statusAsOfDatetime = $_GET['status_as_of_datetime'] ?? null;
 
 // Determine data scope based on role and view mode
 $showAll = $isAdmin && ($viewMode === 'all' || $viewMode === 'unassigned');
@@ -48,14 +47,14 @@ try {
         $userPerformance = getUserPerformanceStats();
         $assignmentStats = getCustomersByAssignment();
         $allUsers = getAllUsers();
-        $statusOverview = getCustomerStatusSummary($userId, $showAll, $statusDateFrom, $statusDateTo);
+        $statusOverview = getCustomerStatusSummary($userId, $showAll, $statusAsOfDatetime);
     } else {
         // Regular user dashboard data
         $customerStats = getDashboardCustomerStats($currentUserId, false);
         $customerData = getDashboardCustomers(10, $currentUserId, false, 'recent');
         $upcomingFollowups = getDashboardFollowups(5, $currentUserId, false);
         $recentActivities = getDashboardActivities(5, $currentUserId, false);
-        $statusOverview = getCustomerStatusSummary($currentUserId, false, $statusDateFrom, $statusDateTo);
+        $statusOverview = getCustomerStatusSummary($currentUserId, false, $statusAsOfDatetime);
     }
 } catch (Exception $e) {
     die("Error loading dashboard data: " . $e->getMessage());
@@ -179,17 +178,13 @@ require_once 'includes/header.php';
                     <?php endif; ?>
                     
                     <div class="filter-row">
-                        <label for="status_date_from"><?php echo __('from'); ?>:</label>
-                        <input type="date" name="status_date_from" id="status_date_from" 
-                               value="<?php echo $_GET['status_date_from'] ?? date('Y-m-d', strtotime('-30 days')); ?>" 
-                               class="form-control form-control-sm">
-                        
-                        <label for="status_date_to"><?php echo __('to'); ?>:</label>
-                        <input type="date" name="status_date_to" id="status_date_to" 
-                               value="<?php echo $_GET['status_date_to'] ?? date('Y-m-d'); ?>" 
+                        <label for="status_as_of_datetime"><?php echo __('as_of_time'); ?>:</label>
+                        <input type="datetime-local" name="status_as_of_datetime" id="status_as_of_datetime" 
+                               value="<?php echo $statusAsOfDatetime ? date('Y-m-d\TH:i', strtotime($statusAsOfDatetime)) : date('Y-m-d\TH:i'); ?>" 
                                class="form-control form-control-sm">
                         
                         <button type="submit" class="btn btn-sm btn-primary"><?php echo __('apply'); ?></button>
+                        <button type="button" class="btn btn-sm btn-info" onclick="setCurrentTimeInDashboard()"><?php echo __('now'); ?></button>
                     </div>
                 </form>
             </div>
@@ -763,6 +758,18 @@ function showStatusFilters() {
     } else {
         filters.style.display = 'none';
     }
+}
+
+function setCurrentTimeInDashboard() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    
+    const currentDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+    document.getElementById('status_as_of_datetime').value = currentDateTime;
 }
 </script>
 

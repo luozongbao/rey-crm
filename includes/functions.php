@@ -4097,14 +4097,20 @@ function getCustomerStatusOverview($user_id = null, $show_all = false) {
 }
 
 /**
- * Get detailed customer status summary with time filtering
+ * Get detailed customer status summary at a specific point in time
  */
-function getCustomerStatusSummary($user_id = null, $show_all = false, $date_from = null, $date_to = null) {
+function getCustomerStatusSummary($user_id = null, $show_all = false, $as_of_datetime = null) {
     global $pdo;
     
     try {
-        $whereClause = ['1=1'];
+        $whereClause = ['c.created_at <= :as_of_datetime'];
         $params = [];
+        
+        // Default to current time if not specified
+        if (!$as_of_datetime) {
+            $as_of_datetime = date('Y-m-d H:i:s');
+        }
+        $params[':as_of_datetime'] = $as_of_datetime;
         
         // Handle user filtering
         if (!$show_all && $user_id) {
@@ -4112,21 +4118,14 @@ function getCustomerStatusSummary($user_id = null, $show_all = false, $date_from
             $params[':user_id'] = $user_id;
         }
         
-        // Handle date filtering (filter by customer creation date)
-        if ($date_from && $date_to) {
-            $whereClause[] = 'DATE(c.created_at) BETWEEN :date_from AND :date_to';
-            $params[':date_from'] = $date_from;
-            $params[':date_to'] = $date_to;
-        }
-        
         $sql = "SELECT 
                     COALESCE(cs.status_key, 'unassigned') as status_key,
                     COALESCE(cst.name, cs.status_key, 'Unassigned') as status_name,
                     COUNT(*) as count,
-                    COUNT(CASE WHEN c.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) as new_this_week,
-                    COUNT(CASE WHEN c.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as new_this_month,
+                    COUNT(CASE WHEN c.created_at >= DATE_SUB(:as_of_datetime_week, INTERVAL 7 DAY) THEN 1 END) as new_this_week,
+                    COUNT(CASE WHEN c.created_at >= DATE_SUB(:as_of_datetime_month, INTERVAL 30 DAY) THEN 1 END) as new_this_month,
                     MAX(c.created_at) as latest_customer_date,
-                    ROUND(AVG(DATEDIFF(NOW(), c.created_at)), 0) as avg_days_in_status
+                    ROUND(AVG(DATEDIFF(:as_of_datetime_avg, c.created_at)), 0) as avg_days_in_status
                 FROM customers c
                 LEFT JOIN customer_statuses cs ON c.status_id = cs.id
                 LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id 
@@ -4136,6 +4135,9 @@ function getCustomerStatusSummary($user_id = null, $show_all = false, $date_from
                 ORDER BY cs.sort_order ASC, COUNT(*) DESC";
         
         $params[':language'] = getCurrentLanguage();
+        $params[':as_of_datetime_week'] = $as_of_datetime;
+        $params[':as_of_datetime_month'] = $as_of_datetime;
+        $params[':as_of_datetime_avg'] = $as_of_datetime;
         
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
@@ -4148,21 +4150,20 @@ function getCustomerStatusSummary($user_id = null, $show_all = false, $date_from
 }
 
 /**
- * Get all users' status summaries for admin view
+ * Get all users' status summaries for admin view at a specific point in time
  */
-function getAllUsersStatusSummary($date_from = null, $date_to = null) {
+function getAllUsersStatusSummary($as_of_datetime = null) {
     global $pdo;
     
     try {
-        $whereClause = ['1=1'];
+        $whereClause = ['c.created_at <= :as_of_datetime'];
         $params = [];
         
-        // Handle date filtering
-        if ($date_from && $date_to) {
-            $whereClause[] = 'DATE(c.created_at) BETWEEN :date_from AND :date_to';
-            $params[':date_from'] = $date_from;
-            $params[':date_to'] = $date_to;
+        // Default to current time if not specified
+        if (!$as_of_datetime) {
+            $as_of_datetime = date('Y-m-d H:i:s');
         }
+        $params[':as_of_datetime'] = $as_of_datetime;
         
         $sql = "SELECT 
                     u.user_id,

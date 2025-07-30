@@ -9,12 +9,11 @@ requireAdmin();
 // Get parameters
 $view_mode = $_GET['view_mode'] ?? 'all_users';
 $user_id = $_GET['user_id'] ?? '';
-$date_from = $_GET['date_from'] ?? date('Y-m-d', strtotime('-30 days'));
-$date_to = $_GET['date_to'] ?? date('Y-m-d');
+$as_of_datetime = $_GET['as_of_datetime'] ?? date('Y-m-d H:i:s');
 
 // Set content type for CSV download
 header('Content-Type: text/csv');
-header('Content-Disposition: attachment; filename="status_summary_' . date('Y-m-d') . '.csv"');
+header('Content-Disposition: attachment; filename="status_summary_' . date('Y-m-d_H-i') . '.csv"');
 
 // Create file pointer
 $output = fopen('php://output', 'w');
@@ -22,13 +21,13 @@ $output = fopen('php://output', 'w');
 if ($view_mode === 'single_user' && !empty($user_id)) {
     // Single user export
     $user_info = getUserWorkloadStats($user_id);
-    $status_summary = getCustomerStatusSummary($user_id, false, $date_from, $date_to);
+    $status_summary = getCustomerStatusSummary($user_id, false, $as_of_datetime);
     
     // CSV Headers
     fputcsv($output, [
         'Export Type', 'Single User Status Summary',
         'User', $user_info['username'] ?? 'Unknown',
-        'Period', $date_from . ' to ' . $date_to,
+        'As of Time', $as_of_datetime,
         'Generated', date('Y-m-d H:i:s')
     ]);
     
@@ -56,13 +55,13 @@ if ($view_mode === 'single_user' && !empty($user_id)) {
     
 } else {
     // All users export
-    $all_users_summary = getAllUsersStatusSummary($date_from, $date_to);
+    $all_users_summary = getAllUsersStatusSummary($as_of_datetime);
     $all_statuses = getCustomerStatusOptions();
     
     // CSV Headers
     fputcsv($output, [
         'Export Type', 'All Users Status Summary',
-        'Period', $date_from . ' to ' . $date_to,
+        'As of Time', $as_of_datetime,
         'Generated', date('Y-m-d H:i:s')
     ]);
     
