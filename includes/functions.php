@@ -553,71 +553,53 @@ function updateCustomer($id, $data) {
         // Check if assigned_user_id is provided and user has permission to assign
         $updateAssignment = isset($data['assigned_user_id']) && canAssignCustomer($id);
         
+        // Build the SQL query based on what needs to be updated
+        $sql = "UPDATE customers SET 
+                company_name = ?, address = ?, country = ?, province = ?,
+                company_type = ?, contact_phone = ?, contact_email = ?, 
+                website = ?, status_id = ?, notes = ?";
+        
+        $params = [
+            $data['company_name'],
+            $data['address'],
+            $data['country'],
+            $data['province'],
+            $data['company_type'],
+            $data['contact_phone'],
+            $data['contact_email'],
+            $data['website'],
+            $new_status_id,
+            $data['notes']
+        ];
+        
+        // Add assignment update if user has permission
         if ($updateAssignment) {
             // Convert empty string to NULL for unassignment
             $assigned_user_id = $data['assigned_user_id'];
             if ($assigned_user_id === '' || $assigned_user_id === null) {
                 $assigned_user_id = null;
             }
-            
-            $stmt = $pdo->prepare("UPDATE customers SET 
-                                  company_name = ?, address = ?, country = ?, province = ?,
-                                  company_type = ?, contact_phone = ?, contact_email = ?, 
-                                  website = ?, status_id = ?, notes = ?, assigned_user_id = ?,
-                                  " . ($status_changed ? "status_changed_at = NOW(), status_changed_by = ?, " : "") . "
-                                  updated_at = NOW()
-                                  WHERE customer_id = ?");
-            
-            $params = [
-                $data['company_name'],
-                $data['address'],
-                $data['country'],
-                $data['province'],
-                $data['company_type'],
-                $data['contact_phone'],
-                $data['contact_email'],
-                $data['website'],
-                $new_status_id,
-                $data['notes'],
-                $assigned_user_id
-            ];
-            
-            if ($status_changed) {
-                $params[] = $_SESSION['user_id'];
-            }
-            
-            $params[] = $id;
-            
-        } else {
-            $stmt = $pdo->prepare("UPDATE customers SET 
-                                  company_name = ?, address = ?, country = ?, province = ?,
-                                  company_type = ?, contact_phone = ?, contact_email = ?, 
-                                  website = ?, status_id = ?, notes = ?,
-                                  " . ($status_changed ? "status_changed_at = NOW(), status_changed_by = ?, " : "") . "
-                                  updated_at = NOW()
-                                  WHERE customer_id = ?");
-            
-            $params = [
-                $data['company_name'],
-                $data['address'],
-                $data['country'],
-                $data['province'],
-                $data['company_type'],
-                $data['contact_phone'],
-                $data['contact_email'],
-                $data['website'],
-                $new_status_id,
-                $data['notes']
-            ];
-            
-            if ($status_changed) {
-                $params[] = $_SESSION['user_id'];
-            }
-            
-            $params[] = $id;
+            $sql .= ", assigned_user_id = ?";
+            $params[] = $assigned_user_id;
         }
         
+        // Add status change tracking if status changed
+        if ($status_changed) {
+            $sql .= ", status_changed_at = NOW(), status_changed_by = ?";
+            $params[] = $_SESSION['user_id'];
+        }
+        
+        $sql .= ", updated_at = NOW() WHERE customer_id = ?";
+        $params[] = $id;
+        
+        $stmt = $pdo->prepare($sql);
+        
         $success = $stmt->execute($params);
+        
+        if (!$success) {
+            $errorInfo = $stmt->errorInfo();
+            throw new Exception("SQL execution failed: " . implode(', ', $errorInfo));
+        }
         
         // Record status change in history if status changed
         if ($success && $status_changed) {
@@ -632,7 +614,7 @@ function updateCustomer($id, $data) {
         
     } catch (Exception $e) {
         $pdo->rollBack();
-        error_log("Error updating customer: " . $e->getMessage());
+        logError("Error updating customer ID $id: " . $e->getMessage() . " | Data: " . print_r($data, true));
         return false;
     }
 }
