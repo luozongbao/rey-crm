@@ -65,19 +65,23 @@ function generateReport($type, $start_date, $end_date, $user_filter = '') {
                 break;
                 
             case 'customer_status':
+                $language = getCurrentLanguage();
                 $sql = "SELECT 
-                            c.status,
+                            cs.status_key,
+                            cst.status_name as status,
                             COUNT(*) as count,
                             ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM customers), 2) as percentage,
                             AVG(DATEDIFF(NOW(), c.created_at)) as avg_days_in_system,
                             COUNT(CASE WHEN c.assigned_user_id IS NOT NULL THEN 1 END) as assigned_count,
                             COUNT(CASE WHEN c.assigned_user_id IS NULL THEN 1 END) as unassigned_count
                         FROM customers c
+                        LEFT JOIN customer_statuses cs ON c.status_id = cs.id
+                        LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id AND cst.language = ?
                         WHERE c.created_at BETWEEN ? AND ?
                         $user_condition
-                        GROUP BY c.status
+                        GROUP BY cs.status_key, cst.status_name
                         ORDER BY count DESC";
-                $params = array_merge([$start_date, $end_date], $user_params);
+                $params = array_merge([$language, $start_date, $end_date], $user_params);
                 break;
                 
             case 'activity_summary':
@@ -189,32 +193,38 @@ function generateReport($type, $start_date, $end_date, $user_filter = '') {
                 break;
                 
             case 'customer_conversion':
+                $language = getCurrentLanguage();
                 $sql = "SELECT 
                             c.company_name,
                             c.contact_email,
                             u.username as assigned_to,
                             c.created_at,
-                            c.status,
+                            cst.status_name as status,
+                            cs.status_key,
                             DATEDIFF(NOW(), c.created_at) as days_in_system,
                             COUNT(ah.history_id) as total_activities,
                             MIN(ah.action_datetime) as first_contact,
                             MAX(ah.action_datetime) as last_contact
                         FROM customers c
                         LEFT JOIN users u ON c.assigned_user_id = u.user_id
+                        LEFT JOIN customer_statuses cs ON c.status_id = cs.id
+                        LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id AND cst.language = ?
                         LEFT JOIN action_history ah ON c.customer_id = ah.customer_id
                             AND ah.action_datetime BETWEEN ? AND ?
                         WHERE (c.created_at BETWEEN ? AND ? OR c.updated_at BETWEEN ? AND ?)
                         $user_condition
                         GROUP BY c.customer_id
                         ORDER BY days_in_system DESC";
-                $params = array_merge([$start_date, $end_date, $start_date, $end_date, $start_date, $end_date], $user_params);
+                $params = array_merge([$language, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date], $user_params);
                 break;
                 
             case 'inactive_customers':
+                $language = getCurrentLanguage();
                 $sql = "SELECT 
                             c.company_name,
                             c.contact_email,
-                            c.status,
+                            cst.status_name as status,
+                            cs.status_key,
                             u.username as assigned_to,
                             c.created_at,
                             last_activity.last_activity_date,
@@ -222,6 +232,8 @@ function generateReport($type, $start_date, $end_date, $user_filter = '') {
                             COUNT(ah.history_id) as total_activities
                         FROM customers c
                         LEFT JOIN users u ON c.assigned_user_id = u.user_id
+                        LEFT JOIN customer_statuses cs ON c.status_id = cs.id
+                        LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id AND cst.language = ?
                         LEFT JOIN action_history ah ON c.customer_id = ah.customer_id
                         LEFT JOIN (
                             SELECT customer_id, MAX(action_datetime) as last_activity_date
@@ -232,7 +244,7 @@ function generateReport($type, $start_date, $end_date, $user_filter = '') {
                         $user_condition
                         GROUP BY c.customer_id
                         ORDER BY days_since_activity DESC";
-                $params = array_merge([], $user_params);
+                $params = array_merge([$language], $user_params);
                 break;
                 
             case 'response_time':
@@ -285,16 +297,18 @@ function generateReport($type, $start_date, $end_date, $user_filter = '') {
                 break;
                 
             case 'assignment_distribution':
+                $language = getCurrentLanguage();
                 $sql = "SELECT 
                             u.username,
                             COUNT(c.customer_id) as total_customers,
-                            COUNT(CASE WHEN c.status = 'Active' THEN 1 END) as active_customers,
-                            COUNT(CASE WHEN c.status = 'Prospect' THEN 1 END) as prospect_customers,
-                            COUNT(CASE WHEN c.status = 'Inactive' THEN 1 END) as inactive_customers,
+                            COUNT(CASE WHEN cs.status_key = 'active_customer' THEN 1 END) as active_customers,
+                            COUNT(CASE WHEN cs.status_key = 'prospect' THEN 1 END) as prospect_customers,
+                            COUNT(CASE WHEN cs.status_key = 'lost_customer' THEN 1 END) as inactive_customers,
                             ROUND(COUNT(c.customer_id) / (SELECT COUNT(*) FROM customers WHERE assigned_user_id IS NOT NULL) * 100, 2) as percentage_of_total,
                             COUNT(CASE WHEN c.created_at BETWEEN ? AND ? THEN 1 END) as new_assignments_period
                         FROM users u
                         LEFT JOIN customers c ON u.user_id = c.assigned_user_id
+                        LEFT JOIN customer_statuses cs ON c.status_id = cs.id
                         WHERE u.role != 'admin' $user_condition
                         GROUP BY u.user_id, u.username
                         ORDER BY total_customers DESC";

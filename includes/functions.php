@@ -33,17 +33,23 @@ function getAllCustomers() {
 
 function getCustomerById($id) {
     global $pdo;
+    $current_locale = getCurrentLanguage();
+    
     $stmt = $pdo->prepare("SELECT c.*, 
                           CONCAT_WS(', ', 
                               c.address,
                               NULLIF(c.province, ''),
                               NULLIF(c.country, '')
                           ) as full_address,
-                          u.username as assigned_to_username
+                          u.username as assigned_to_username,
+                          cs.status_key,
+                          cst.name as status_name
                           FROM customers c
                           LEFT JOIN users u ON c.assigned_user_id = u.user_id
+                          LEFT JOIN customer_statuses cs ON c.status_id = cs.id
+                          LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id AND cst.locale = ?
                           WHERE c.customer_id = ?");
-    $stmt->execute([$id]);
+    $stmt->execute([$current_locale, $id]);
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
@@ -56,13 +62,21 @@ function getContactPersons($customer_id) {
 
 function getActionHistory($customer_id) {
     global $pdo;
-    $stmt = $pdo->prepare("SELECT ah.*, cp.name as contact_name 
-                          FROM action_history ah
-                          LEFT JOIN contact_persons cp ON ah.contact_id = cp.contact_id
-                          WHERE ah.customer_id = ? 
-                          ORDER BY ah.action_datetime DESC");
-    $stmt->execute([$customer_id]);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    try {
+        $stmt = $pdo->prepare("SELECT ah.*, cp.name as contact_name 
+                              FROM action_history ah
+                              LEFT JOIN contact_persons cp ON ah.contact_id = cp.contact_id
+                              WHERE ah.customer_id = ? 
+                              ORDER BY ah.action_datetime DESC");
+        $stmt->execute([$customer_id]);
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return $result;
+    } catch (PDOException $e) {
+        error_log("getActionHistory error: " . $e->getMessage());
+        return [];
+    }
 }
 
 function getUpcomingFollowups($limit = 5) {
@@ -259,10 +273,22 @@ function getAllLocations($showOnlyMine = false) {
 function getFilteredCustomers($conditions = [], $params = []) {
     global $pdo;
     
+    $language = getCurrentLanguage();
+    
     $query = "SELECT c.*, 
              (SELECT MAX(action_datetime) FROM action_history WHERE customer_id = c.customer_id) as last_contact,
-             (SELECT status FROM customers WHERE customer_id = c.customer_id) as status
-             FROM customers c";
+             cs.status_key,
+             cst.status_name
+             FROM customers c
+             LEFT JOIN customer_statuses cs ON c.status_id = cs.id
+             LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id AND cst.locale = ?";
+    
+    // Add language parameter
+    if (empty($params)) {
+        $params = [$language];
+    } else {
+        array_unshift($params, $language);
+    }
     
     if (!empty($conditions)) {
         $query .= " WHERE " . implode(" AND ", $conditions);
@@ -311,7 +337,7 @@ function getPaginatedCustomers($page = 1, $perPage = 10, $search = '', $location
     // Calculate offset
     $offset = ($page - 1) * $perPage;
     
-    // Build query
+    // Build query with status joins
     $query = "SELECT c.*, 
              (SELECT MAX(action_datetime) FROM action_history WHERE customer_id = c.customer_id) as last_contact,
              CONCAT_WS(', ', 
@@ -323,14 +349,23 @@ function getPaginatedCustomers($page = 1, $perPage = 10, $search = '', $location
                 NULLIF(c.province, ''),
                 NULLIF(c.country, '')
             ) as full_address,
-             u.username as assigned_to_username
+             u.username as assigned_to_username,
+             cs.sort_order,
+             cs.status_key,
+             cst.name as status_name
              FROM customers c
-             LEFT JOIN users u ON c.assigned_user_id = u.user_id";
+             LEFT JOIN users u ON c.assigned_user_id = u.user_id
+             LEFT JOIN customer_statuses cs ON c.status_id = cs.id
+             LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id AND cst.locale = :locale";
     
-    $countQuery = "SELECT COUNT(*) FROM customers c";
+    $countQuery = "SELECT COUNT(*) FROM customers c
+                   LEFT JOIN customer_statuses cs ON c.status_id = cs.id";
     
     $conditions = [];
     $params = [];
+    
+    // Add locale parameter for status translations
+    $params[':locale'] = getCurrentLanguage();
     
     // Add user assignment filter
     if ($showOnlyMine) {
@@ -363,13 +398,21 @@ function getPaginatedCustomers($page = 1, $perPage = 10, $search = '', $location
         $countQuery .= $whereClause;
     }
     
+    // Handle sorting - map 'status' to proper sort column
+    $sortColumn = $sort;
+    if ($sort === 'status') {
+        $sortColumn = 'cs.sort_order'; // Sort by status order, not name
+    }
+    
     // Add sorting and pagination
-    $query .= " ORDER BY $sort $order LIMIT :limit OFFSET :offset";
+    $query .= " ORDER BY $sortColumn $order LIMIT :limit OFFSET :offset";
     
     // Get total count
     $countStmt = $pdo->prepare($countQuery);
     foreach ($params as $key => $val) {
-        $countStmt->bindValue($key, $val);
+        if ($key !== ':locale') { // Don't bind locale for count query since it doesn't have the join
+            $countStmt->bindValue($key, $val);
+        }
     }
     $countStmt->execute();
     $total = $countStmt->fetchColumn();
@@ -413,50 +456,110 @@ function buildUrlWithState($additionalParams = []) {
 
 function addCustomer($data) {
     global $pdo;
-    $stmt = $pdo->prepare("INSERT INTO customers 
-                          (company_name, address, country, province, company_type, contact_phone, 
-                           contact_email, website, status, notes, assigned_user_id, created_by_user_id) 
-                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     
-    // Set assignment fields - assign to current user by default
-    $assigned_user_id = $data['assigned_user_id'] ?? $_SESSION['user_id'];
-    $created_by_user_id = $_SESSION['user_id'];
+    require_once __DIR__ . '/customer_status_functions.php';
     
-    return $stmt->execute([
-        $data['company_name'],
-        $data['address'],
-        $data['country'],
-        $data['province'],
-        $data['company_type'],
-        $data['contact_phone'],
-        $data['contact_email'],
-        $data['website'],
-        $data['status'],
-        $data['notes'],
-        $assigned_user_id,
-        $created_by_user_id
-    ]);
+    try {
+        $pdo->beginTransaction();
+        
+        // Get status_id from status_key
+        $status_key = $data['status_key'] ?? 'prospect';
+        $status = getCustomerStatusByKey($status_key);
+        if (!$status) {
+            throw new Exception("Invalid status key: " . $status_key);
+        }
+        
+        $stmt = $pdo->prepare("INSERT INTO customers 
+                              (company_name, address, country, province, company_type, contact_phone, 
+                               contact_email, website, status_id, status_changed_at, status_changed_by, 
+                               notes, assigned_user_id, created_by_user_id) 
+                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?)");
+        
+        // Set assignment fields - assign to current user by default
+        $assigned_user_id = $data['assigned_user_id'] ?? $_SESSION['user_id'];
+        $created_by_user_id = $_SESSION['user_id'];
+        
+        $success = $stmt->execute([
+            $data['company_name'],
+            $data['address'],
+            $data['country'],
+            $data['province'],
+            $data['company_type'],
+            $data['contact_phone'],
+            $data['contact_email'],
+            $data['website'],
+            $status['id'],
+            $created_by_user_id,
+            $data['notes'],
+            $assigned_user_id,
+            $created_by_user_id
+        ]);
+        
+        if ($success) {
+            $customer_id = $pdo->lastInsertId();
+            
+            // Record initial status in history
+            $stmt = $pdo->prepare("INSERT INTO customer_status_history 
+                                  (customer_id, from_status_id, to_status_id, changed_by, changed_at, notes) 
+                                  VALUES (?, NULL, ?, ?, NOW(), 'Initial customer creation')");
+            $stmt->execute([$customer_id, $status['id'], $created_by_user_id]);
+        }
+        
+        $pdo->commit();
+        return $success;
+        
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        error_log("Error adding customer: " . $e->getMessage());
+        return false;
+    }
 }
 
 function updateCustomer($id, $data) {
     global $pdo;
     
-    // Check if assigned_user_id is provided and user has permission to assign
-    $updateAssignment = isset($data['assigned_user_id']) && canAssignCustomer($id);
+    require_once __DIR__ . '/customer_status_functions.php';
     
-    if ($updateAssignment) {
-        // Convert empty string to NULL for unassignment
-        $assigned_user_id = $data['assigned_user_id'];
-        if ($assigned_user_id === '' || $assigned_user_id === null) {
-            $assigned_user_id = null;
+    try {
+        $pdo->beginTransaction();
+        
+        // Get current customer data
+        $current_customer = getCustomerById($id);
+        if (!$current_customer) {
+            throw new Exception("Customer not found");
         }
         
-        $stmt = $pdo->prepare("UPDATE customers SET 
-                              company_name = ?, address = ?, country = ?, province = ?,
-                              company_type = ?, contact_phone = ?, contact_email = ?, 
-                              website = ?, status = ?, notes = ?, assigned_user_id = ?
-                              WHERE customer_id = ?");
-        return $stmt->execute([
+        // Handle status change if provided
+        $status_changed = false;
+        $new_status_id = $current_customer['status_id'];
+        
+        if (isset($data['status_key'])) {
+            $new_status = getCustomerStatusByKey($data['status_key']);
+            if (!$new_status) {
+                throw new Exception("Invalid status key: " . $data['status_key']);
+            }
+            
+            if ($new_status['id'] != $current_customer['status_id']) {
+                // Validate status transition
+                if (!isValidStatusTransition($current_customer['status_key'], $data['status_key'])) {
+                    throw new Exception("Invalid status transition");
+                }
+                
+                $new_status_id = $new_status['id'];
+                $status_changed = true;
+            }
+        }
+        
+        // Check if assigned_user_id is provided and user has permission to assign
+        $updateAssignment = isset($data['assigned_user_id']) && canAssignCustomer($id);
+        
+        // Build the SQL query based on what needs to be updated
+        $sql = "UPDATE customers SET 
+                company_name = ?, address = ?, country = ?, province = ?,
+                company_type = ?, contact_phone = ?, contact_email = ?, 
+                website = ?, status_id = ?, notes = ?";
+        
+        $params = [
             $data['company_name'],
             $data['address'],
             $data['country'],
@@ -465,64 +568,95 @@ function updateCustomer($id, $data) {
             $data['contact_phone'],
             $data['contact_email'],
             $data['website'],
-            $data['status'],
-            $data['notes'],
-            $assigned_user_id,
-            $id
-        ]);
-    } else {
-        $stmt = $pdo->prepare("UPDATE customers SET 
-                              company_name = ?, address = ?, country = ?, province = ?,
-                              company_type = ?, contact_phone = ?, contact_email = ?, 
-                              website = ?, status = ?, notes = ? 
-                              WHERE customer_id = ?");
-        return $stmt->execute([
-            $data['company_name'],
-            $data['address'],
-            $data['country'],
-            $data['province'],
-            $data['company_type'],
-            $data['contact_phone'],
-            $data['contact_email'],
-            $data['website'],
-            $data['status'],
-            $data['notes'],
-            $id
-        ]);
+            $new_status_id,
+            $data['notes']
+        ];
+        
+        // Add assignment update if user has permission
+        if ($updateAssignment) {
+            // Convert empty string to NULL for unassignment
+            $assigned_user_id = $data['assigned_user_id'];
+            if ($assigned_user_id === '' || $assigned_user_id === null) {
+                $assigned_user_id = null;
+            }
+            $sql .= ", assigned_user_id = ?";
+            $params[] = $assigned_user_id;
+        }
+        
+        // Add status change tracking if status changed
+        if ($status_changed) {
+            $sql .= ", status_changed_at = NOW(), status_changed_by = ?";
+            $params[] = $_SESSION['user_id'];
+        }
+        
+        $sql .= ", updated_at = NOW() WHERE customer_id = ?";
+        $params[] = $id;
+        
+        $stmt = $pdo->prepare($sql);
+        
+        $success = $stmt->execute($params);
+        
+        if (!$success) {
+            $errorInfo = $stmt->errorInfo();
+            throw new Exception("SQL execution failed: " . implode(', ', $errorInfo));
+        }
+        
+        // Record status change in history if status changed
+        if ($success && $status_changed) {
+            $stmt = $pdo->prepare("INSERT INTO customer_status_history 
+                                  (customer_id, from_status_id, to_status_id, changed_by, changed_at, notes) 
+                                  VALUES (?, ?, ?, ?, NOW(), 'Status updated via customer form')");
+            $stmt->execute([$id, $current_customer['status_id'], $new_status_id, $_SESSION['user_id']]);
+        }
+        
+        $pdo->commit();
+        return $success;
+        
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        logError("Error updating customer ID $id: " . $e->getMessage() . " | Data: " . print_r($data, true));
+        return false;
     }
 }
 
 function getCustomerStatusCounts() {
     global $pdo;
-    $stmt = $pdo->query("SELECT status, COUNT(*) as count FROM customers GROUP BY status");
+    
+    $current_locale = getCurrentLanguage();
+    
+    $stmt = $pdo->prepare("SELECT cs.status_key, cst.name, COUNT(c.customer_id) as count 
+                          FROM customer_statuses cs
+                          LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id AND cst.locale = ?
+                          LEFT JOIN customers c ON cs.id = c.status_id
+                          WHERE cs.is_active = TRUE
+                          GROUP BY cs.id, cs.status_key, cst.name
+                          ORDER BY cs.sort_order");
+    $stmt->execute([$current_locale]);
     $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Ensure all statuses are represented
-    $counts = [
-        'Active' => 0,
-        'Inactive' => 0,
-        'Prospect' => 0
-    ];
-    
+    $counts = [];
     foreach ($results as $row) {
-        $counts[$row['status']] = $row['count'];
+        $counts[$row['status_key']] = $row['count'];
     }
     
     return $counts;
 }
 
-function getCustomerStatusOptions() {
-    global $pdo;
-    $sql = "SHOW COLUMNS FROM customers WHERE Field = 'status'";
-    $stmt = $pdo->query($sql);
-    $row = $stmt->fetch();
-    
-    if ($row && preg_match("/^enum\((.*)\)$/", $row['Type'], $matches)) {
-        $values = str_getcsv(str_replace("'", '', $matches[1]));
-        return $values;
+function getCustomerStatusOptions($locale = null) {
+    if ($locale === null) {
+        $locale = getCurrentLanguage();
     }
     
-    return [];
+    require_once __DIR__ . '/customer_status_functions.php';
+    
+    $statuses = getCustomerStatuses($locale);
+    $options = [];
+    
+    foreach ($statuses as $status) {
+        $options[$status['status_key']] = $status['name'];
+    }
+    
+    return $options;
 }
 
 function getSortedCustomers($search = '', $location = '', $sort = 'created_at', $order = 'desc') {
@@ -576,15 +710,19 @@ function getSortedCustomers($search = '', $location = '', $sort = 'created_at', 
 function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '', $sort = 'follow_up_datetime', $order = 'asc', $customer_status = '', $showOnlyMine = true) {
     global $pdo;
     
-    $query = "SELECT ah.*, c.company_name, c.status as customer_status, c.province, c.customer_id,
+    $current_locale = getCurrentLanguage();
+    
+    $query = "SELECT ah.*, c.company_name, cs.status_key, cst.name as customer_status, c.province, c.customer_id,
                      u.username as created_by_username, au.username as assigned_username
               FROM action_history ah
               JOIN customers c ON ah.customer_id = c.customer_id
+              LEFT JOIN customer_statuses cs ON c.status_id = cs.id
+              LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id AND cst.locale = :locale
               LEFT JOIN users u ON ah.user_id = u.user_id
               LEFT JOIN users au ON c.assigned_user_id = au.user_id
               WHERE 1=1";
     
-    $params = [];
+    $params = [':locale' => $current_locale];
     
     // Add user activity filter - show followups created by current user
     if ($showOnlyMine) {
@@ -609,10 +747,20 @@ function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '',
     
     if (!empty($customer_status)) {
         if ($customer_status === 'All Except Not Qualified') {
-            $query .= " AND c.status != 'Not Qualified'";
+            $query .= " AND cs.status_key != 'not_qualified'";
         } else {
-            $query .= " AND c.status = :customer_status";
-            $params[':customer_status'] = $customer_status;
+            // Convert old status names to status keys for backward compatibility
+            $status_mapping = [
+                'Prospect' => 'prospect',
+                'Qualified' => 'qualified', 
+                'Not Qualified' => 'not_qualified',
+                'New Customer' => 'new_customer',
+                'Active Customer' => 'active_customer',
+                'Lost Customer' => 'lost_customer'
+            ];
+            $status_key = $status_mapping[$customer_status] ?? $customer_status;
+            $query .= " AND cs.status_key = :customer_status";
+            $params[':customer_status'] = $status_key;
         }
     }
     
@@ -620,9 +768,9 @@ function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '',
     $sort = in_array($sort, $validSorts) ? $sort : 'follow_up_datetime';
     $order = in_array($order, ['asc', 'desc']) ? $order : 'asc';
     
-    // Handle sorting by customer_status (which is actually c.status in the query)
+    // Handle sorting by customer_status (which is now cst.name in the query)
     if ($sort === 'customer_status') {
-        $sort = 'c.status';
+        $sort = 'cst.name';
     } elseif ($sort === 'contact_channel') {
         $sort = 'ah.contact_channel';
     }
@@ -642,15 +790,19 @@ function getFilteredFollowups($customer_id = '', $date_from = '', $date_to = '',
 function getFilteredActivities($customer_id = '', $date_from = '', $date_to = '', $sort = 'action_datetime', $order = 'desc', $customer_status = '', $showOnlyMine = true) {
     global $pdo;
     
-    $query = "SELECT ah.*, c.company_name, c.status as customer_status, c.province, c.customer_id,
+    $current_locale = getCurrentLanguage();
+    
+    $query = "SELECT ah.*, c.company_name, cs.status_key, cst.name as customer_status, c.province, c.customer_id,
                      u.username as created_by_username, au.username as assigned_username
               FROM action_history ah
               JOIN customers c ON ah.customer_id = c.customer_id
+              LEFT JOIN customer_statuses cs ON c.status_id = cs.id
+              LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id AND cst.locale = :locale
               LEFT JOIN users u ON ah.user_id = u.user_id
               LEFT JOIN users au ON c.assigned_user_id = au.user_id
               WHERE 1=1";
     
-    $params = [];
+    $params = [':locale' => $current_locale];
     
     // Add user activity filter - show activities created by current user
     if ($showOnlyMine) {
@@ -675,10 +827,20 @@ function getFilteredActivities($customer_id = '', $date_from = '', $date_to = ''
     
     if (!empty($customer_status)) {
         if ($customer_status === 'All Except Not Qualified') {
-            $query .= " AND c.status != 'Not Qualified'";
+            $query .= " AND cs.status_key != 'not_qualified'";
         } else {
-            $query .= " AND c.status = :customer_status";
-            $params[':customer_status'] = $customer_status;
+            // Convert old status names to status keys for backward compatibility
+            $status_mapping = [
+                'Prospect' => 'prospect',
+                'Qualified' => 'qualified', 
+                'Not Qualified' => 'not_qualified',
+                'New Customer' => 'new_customer',
+                'Active Customer' => 'active_customer',
+                'Lost Customer' => 'lost_customer'
+            ];
+            $status_key = $status_mapping[$customer_status] ?? $customer_status;
+            $query .= " AND cs.status_key = :customer_status";
+            $params[':customer_status'] = $status_key;
         }
     }
     
@@ -686,9 +848,9 @@ function getFilteredActivities($customer_id = '', $date_from = '', $date_to = ''
     $sort = in_array($sort, $validSorts) ? $sort : 'action_datetime';
     $order = in_array($order, ['asc', 'desc']) ? $order : 'desc';
     
-    // Handle sorting by customer_status (which is actually c.status in the query)
+    // Handle sorting by customer_status (which is now cst.name in the query)
     if ($sort === 'customer_status') {
-        $sort = 'c.status';
+        $sort = 'cst.name';
     } elseif ($sort === 'contact_channel') {
         $sort = 'ah.contact_channel';
     }
@@ -2101,12 +2263,19 @@ function getUnassignedCustomers() {
     global $pdo;
     
     try {
-        $stmt = $pdo->query("
-            SELECT customer_id, company_name, contact_email, country, province, status, created_at
-            FROM customers 
-            WHERE assigned_user_id IS NULL
-            ORDER BY created_at DESC
+        $language = getCurrentLanguage();
+        
+        $stmt = $pdo->prepare("
+            SELECT c.customer_id, c.company_name, c.contact_email, c.country, c.province, c.created_at,
+                   cs.status_key,
+                   cst.status_name
+            FROM customers c
+            LEFT JOIN customer_statuses cs ON c.status_id = cs.id
+            LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id AND cst.locale = ?
+            WHERE c.assigned_user_id IS NULL
+            ORDER BY c.created_at DESC
         ");
+        $stmt->execute([$language]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         logError("Error getting unassigned customers: " . $e->getMessage());
@@ -2175,13 +2344,14 @@ function getUserWorkloadStats($user_id = null) {
                     u.user_id,
                     u.username,
                     COUNT(DISTINCT c.customer_id) as customer_count,
-                    COUNT(DISTINCT CASE WHEN c.status = 'Active' THEN c.customer_id END) as active_customers,
-                    COUNT(DISTINCT CASE WHEN c.status = 'Prospect' THEN c.customer_id END) as prospect_customers,
+                    COUNT(DISTINCT CASE WHEN cs.status_key IN ('active_customer', 'new_customer') THEN c.customer_id END) as active_customers,
+                    COUNT(DISTINCT CASE WHEN cs.status_key = 'prospect' THEN c.customer_id END) as prospect_customers,
                     COUNT(DISTINCT CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND ah.follow_up_datetime IS NOT NULL THEN c.customer_id END) as overdue_followups,
                     COUNT(CASE WHEN ah.action_datetime >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as recent_activities,
                     COUNT(DISTINCT CASE WHEN c2.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN c2.customer_id END) as new_customers_created
                 FROM users u
                 LEFT JOIN customers c ON u.user_id = c.assigned_user_id
+                LEFT JOIN customer_statuses cs ON c.status_id = cs.id
                 LEFT JOIN action_history ah ON c.customer_id = ah.customer_id
                 LEFT JOIN customers c2 ON u.user_id = c2.created_by_user_id
                 WHERE u.user_id = ?
@@ -2196,12 +2366,13 @@ function getUserWorkloadStats($user_id = null) {
                     u.user_id,
                     u.username,
                     COUNT(DISTINCT c.customer_id) as customer_count,
-                    COUNT(DISTINCT CASE WHEN c.status = 'Active' THEN c.customer_id END) as active_customers,
-                    COUNT(DISTINCT CASE WHEN c.status = 'Prospect' THEN c.customer_id END) as prospect_customers,
+                    COUNT(DISTINCT CASE WHEN cs.status_key IN ('active_customer', 'new_customer') THEN c.customer_id END) as active_customers,
+                    COUNT(DISTINCT CASE WHEN cs.status_key = 'prospect' THEN c.customer_id END) as prospect_customers,
                     MAX(ah.action_datetime) as last_activity,
                     COUNT(DISTINCT CASE WHEN c2.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN c2.customer_id END) as new_customers_created
                 FROM users u
                 LEFT JOIN customers c ON u.user_id = c.assigned_user_id
+                LEFT JOIN customer_statuses cs ON c.status_id = cs.id
                 LEFT JOIN action_history ah ON c.customer_id = ah.customer_id
                 LEFT JOIN customers c2 ON u.user_id = c2.created_by_user_id
                 GROUP BY u.user_id, u.username
@@ -2466,12 +2637,13 @@ function getPerformanceMetrics($user_ids = [], $date_range = []) {
                 COUNT(DISTINCT ah.history_id) as total_activities,
                 COUNT(DISTINCT CASE WHEN ah.action_datetime BETWEEN ? AND ? THEN ah.history_id END) as recent_activities,
                 COUNT(DISTINCT CASE WHEN ah.follow_up_datetime < NOW() AND ah.follow_up_datetime IS NOT NULL THEN c.customer_id END) as overdue_followups,
-                COUNT(DISTINCT CASE WHEN c.status = 'Active' THEN c.customer_id END) as active_customers,
-                COUNT(DISTINCT CASE WHEN c.status = 'Prospect' THEN c.customer_id END) as prospect_customers,
+                COUNT(DISTINCT CASE WHEN cs.status_key IN ('active_customer', 'new_customer') THEN c.customer_id END) as active_customers,
+                COUNT(DISTINCT CASE WHEN cs.status_key = 'prospect' THEN c.customer_id END) as prospect_customers,
                 MAX(ah.action_datetime) as last_activity_date,
-                AVG(CASE WHEN c.status = 'Active' THEN 1 ELSE 0 END) * 100 as conversion_rate
+                AVG(CASE WHEN cs.status_key IN ('active_customer', 'new_customer') THEN 1 ELSE 0 END) * 100 as conversion_rate
             FROM users u
             LEFT JOIN customers c ON u.user_id = c.assigned_user_id
+            LEFT JOIN customer_statuses cs ON c.status_id = cs.id
             LEFT JOIN action_history ah ON c.customer_id = ah.customer_id
             WHERE 1=1 $user_condition
             GROUP BY u.user_id, u.username
@@ -2497,11 +2669,12 @@ function getAssignmentDistribution() {
                 u.user_id,
                 u.username,
                 COUNT(c.customer_id) as customer_count,
-                COUNT(CASE WHEN c.status = 'Active' THEN 1 END) as active_count,
-                COUNT(CASE WHEN c.status = 'Prospect' THEN 1 END) as prospect_count,
-                COUNT(CASE WHEN c.status IN ('Inactive', 'Lost Customer') THEN 1 END) as inactive_count
+                COUNT(CASE WHEN cs.status_key IN ('active_customer', 'new_customer') THEN 1 END) as active_count,
+                COUNT(CASE WHEN cs.status_key = 'prospect' THEN 1 END) as prospect_count,
+                COUNT(CASE WHEN cs.status_key = 'lost_customer' THEN 1 END) as inactive_count
             FROM users u
             LEFT JOIN customers c ON u.user_id = c.assigned_user_id
+            LEFT JOIN customer_statuses cs ON c.status_id = cs.id
             GROUP BY u.user_id, u.username
             
             UNION ALL
@@ -2510,11 +2683,12 @@ function getAssignmentDistribution() {
                 NULL as user_id,
                 'Unassigned' as username,
                 COUNT(*) as customer_count,
-                COUNT(CASE WHEN status = 'Active' THEN 1 END) as active_count,
-                COUNT(CASE WHEN status = 'Prospect' THEN 1 END) as prospect_count,
-                COUNT(CASE WHEN status IN ('Inactive', 'Lost Customer') THEN 1 END) as inactive_count
-            FROM customers 
-            WHERE assigned_user_id IS NULL
+                COUNT(CASE WHEN cs.status_key IN ('active_customer', 'new_customer') THEN 1 END) as active_count,
+                COUNT(CASE WHEN cs.status_key = 'prospect' THEN 1 END) as prospect_count,
+                COUNT(CASE WHEN cs.status_key = 'lost_customer' THEN 1 END) as inactive_count
+            FROM customers c
+            LEFT JOIN customer_statuses cs ON c.status_id = cs.id
+            WHERE c.assigned_user_id IS NULL
             
             ORDER BY customer_count DESC
         ");
@@ -2540,19 +2714,29 @@ function getDashboardCustomerStats($user_id = null, $show_all = false, $user_fil
         
         // Handle view mode filtering
         if (!$show_all && $user_id) {
-            $conditions[] = 'assigned_user_id = :user_id';
+            $conditions[] = 'c.assigned_user_id = :user_id';
             $params[':user_id'] = $user_id;
         }
         
         // Handle additional filters for admin
         if ($show_all) {
             if ($user_filter) {
-                $conditions[] = 'assigned_user_id = :user_filter';
+                $conditions[] = 'c.assigned_user_id = :user_filter';
                 $params[':user_filter'] = $user_filter;
             }
             if ($status_filter) {
-                $conditions[] = 'status = :status_filter';
-                $params[':status_filter'] = $status_filter;
+                // Convert old status names to status keys for filtering
+                $status_mapping = [
+                    'Prospect' => 'prospect',
+                    'Qualified' => 'qualified', 
+                    'Not Qualified' => 'not_qualified',
+                    'New Customer' => 'new_customer',
+                    'Active Customer' => 'active_customer',
+                    'Lost Customer' => 'lost_customer'
+                ];
+                $status_key = $status_mapping[$status_filter] ?? $status_filter;
+                $conditions[] = 'cs.status_key = :status_filter';
+                $params[':status_filter'] = $status_key;
             }
         }
         
@@ -2563,11 +2747,12 @@ function getDashboardCustomerStats($user_id = null, $show_all = false, $user_fil
         // Get basic customer counts first
         $sql = "SELECT 
                     COUNT(*) as total_customers,
-                    COUNT(CASE WHEN status IN ('Active Customer', 'New Customer') THEN 1 END) as active_customers,
-                    COUNT(CASE WHEN status = 'Prospect' THEN 1 END) as prospects,
-                    COUNT(CASE WHEN status = 'Qualified' THEN 1 END) as qualified,
-                    COUNT(CASE WHEN status IN ('Lost Customer', 'Closed Lost') THEN 1 END) as lost_customers
-                FROM customers
+                    COUNT(CASE WHEN cs.status_key IN ('active_customer', 'new_customer') THEN 1 END) as active_customers,
+                    COUNT(CASE WHEN cs.status_key = 'prospect' THEN 1 END) as prospects,
+                    COUNT(CASE WHEN cs.status_key = 'qualified' THEN 1 END) as qualified,
+                    COUNT(CASE WHEN cs.status_key = 'lost_customer' THEN 1 END) as lost_customers
+                FROM customers c
+                LEFT JOIN customer_statuses cs ON c.status_id = cs.id
                 $whereClause";
         
         $stmt = $pdo->prepare($sql);
@@ -2577,8 +2762,14 @@ function getDashboardCustomerStats($user_id = null, $show_all = false, $user_fil
         // Get contacted customers count separately to avoid JOIN inflation
         $contactedSql = "SELECT COUNT(DISTINCT c.customer_id) as contacted_customers
                          FROM customers c
-                         INNER JOIN action_history ah ON c.customer_id = ah.customer_id
-                         $whereClause";
+                         INNER JOIN action_history ah ON c.customer_id = ah.customer_id";
+        
+        // Add status table if status filtering is used
+        if ($show_all && $status_filter) {
+            $contactedSql .= " LEFT JOIN customer_statuses cs ON c.status_id = cs.id";
+        }
+        
+        $contactedSql .= " $whereClause";
         
         $contactedStmt = $pdo->prepare($contactedSql);
         $contactedStmt->execute($params);
@@ -2612,8 +2803,9 @@ function getDashboardCustomers($limit = 10, $user_id = null, $show_all = false, 
     global $pdo;
     
     try {
+        $current_locale = getCurrentLanguage();
         $conditions = [];
-        $params = [];
+        $params = [':locale' => $current_locale];
         
         // Handle view mode filtering
         if (!$show_all && $user_id) {
@@ -2630,8 +2822,18 @@ function getDashboardCustomers($limit = 10, $user_id = null, $show_all = false, 
                 $params[':user_filter'] = $user_filter;
             }
             if ($status_filter) {
-                $conditions[] = 'c.status = :status_filter';
-                $params[':status_filter'] = $status_filter;
+                // Convert old status names to status keys for filtering
+                $status_mapping = [
+                    'Prospect' => 'prospect',
+                    'Qualified' => 'qualified', 
+                    'Not Qualified' => 'not_qualified',
+                    'New Customer' => 'new_customer',
+                    'Active Customer' => 'active_customer',
+                    'Lost Customer' => 'lost_customer'
+                ];
+                $status_key = $status_mapping[$status_filter] ?? $status_filter;
+                $conditions[] = 'cs.status_key = :status_filter';
+                $params[':status_filter'] = $status_key;
             }
         }
         
@@ -2658,7 +2860,8 @@ function getDashboardCustomers($limit = 10, $user_id = null, $show_all = false, 
         $sql = "SELECT 
                     c.customer_id,
                     c.company_name,
-                    c.status,
+                    cs.status_key,
+                    cst.name as status,
                     c.contact_email,
                     c.contact_phone,
                     c.assigned_user_id,
@@ -2671,10 +2874,12 @@ function getDashboardCustomers($limit = 10, $user_id = null, $show_all = false, 
                         NULLIF(TRIM(c.country), '')
                     ) as location
                 FROM customers c
+                LEFT JOIN customer_statuses cs ON c.status_id = cs.id
+                LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id AND cst.locale = :locale
                 LEFT JOIN users u ON c.assigned_user_id = u.user_id
                 LEFT JOIN action_history ah ON c.customer_id = ah.customer_id
                 $whereClause
-                GROUP BY c.customer_id, c.company_name, c.status, c.contact_email, 
+                GROUP BY c.customer_id, c.company_name, cs.status_key, cst.name, c.contact_email, 
                          c.contact_phone, c.assigned_user_id, c.created_at, u.username
                 $orderClause
                 LIMIT :limit";
@@ -2704,11 +2909,12 @@ function getUserPerformanceStats() {
                     u.user_id,
                     u.username,
                     COUNT(c.customer_id) as total_customers,
-                    COUNT(CASE WHEN c.status IN ('Active Customer', 'New Customer') THEN 1 END) as active_customers,
+                    COUNT(CASE WHEN cs.status_key IN ('active_customer', 'new_customer') THEN 1 END) as active_customers,
                     COUNT(DISTINCT ah.customer_id) as contacted_customers,
                     COUNT(CASE WHEN ah.action_datetime >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) as recent_activities
                 FROM users u
                 LEFT JOIN customers c ON u.user_id = c.assigned_user_id
+                LEFT JOIN customer_statuses cs ON c.status_id = cs.id
                 LEFT JOIN action_history ah ON c.customer_id = ah.customer_id
                 WHERE u.role != 'admin'
                 GROUP BY u.user_id, u.username
@@ -2956,6 +3162,15 @@ function canUserAccessCustomer($user_id, $customer_id) {
         return true;
     }
     
+    // Convert customer_id to integer to ensure proper comparison
+    $customer_id = (int)$customer_id;
+    $user_id = (int)$user_id;
+    
+    // Validate that customer_id is valid
+    if ($customer_id <= 0) {
+        return false;
+    }
+    
     // Regular users can only access assigned customers
     try {
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM customers WHERE customer_id = ? AND assigned_user_id = ?");
@@ -2971,7 +3186,7 @@ function canUserAccessCustomer($user_id, $customer_id) {
 function validateCustomerAccess($customer_id) {
     if (!canUserAccessCustomer($_SESSION['user_id'], $customer_id)) {
         http_response_code(403);
-        header('Location: /customer_dashboard.php?error=access_denied');
+        header('Location: customers.php?error=access_denied');
         exit;
     }
 }
@@ -3400,78 +3615,65 @@ function getActivitiesDashboardData($date_from, $date_to, $showOnlyMine = true) 
     global $pdo;
     
     try {
-        // Base parameters for all queries
-        $baseParams = [
-            ':date_from' => $date_from,
-            ':date_to' => $date_to
-        ];
-        
-        // User filter for activity queries
-        $userFilter = "";
-        $activityParams = $baseParams;
-        if ($showOnlyMine) {
-            $userFilter = " AND ah.user_id = :current_user_id";
-            $activityParams[':current_user_id'] = $_SESSION['user_id'];
-        }
-        
         $data = [];
+        $current_locale = getCurrentLanguage();
+        $current_user_id = $_SESSION['user_id'];
+        
+        // Base SQL conditions
+        $userCondition = $showOnlyMine ? " AND ah.user_id = $current_user_id" : "";
         
         // Total activities count
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as count
             FROM action_history ah
-            WHERE DATE(ah.action_datetime) BETWEEN :date_from AND :date_to
-            $userFilter
+            WHERE DATE(ah.action_datetime) BETWEEN ? AND ?
+            $userCondition
         ");
-        $stmt->execute($activityParams);
+        $stmt->execute([$date_from, $date_to]);
         $data['total_activities'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
         
         // Total followups count
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as count
             FROM action_history ah
-            WHERE DATE(ah.follow_up_datetime) BETWEEN :date_from AND :date_to
-            $userFilter
+            WHERE DATE(ah.follow_up_datetime) BETWEEN ? AND ?
+            $userCondition
         ");
-        $stmt->execute($activityParams);
+        $stmt->execute([$date_from, $date_to]);
         $data['total_followups'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
         
         // Completed followups (activities where follow_up_datetime is in the past)
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as count
             FROM action_history ah
-            WHERE DATE(ah.follow_up_datetime) BETWEEN :date_from AND :date_to
+            WHERE DATE(ah.follow_up_datetime) BETWEEN ? AND ?
             AND ah.follow_up_datetime < NOW()
-            $userFilter
+            $userCondition
         ");
-        $stmt->execute($activityParams);
+        $stmt->execute([$date_from, $date_to]);
         $data['completed_followups'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
         
         // Overdue followups
-        $overdueParams = [':date_from' => $date_from];
-        if ($showOnlyMine) {
-            $overdueParams[':current_user_id'] = $_SESSION['user_id'];
-        }
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as count
             FROM action_history ah
             WHERE ah.follow_up_datetime < NOW()
-            AND ah.follow_up_datetime >= :date_from
-            $userFilter
+            AND ah.follow_up_datetime >= ?
+            $userCondition
         ");
-        $stmt->execute($overdueParams);
+        $stmt->execute([$date_from]);
         $data['overdue_followups'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
         
         // Contact channel statistics
         $stmt = $pdo->prepare("
             SELECT ah.contact_channel, COUNT(*) as count
             FROM action_history ah
-            WHERE DATE(ah.action_datetime) BETWEEN :date_from AND :date_to
-            $userFilter
+            WHERE DATE(ah.action_datetime) BETWEEN ? AND ?
+            $userCondition
             GROUP BY ah.contact_channel
             ORDER BY count DESC
         ");
-        $stmt->execute($activityParams);
+        $stmt->execute([$date_from, $date_to]);
         $data['contact_channel_stats'] = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         
         // Timeline statistics (daily breakdown)
@@ -3481,76 +3683,59 @@ function getActivitiesDashboardData($date_from, $date_to, $showOnlyMine = true) 
                 COUNT(CASE WHEN ah.action_datetime IS NOT NULL THEN 1 END) as activities_count,
                 COUNT(CASE WHEN DATE(ah.follow_up_datetime) = DATE(ah.action_datetime) THEN 1 END) as followups_count
             FROM action_history ah
-            WHERE DATE(ah.action_datetime) BETWEEN :date_from AND :date_to
-            $userFilter
+            WHERE DATE(ah.action_datetime) BETWEEN ? AND ?
+            $userCondition
             GROUP BY DATE(ah.action_datetime)
             ORDER BY date ASC
         ");
-        $stmt->execute($activityParams);
+        $stmt->execute([$date_from, $date_to]);
         $data['timeline_stats'] = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         
         // User performance (only for admin viewing all data)
         if (!$showOnlyMine) {
-            $userPerfParams = [
-                ':date_from' => $date_from,
-                ':date_to' => $date_to,
-                ':date_from2' => $date_from,
-                ':date_to2' => $date_to,
-                ':current_user_id' => $_SESSION['user_id']
-            ];
-            
             $stmt = $pdo->prepare("
                 SELECT 
                     u.username,
                     u.user_id,
                     COUNT(DISTINCT ah.history_id) as activities_count,
-                    COUNT(DISTINCT CASE WHEN ah.follow_up_datetime BETWEEN :date_from2 AND :date_to2 THEN ah.history_id END) as followups_count,
+                    COUNT(DISTINCT CASE WHEN ah.follow_up_datetime BETWEEN ? AND ? THEN ah.history_id END) as followups_count,
                     COALESCE(ROUND(
                         (COUNT(CASE WHEN ah.follow_up_datetime < NOW() THEN 1 END) * 100.0 / 
                          NULLIF(COUNT(CASE WHEN ah.follow_up_datetime IS NOT NULL THEN 1 END), 0)), 1
                     ), 0) as completion_rate
                 FROM users u
                 LEFT JOIN action_history ah ON ah.user_id = u.user_id 
-                    AND DATE(ah.action_datetime) BETWEEN :date_from AND :date_to
-                WHERE u.role != 'admin' OR u.user_id = :current_user_id
+                    AND DATE(ah.action_datetime) BETWEEN ? AND ?
+                WHERE u.role != 'admin' OR u.user_id = ?
                 GROUP BY u.user_id, u.username
                 HAVING activities_count > 0 OR followups_count > 0
                 ORDER BY activities_count DESC
             ");
-            $stmt->execute($userPerfParams);
+            $stmt->execute([$date_from, $date_to, $date_from, $date_to, $current_user_id]);
             $data['user_performance'] = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } else {
             $data['user_performance'] = [];
         }
         
         // Customer status performance
-        $customerStatusParams = [
-            ':date_from' => $date_from,
-            ':date_to' => $date_to,
-            ':date_from2' => $date_from,
-            ':date_to2' => $date_to
-        ];
-        $customerStatusFilter = "";
-        if ($showOnlyMine) {
-            $customerStatusFilter = " AND ah.user_id = :current_user_id";
-            $customerStatusParams[':current_user_id'] = $_SESSION['user_id'];
-        }
-        
+        $statusCondition = $showOnlyMine ? " AND ah.user_id = $current_user_id" : "";
         $stmt = $pdo->prepare("
             SELECT 
-                c.status as customer_status,
+                cst.name as customer_status,
                 COUNT(DISTINCT ah.history_id) as activities_count,
-                COUNT(DISTINCT CASE WHEN DATE(ah.follow_up_datetime) BETWEEN :date_from2 AND :date_to2 THEN ah.history_id END) as followups_count,
+                COUNT(DISTINCT CASE WHEN DATE(ah.follow_up_datetime) BETWEEN ? AND ? THEN ah.history_id END) as followups_count,
                 ROUND(AVG(CASE WHEN ah.action_datetime IS NOT NULL THEN DATEDIFF(ah.action_datetime, c.created_at) END), 1) as avg_response_days
             FROM customers c
+            LEFT JOIN customer_statuses cs ON c.status_id = cs.id
+            LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id AND cst.locale = ?
             LEFT JOIN action_history ah ON ah.customer_id = c.customer_id 
-                AND DATE(ah.action_datetime) BETWEEN :date_from AND :date_to
-            WHERE 1=1 $customerStatusFilter
-            GROUP BY c.status
+                AND DATE(ah.action_datetime) BETWEEN ? AND ?
+            WHERE 1=1 $statusCondition
+            GROUP BY cs.id, cst.name
             HAVING activities_count > 0 OR followups_count > 0
             ORDER BY activities_count DESC
         ");
-        $stmt->execute($customerStatusParams);
+        $stmt->execute([$date_from, $date_to, $current_locale, $date_from, $date_to]);
         $data['status_performance'] = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         
         // Recent activities
@@ -3558,19 +3743,21 @@ function getActivitiesDashboardData($date_from, $date_to, $showOnlyMine = true) 
             SELECT 
                 ah.*,
                 c.company_name,
-                c.status as customer_status,
+                cst.name as customer_status,
                 u.username as created_by_username,
                 au.username as assigned_username
             FROM action_history ah
             JOIN customers c ON ah.customer_id = c.customer_id
+            LEFT JOIN customer_statuses cs ON c.status_id = cs.id
+            LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id AND cst.locale = ?
             LEFT JOIN users u ON ah.user_id = u.user_id
             LEFT JOIN users au ON c.assigned_user_id = au.user_id
-            WHERE DATE(ah.action_datetime) BETWEEN :date_from AND :date_to
-            $userFilter
+            WHERE DATE(ah.action_datetime) BETWEEN ? AND ?
+            $userCondition
             ORDER BY ah.action_datetime DESC
             LIMIT 10
         ");
-        $stmt->execute($activityParams);
+        $stmt->execute([$current_locale, $date_from, $date_to]);
         $data['recent_activities'] = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         
         return $data;
@@ -3704,6 +3891,303 @@ function addSystemAction($customer_id, $action_description, $user_id = null, $no
         $notes,
         $user_id
     );
+}
+
+/**
+ * Check if user can view email history record
+ * @param int $email_id Email history record ID
+ * @param int|null $user_id User ID to check (defaults to current session user)
+ * @return bool Whether user can view the email record
+ */
+function canViewEmailHistory($email_id, $user_id = null) {
+    global $pdo;
+    
+    // Admin can view all email history
+    if (isAdmin()) {
+        return true;
+    }
+    
+    // Use current session user if not specified
+    if ($user_id === null) {
+        $user_id = $_SESSION['user_id'] ?? null;
+    }
+    
+    if (!$user_id) {
+        return false;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("SELECT user_id FROM sent_email_history WHERE email_id = ?");
+        $stmt->execute([$email_id]);
+        $email_record = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        // If record doesn't exist, deny access
+        if (!$email_record) {
+            return false;
+        }
+        
+        // User can only view their own emails
+        return $email_record['user_id'] == $user_id;
+    } catch (PDOException $e) {
+        logError("Error checking email history access: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Get email history with proper access control
+ * @param array $filters Filters array (search, page, limit, etc.)
+ * @param int|null $user_id User ID (defaults to current session user, admin can override)
+ * @return array Email history results with pagination info
+ */
+function getEmailHistoryWithAccess($filters = [], $user_id = null) {
+    global $pdo;
+    
+    $search = $filters['search'] ?? '';
+    $page = max(1, (int)($filters['page'] ?? 1));
+    $limit = (int)($filters['limit'] ?? getItemsPerPage());
+    $offset = ($page - 1) * $limit;
+    
+    // Access control
+    $user_condition = '';
+    $user_params = [];
+    
+    if (!isAdmin()) {
+        // Non-admin users can only see their own emails
+        $user_id = $_SESSION['user_id'];
+        $user_condition = "AND h.user_id = ?";
+        $user_params = [$user_id];
+    } elseif ($user_id && $user_id !== 'all') {
+        // Admin viewing specific user's emails
+        $user_condition = "AND h.user_id = ?";
+        $user_params = [$user_id];
+    }
+    // If admin and no specific user_id, show all emails
+    
+    // Build search condition
+    $search_condition = '';
+    $search_params = [];
+    
+    if (!empty($search)) {
+        $search_condition = "WHERE (h.to_email LIKE ? OR h.cc LIKE ? OR p.project_name LIKE ? OR h.subject LIKE ? OR u.username LIKE ?)";
+        $search_params = ["%$search%", "%$search%", "%$search%", "%$search%", "%$search%"];
+        
+        if (!empty($user_condition)) {
+            $search_condition = $search_condition . " " . $user_condition;
+            $search_params = array_merge($search_params, $user_params);
+        }
+    } else if (!empty($user_condition)) {
+        $search_condition = "WHERE " . substr($user_condition, 4); // Remove "AND " prefix
+        $search_params = $user_params;
+    }
+    
+    try {
+        // Get total count
+        $count_query = "
+            SELECT COUNT(*) as total 
+            FROM sent_email_history h 
+            LEFT JOIN email_projects p ON h.project_id = p.project_id 
+            LEFT JOIN users u ON h.user_id = u.user_id
+            $search_condition
+        ";
+        $stmt = $pdo->prepare($count_query);
+        $stmt->execute($search_params);
+        $total_count = $stmt->fetch()['total'];
+        $total_pages = ceil($total_count / $limit);
+        
+        // Get email history records
+        $query = "
+            SELECT h.*, p.project_name, u.username as sent_by_username
+            FROM sent_email_history h 
+            LEFT JOIN email_projects p ON h.project_id = p.project_id 
+            LEFT JOIN users u ON h.user_id = u.user_id
+            $search_condition
+            ORDER BY h.sent_datetime DESC 
+            LIMIT ? OFFSET ?
+        ";
+        $params = array_merge($search_params, [$limit, $offset]);
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($params);
+        $email_history = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return [
+            'success' => true,
+            'data' => $email_history,
+            'pagination' => [
+                'current_page' => $page,
+                'total_pages' => $total_pages,
+                'total_count' => $total_count,
+                'limit' => $limit
+            ]
+        ];
+        
+    } catch (PDOException $e) {
+        logError("Error getting email history: " . $e->getMessage());
+        return [
+            'success' => false,
+            'error' => 'Database error occurred',
+            'data' => [],
+            'pagination' => [
+                'current_page' => 1,
+                'total_pages' => 0,
+                'total_count' => 0,
+                'limit' => $limit
+            ]
+        ];
+    }
+}
+
+/**
+ * Get customer status overview statistics for dashboard
+ */
+function getCustomerStatusOverview($user_id = null, $show_all = false) {
+    global $pdo;
+    
+    try {
+        $whereClause = '';
+        $params = [];
+        
+        // Handle view mode filtering
+        if (!$show_all && $user_id) {
+            $whereClause = 'WHERE c.assigned_user_id = :user_id';
+            $params[':user_id'] = $user_id;
+        }
+        
+        $sql = "SELECT 
+                    COALESCE(cs.status_key, 'unassigned') as status_key,
+                    COALESCE(cst.name, 'Unassigned') as status_name,
+                    COUNT(*) as count
+                FROM customers c
+                LEFT JOIN customer_statuses cs ON c.status_id = cs.id
+                LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id 
+                    AND cst.locale = :language
+                $whereClause
+                GROUP BY cs.status_key, cst.name
+                HAVING COUNT(*) > 0
+                ORDER BY COUNT(*) DESC";
+        
+        $params[':language'] = getCurrentLanguage();
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logError("Error getting customer status overview: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get detailed customer status summary at a specific point in time
+ */
+function getCustomerStatusSummary($user_id = null, $show_all = false, $as_of_datetime = null) {
+    global $pdo;
+    
+    try {
+        $whereClause = ['c.created_at <= :as_of_datetime'];
+        $params = [];
+        
+        // Default to current time if not specified
+        if (!$as_of_datetime) {
+            $as_of_datetime = date('Y-m-d H:i:s');
+        }
+        $params[':as_of_datetime'] = $as_of_datetime;
+        
+        // Handle user filtering
+        if (!$show_all && $user_id) {
+            $whereClause[] = 'c.assigned_user_id = :user_id';
+            $params[':user_id'] = $user_id;
+        } elseif (!$show_all && $user_id === null) {
+            // Show only unassigned customers (where assigned_user_id is NULL)
+            $whereClause[] = 'c.assigned_user_id IS NULL';
+        }
+        
+        $sql = "SELECT 
+                    COALESCE(cs.status_key, 'unassigned') as status_key,
+                    COALESCE(cst.name, cs.status_key, 'Unassigned') as status_name,
+                    COUNT(*) as count,
+                    COUNT(CASE WHEN c.created_at >= DATE_SUB(:as_of_datetime_week, INTERVAL 7 DAY) THEN 1 END) as new_this_week,
+                    COUNT(CASE WHEN c.created_at >= DATE_SUB(:as_of_datetime_month, INTERVAL 30 DAY) THEN 1 END) as new_this_month,
+                    MAX(c.created_at) as latest_customer_date,
+                    ROUND(AVG(DATEDIFF(:as_of_datetime_avg, c.created_at)), 0) as avg_days_in_status
+                FROM customers c
+                LEFT JOIN customer_statuses cs ON c.status_id = cs.id
+                LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id 
+                    AND cst.locale = :language
+                WHERE " . implode(' AND ', $whereClause) . "
+                GROUP BY cs.status_key, cst.name, cs.sort_order
+                ORDER BY cs.sort_order ASC, COUNT(*) DESC";
+        
+        $params[':language'] = getCurrentLanguage();
+        $params[':as_of_datetime_week'] = $as_of_datetime;
+        $params[':as_of_datetime_month'] = $as_of_datetime;
+        $params[':as_of_datetime_avg'] = $as_of_datetime;
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        logError("Error getting customer status summary: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get all users' status summaries for admin view at a specific point in time
+ */
+function getAllUsersStatusSummary($as_of_datetime = null) {
+    global $pdo;
+    
+    try {
+        $params = [];
+        
+        // Default to current time if not specified
+        if (!$as_of_datetime) {
+            $as_of_datetime = date('Y-m-d H:i:s');
+        }
+        $params[':as_of_datetime'] = $as_of_datetime;
+        $params[':language'] = getCurrentLanguage();
+        
+        // Get aggregated status summary across all non-admin users
+        $sql = "SELECT 
+                    COALESCE(cs.status_key, 'unassigned') as status_key,
+                    COALESCE(cst.name, cs.status_key, 'Unassigned') as status_name,
+                    COUNT(c.customer_id) as count,
+                    COALESCE(cs.sort_order, 999) as sort_order
+                FROM customers c
+                LEFT JOIN customer_statuses cs ON c.status_id = cs.id
+                LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id 
+                    AND cst.locale = :language
+                WHERE c.created_at <= :as_of_datetime
+                GROUP BY cs.status_key, cst.name, cs.sort_order
+                ORDER BY cs.sort_order ASC, COUNT(c.customer_id) DESC";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Format the result as aggregated data
+        $aggregated_summary = [
+            'statuses' => [],
+            'total_customers' => 0
+        ];
+        
+        foreach ($result as $row) {
+            $aggregated_summary['statuses'][] = [
+                'status_key' => $row['status_key'],
+                'status_name' => $row['status_name'],
+                'count' => (int)$row['count']
+            ];
+            $aggregated_summary['total_customers'] += (int)$row['count'];
+        }
+        
+        return $aggregated_summary;
+    } catch (PDOException $e) {
+        logError("Error getting all users status summary: " . $e->getMessage());
+        return ['statuses' => [], 'total_customers' => 0];
+    }
 }
 
 ?>

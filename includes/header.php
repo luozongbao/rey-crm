@@ -64,7 +64,7 @@ if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) !== 'login.ph
                     <ul class="nav-list">
                         <!-- Customer Management Dropdown -->
                         <li class="nav-item dropdown">
-                            <a href="#" class="nav-link dropdown-toggle <?php echo in_array(basename($_SERVER['PHP_SELF']), ['customers.php', 'customer_form.php', 'customer_dashboard.php']) ? 'active' : ''; ?>">
+                            <a href="/customer_dashboard.php" class="nav-link dropdown-toggle <?php echo in_array(basename($_SERVER['PHP_SELF']), ['customers.php', 'customer_form.php', 'customer_dashboard.php']) ? 'active' : ''; ?>">
                                 <?php echo __('customers'); ?>
                                 <svg class="dropdown-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -79,7 +79,7 @@ if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) !== 'login.ph
                         
                         <!-- Activities & Follow-ups Dropdown -->
                         <li class="nav-item dropdown">
-                            <a href="#" class="nav-link dropdown-toggle <?php echo in_array(basename($_SERVER['PHP_SELF']), ['activities_dashboard.php', 'all_activities.php', 'all_followups.php', 'history_form.php']) ? 'active' : ''; ?>">
+                            <a href="/activities_dashboard.php" class="nav-link dropdown-toggle <?php echo in_array(basename($_SERVER['PHP_SELF']), ['activities_dashboard.php', 'all_activities.php', 'all_followups.php', 'history_form.php']) ? 'active' : ''; ?>">
                                 <?php echo __('activities'); ?>
                                 <svg class="dropdown-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -95,7 +95,7 @@ if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) !== 'login.ph
                         
                         <!-- Email Management Dropdown -->
                         <li class="nav-item dropdown">
-                            <a href="#" class="nav-link dropdown-toggle <?php echo in_array(basename($_SERVER['PHP_SELF']), ['email_projects.php', 'email_project_form.php', 'send_email.php', 'email_history.php']) ? 'active' : ''; ?>">
+                            <a href="/email_projects.php" class="nav-link dropdown-toggle <?php echo in_array(basename($_SERVER['PHP_SELF']), ['email_projects.php', 'email_project_form.php', 'send_email.php', 'email_history.php']) ? 'active' : ''; ?>">
                                 <?php echo __('email_management'); ?>
                                 <svg class="dropdown-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -118,12 +118,15 @@ if (!isset($_SESSION['user_id']) && basename($_SERVER['PHP_SELF']) !== 'login.ph
                         
                         <!-- Settings Dropdown -->
                         <li class="nav-item dropdown">
-                            <a href="#" class="nav-link dropdown-toggle <?php echo in_array(basename($_SERVER['PHP_SELF']), ['settings.php', 'security_dashboard.php', 'security_logs.php']) ? 'active' : ''; ?>">
+                            <a href="/settings.php" class="nav-link dropdown-toggle <?php echo in_array(basename($_SERVER['PHP_SELF']), ['settings.php', 'security_dashboard.php', 'security_logs.php', 'admin_status_management.php']) ? 'active' : ''; ?>">
                                 <?php echo __('settings'); ?>
                             </a>
                             <div class="dropdown-menu">
                                 <a href="/settings.php" class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) === 'settings.php' ? 'active' : ''; ?>">
                                     <i class="fas fa-cog"></i> <?php echo __('general_settings'); ?>
+                                </a>
+                                <a href="/admin_status_management.php" class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) === 'admin_status_management.php' ? 'active' : ''; ?>">
+                                    <i class="fas fa-tags"></i> <?php echo __('status_management'); ?>
                                 </a>
                                 <a href="/security_dashboard.php" class="dropdown-item <?php echo basename($_SERVER['PHP_SELF']) === 'security_dashboard.php' ? 'active' : ''; ?>">
                                     <i class="fas fa-shield-alt"></i> <?php echo __('security_dashboard'); ?>

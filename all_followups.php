@@ -70,7 +70,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         $row = [
             $followup['company_name'],
             $location,
-            __($followup['customer_status']),
+            $followup['customer_status'],
             $followup['action'],
             __($followup['contact_channel']),
             formatDateTimeCompact($followup['follow_up_datetime']),
@@ -153,10 +153,10 @@ require_once 'includes/header.php';
                     <select name="customer_status" id="customer_status">
                         <option value=""><?= __('all_status') ?></option>
                         <option value="All Except Not Qualified" <?= $customer_status == 'All Except Not Qualified' ? 'selected' : '' ?>><?= __('all_except_not_qualified') ?></option>
-                        <?php foreach ($customerStatusOptions as $statusOption): ?>
-                        <option value="<?= htmlspecialchars($statusOption) ?>" 
-                            <?= $customer_status == $statusOption ? 'selected' : '' ?>>
-                            <?= htmlspecialchars(__($statusOption)) ?>
+                        <?php foreach ($customerStatusOptions as $statusKey => $statusName): ?>
+                        <option value="<?= htmlspecialchars($statusKey) ?>" 
+                            <?= $customer_status == $statusKey ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($statusName) ?>
                         </option>
                         <?php endforeach; ?>
                     </select>
@@ -233,8 +233,8 @@ require_once 'includes/header.php';
                         </a>
                     </td>
                     <td>
-                        <span class="status-badge status-<?= strtolower(str_replace(' ', '-', $followup['customer_status'])) ?>">
-                            <?= htmlspecialchars(__($followup['customer_status'])) ?>
+                        <span class="status-badge status-<?= isset($followup['status_key']) ? str_replace(['_', '-'], '', $followup['status_key']) : 'unknown' ?>">
+                            <?= htmlspecialchars($followup['customer_status']) ?>
                         </span>
                     </td>
                     <td><?= htmlspecialchars($followup['action']) ?></td>

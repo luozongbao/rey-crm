@@ -2,6 +2,8 @@
 require_once 'includes/config.php';
 require_once 'includes/functions.php';
 
+requireLogin();
+
 $page_title = __('email_history');
 $current_page = 'email_history';
 
@@ -15,9 +17,28 @@ $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $search_condition = '';
 $search_params = [];
 
+// ACCESS CONTROL: Users can only see their own email history, admins can see all
+$user_condition = '';
+$user_params = [];
+
+if (!isAdmin()) {
+    $user_condition = "AND h.user_id = ?";
+    $user_params = [$_SESSION['user_id']];
+}
+
 if (!empty($search)) {
     $search_condition = "WHERE (h.to_email LIKE ? OR h.cc LIKE ? OR p.project_name LIKE ? OR h.subject LIKE ?)";
     $search_params = ["%$search%", "%$search%", "%$search%", "%$search%"];
+    
+    // If we have user condition, combine it with search
+    if (!empty($user_condition)) {
+        $search_condition = $search_condition . " " . $user_condition;
+        $search_params = array_merge($search_params, $user_params);
+    }
+} else if (!empty($user_condition)) {
+    // Only user condition, no search
+    $search_condition = "WHERE " . substr($user_condition, 4); // Remove "AND " prefix
+    $search_params = $user_params;
 }
 
 try {
@@ -26,6 +47,7 @@ try {
         SELECT COUNT(*) as total 
         FROM sent_email_history h 
         LEFT JOIN email_projects p ON h.project_id = p.project_id 
+        LEFT JOIN users u ON h.user_id = u.user_id
         $search_condition
     ";
     $stmt = $pdo->prepare($count_query);
@@ -35,9 +57,10 @@ try {
 
     // Get email history with pagination
     $query = "
-        SELECT h.*, p.project_name
+        SELECT h.*, p.project_name, u.username as sent_by_username
         FROM sent_email_history h 
         LEFT JOIN email_projects p ON h.project_id = p.project_id 
+        LEFT JOIN users u ON h.user_id = u.user_id
         $search_condition
         ORDER BY h.sent_datetime DESC 
         LIMIT ? OFFSET ?
@@ -128,6 +151,9 @@ include 'includes/header.php';
                                 <th><?php echo __('to'); ?></th>
                                 <th><?php echo __('cc'); ?></th>
                                 <th><?php echo __('project_name'); ?></th>
+                                <?php if (isAdmin()): ?>
+                                <th><?php echo __('sent_by'); ?></th>
+                                <?php endif; ?>
                                 <th class="attachments-col"><?php echo __('attachments'); ?></th>
                             </tr>
                         </thead>
@@ -162,6 +188,17 @@ include 'includes/header.php';
                                             <span class="text-muted"><?php echo __('project_deleted'); ?></span>
                                         <?php endif; ?>
                                     </td>
+                                    <?php if (isAdmin()): ?>
+                                    <td>
+                                        <?php if ($email['sent_by_username']): ?>
+                                            <span class="user-badge">
+                                                <?php echo htmlspecialchars($email['sent_by_username']); ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="text-muted"><?php echo __('unknown_user'); ?></span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <?php endif; ?>
                                     <td>
                                         <?php if (!empty($email['attachments'])): ?>
                                             <?php

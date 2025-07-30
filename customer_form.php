@@ -1,10 +1,14 @@
 <?php 
 require_once 'includes/functions.php';
 
+requireLogin();
+
 $action = $_GET['action'] ?? 'add';
-$customer_id = $_GET['id'] ?? 0;
+$customer_id = (int)($_GET['id'] ?? 0);
 $isViewMode = $action === 'view';
 $isEditMode = $action === 'edit';
+$error_message = '';
+$success_message = '';
 
 // Validate customer access for view/edit operations
 if (($action === 'view' || $action === 'edit') && $customer_id) {
@@ -41,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
         'contact_phone' => $_POST['contact_phone'] ?? null,
         'contact_email' => $_POST['contact_email'] ?? null,
         'website' => $_POST['website'] ?? null,
-        'status' => $_POST['status'] ?? 'Prospect',
+        'status_key' => $_POST['status'] ?? 'lead', // Use status_key instead of status
         'notes' => $_POST['notes'] ?? null
     ];
     
@@ -56,66 +60,90 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
     if (!empty($data['contact_email'])) {
         $email_validation = validate_cc_emails($data['contact_email']);
         if (!$email_validation['valid']) {
-            die("Error: " . $email_validation['message']);
+            $error_message = "Error: " . $email_validation['message'];
         }
     }
     
-    global $pdo;
+    // Check for duplicate company name when adding new customer
+    if ($action == 'add' && empty($error_message)) {
+        $stmt = $pdo->prepare("SELECT customer_id FROM customers WHERE company_name = ?");
+        $stmt->execute([$data['company_name']]);
+        if ($stmt->fetch()) {
+            $error_message = "Error: A customer with the company name '" . htmlspecialchars($data['company_name']) . "' already exists in the database.";
+        }
+    }
     
-    try {
-        if ($action == 'add') {
-            // Start transaction
-            $pdo->beginTransaction();
-            
-            // Use the addCustomer function which handles assignment
-            if (addCustomer($data)) {
-                $customer_id = $pdo->lastInsertId();
+    // Only proceed if no errors
+    if (empty($error_message)) {
+        global $pdo;
+        
+        try {
+            if ($action == 'add') {
+                // Start transaction
+                $pdo->beginTransaction();
                 
-                // Create main contact
-                $mainContact = [
-                    'customer_id' => $customer_id,
-                    'name' => 'Company Main Contact',
-                    'title' => 'Primary Contact',
-                    'role' => 'Main Contact',
-                    'contact_number' => $_POST['contact_phone'] ?? null,
-                    'contact_email' => $_POST['contact_email'] ?? null,
-                    'notes' => 'Automatically created as main contact'
-                ];
-                
-                $stmt = $pdo->prepare("INSERT INTO contact_persons 
-                                      (customer_id, name, title, role, contact_number, contact_email, notes) 
-                                      VALUES (?, ?, ?, ?, ?, ?, ?)");
-                $stmt->execute(array_values($mainContact));
-                
-                // Commit transaction
-                $pdo->commit();
-                
-                header("Location: customers.php?restore=1");
-                exit;
+                // Use the addCustomer function which handles assignment
+                if (addCustomer($data)) {
+                    $customer_id = $pdo->lastInsertId();
+                    
+                    // Create main contact
+                    $mainContact = [
+                        'customer_id' => $customer_id,
+                        'name' => 'Company Main Contact',
+                        'title' => 'Primary Contact',
+                        'role' => 'Main Contact',
+                        'contact_number' => $_POST['contact_phone'] ?? null,
+                        'contact_email' => $_POST['contact_email'] ?? null,
+                        'notes' => 'Automatically created as main contact'
+                    ];
+                    
+                    $stmt = $pdo->prepare("INSERT INTO contact_persons 
+                                          (customer_id, name, title, role, contact_number, contact_email, notes) 
+                                          VALUES (?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute(array_values($mainContact));
+                    
+                    // Commit transaction
+                    $pdo->commit();
+                    
+                    header("Location: customers.php?restore=1");
+                    exit;
+                } else {
+                    $pdo->rollBack();
+                    $error_message = "Error adding customer";
+                }
             } else {
+                // Use the updateCustomer function which handles assignment
+                if (updateCustomer($customer_id, $data)) {
+                    header("Location: customers.php?restore=1");
+                    exit;
+                } else {
+                    // Log detailed error information
+                    logError("Customer update failed - Customer ID: $customer_id, Data: " . print_r($data, true));
+                    $error_message = "Error updating customer. Please check the form data and try again.";
+                }
+            }
+        } catch (PDOException $e) {
+            if ($action == 'add' && isset($pdo)) {
                 $pdo->rollBack();
-                die("Error adding customer");
             }
-        } else {
-            // Use the updateCustomer function which handles assignment
-            if (updateCustomer($customer_id, $data)) {
-                header("Location: customers.php?restore=1");
-                exit;
-            } else {
-                die("Error updating customer");
-            }
+            $error_message = "Database error: " . $e->getMessage();
         }
-    } catch (PDOException $e) {
-        if ($action == 'add' && isset($pdo)) {
-            $pdo->rollBack();
-        }
-        die("Database error: " . $e->getMessage());
     }
 }
 
 $customer = ($action == 'edit' || $action == 'view') ? getCustomerById($customer_id) : null;
 $contact_persons = $customer_id ? getContactPersons($customer_id) : [];
-$action_history = $customer_id ? getActionHistory($customer_id) : [];
+
+// Get action history with error handling
+$action_history = [];
+if ($customer_id) {
+    try {
+        $action_history = getActionHistory($customer_id);
+    } catch (Exception $e) {
+        error_log("Error getting action history: " . $e->getMessage());
+        $action_history = [];
+    }
+}
 
 require_once 'includes/header.php';
 ?>
@@ -141,6 +169,18 @@ require_once 'includes/header.php';
             <a href="<?php echo htmlspecialchars($backUrl); ?>" class="btn"><?php echo __('back'); ?></a>
         </div>
         
+        <?php if (!empty($error_message)): ?>
+            <div class="alert alert-danger">
+                <?php echo htmlspecialchars($error_message); ?>
+            </div>
+        <?php endif; ?>
+        
+        <?php if (!empty($success_message)): ?>
+            <div class="alert alert-success">
+                <?php echo htmlspecialchars($success_message); ?>
+            </div>
+        <?php endif; ?>
+        
         <form method="post">
             <?php echo csrfTokenField(); ?>
             <!-- Row 1: Company Name and Status -->
@@ -156,11 +196,12 @@ require_once 'includes/header.php';
                     <select id="status" name="status" <?php echo $isViewMode ? 'disabled' : ''; ?>>
                         <?php
                         $statusOptions = getCustomerStatusOptions();
-                        foreach ($statusOptions as $statusOption):
-                            $selected = ($customer && $customer['status'] == $statusOption) ? 'selected' : '';
+                        $currentStatusKey = $customer ? ($customer['status_key'] ?? 'lead') : 'lead';
+                        foreach ($statusOptions as $statusKey => $statusName):
+                            $selected = ($currentStatusKey == $statusKey) ? 'selected' : '';
                         ?>
-                            <option value="<?php echo htmlspecialchars($statusOption); ?>" <?php echo $selected; ?>>
-                                <?php echo __($statusOption); ?>
+                            <option value="<?php echo htmlspecialchars($statusKey); ?>" <?php echo $selected; ?>>
+                                <?php echo htmlspecialchars($statusName); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -309,7 +350,7 @@ require_once 'includes/header.php';
         </form>
 
         
-        <?php if ($customer_id): ?>
+        <?php if ($customer_id && ($action === 'edit' || $action === 'view')): ?>
         <div class="section">
             <div class="section-header">
                 <h2><?php echo __('contact_persons'); ?></h2>
@@ -346,12 +387,46 @@ require_once 'includes/header.php';
                 </tbody>
             </table>
         </div>
+        <?php endif; ?>
         
+        <!-- Status Timeline Section (View Only) -->
+        <?php if ($customer_id && ($action === 'edit' || $action === 'view')): ?>
+        <div class="section">
+            <div class="section-header">
+                <h2><?php echo __('status_timeline'); ?></h2>
+            </div>
+            
+            <div class="status-timeline-wrapper">
+                <?php 
+                // Set required variables for status timeline
+                $current_locale = getCurrentLanguage();
+                $messages = [
+                    'status_timeline' => __('status_timeline'),
+                    'no_status_history' => __('no_status_history'),
+                    'status_changed_from_to' => __('status_changed_from_to'),
+                    'status_changed_by' => __('changed_by'),
+                    'status_changed_from' => __('from'),
+                    'status_changed_to' => __('to'),
+                    'by_user' => __('by'),
+                    'reason' => __('reason')
+                ];
+                // Include status timeline (view only)
+                if ($customer_id) {
+                    include 'includes/customer_status_timeline.php'; 
+                }
+                ?>
+            </div>
+        </div>
+        <?php endif; ?>
+        
+        <?php if ($customer_id && ($action === 'edit' || $action === 'view')): ?>
         <div class="section">
             <div class="section-header">
                 <h2><?php echo __('action_history'); ?></h2>
                 <a href="history_form.php?action=add&customer_id=<?php echo $customer_id; ?>&source_action=<?php echo $action; ?>" class="btn"><?php echo __('add_action'); ?></a>
             </div>
+            
+            <?php if (!empty($action_history)): ?>
             <table class="compact-table">
                 <thead>
                     <tr>
@@ -378,6 +453,11 @@ require_once 'includes/header.php';
                     <?php endforeach; ?>
                 </tbody>
             </table>
+            <?php else: ?>
+            <div class="empty-state">
+                <p><?php echo __('no_activity'); ?></p>
+            </div>
+            <?php endif; ?>
         </div>
         <?php endif; ?>
     </div>
@@ -386,6 +466,7 @@ require_once 'includes/header.php';
 // Email validation for contact_email field
 document.addEventListener('DOMContentLoaded', function() {
     const contactEmailInput = document.getElementById('contact_email');
+    const companyNameInput = document.getElementById('company_name');
     
     if (contactEmailInput && !contactEmailInput.disabled) {
         contactEmailInput.addEventListener('blur', function() {
@@ -396,6 +477,22 @@ document.addEventListener('DOMContentLoaded', function() {
             // Clear any existing validation styles when user starts typing
             this.classList.remove('is-invalid', 'is-valid');
             const feedback = document.getElementById('contact-email-feedback');
+            if (feedback) {
+                feedback.remove();
+            }
+        });
+    }
+    
+    // Company name validation for duplicates (only for add action)
+    if (companyNameInput && !companyNameInput.disabled && '<?php echo $action; ?>' === 'add') {
+        companyNameInput.addEventListener('blur', function() {
+            checkCompanyNameDuplicate(this);
+        });
+
+        companyNameInput.addEventListener('input', function() {
+            // Clear any existing validation styles when user starts typing
+            this.classList.remove('is-invalid', 'is-valid');
+            const feedback = document.getElementById('company-name-feedback');
             if (feedback) {
                 feedback.remove();
             }
@@ -527,6 +624,57 @@ if (assignmentSelect && unassignBtn) {
         }
     });
 }
+
+function checkCompanyNameDuplicate(input) {
+    const companyName = input.value.trim();
+    
+    // Remove existing feedback
+    const existingFeedback = document.getElementById('company-name-feedback');
+    if (existingFeedback) {
+        existingFeedback.remove();
+    }
+    
+    if (companyName === '') {
+        input.classList.remove('is-invalid', 'is-valid');
+        return;
+    }
+    
+    // Check for duplicate company name via AJAX
+    fetch('ajax_handlers/check_duplicate_company.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            company_name: companyName
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        const feedback = document.createElement('div');
+        feedback.id = 'company-name-feedback';
+        feedback.className = 'form-feedback';
+        
+        if (data.exists) {
+            input.classList.add('is-invalid');
+            input.classList.remove('is-valid');
+            feedback.className += ' invalid-feedback';
+            feedback.textContent = 'A customer with this company name already exists.';
+        } else {
+            input.classList.add('is-valid');
+            input.classList.remove('is-invalid');
+            feedback.className += ' valid-feedback';
+            feedback.textContent = 'Company name is available.';
+        }
+        
+        input.parentNode.appendChild(feedback);
+    })
+    .catch(error => {
+        console.error('Error checking company name:', error);
+        // Don't show error to user, just clear validation
+        input.classList.remove('is-invalid', 'is-valid');
+    });
+}
 </script>
 
 <style>
@@ -584,6 +732,21 @@ if (assignmentSelect && unassignBtn) {
     display: flex;
     align-items: center;
     gap: 5px;
+}
+
+/* Status timeline wrapper styles */
+.status-timeline-wrapper {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin-top: 0.5rem;
+}
+
+.status-timeline-wrapper h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #495057;
 }
 
 @media (max-width: 768px) {

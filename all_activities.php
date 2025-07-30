@@ -69,7 +69,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         $row = [
             $activity['company_name'],
             $location,
-            __($activity['customer_status']),
+            $activity['customer_status'],
             $activity['action'],
             __($activity['contact_channel']),
             formatDateTimeCompact($activity['action_datetime']),
@@ -152,10 +152,10 @@ require_once 'includes/header.php';
                     <select name="customer_status" id="customer_status">
                         <option value=""><?= __('all_status') ?></option>
                         <option value="All Except Not Qualified" <?= $customer_status == 'All Except Not Qualified' ? 'selected' : '' ?>><?= __('all_except_not_qualified') ?></option>
-                        <?php foreach ($customerStatusOptions as $statusOption): ?>
-                        <option value="<?= htmlspecialchars($statusOption) ?>" 
-                            <?= $customer_status == $statusOption ? 'selected' : '' ?>>
-                            <?= htmlspecialchars(__($statusOption)) ?>
+                        <?php foreach ($customerStatusOptions as $statusKey => $statusName): ?>
+                        <option value="<?= htmlspecialchars($statusKey) ?>" 
+                            <?= $customer_status == $statusKey ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($statusName) ?>
                         </option>
                         <?php endforeach; ?>
                     </select>
@@ -232,7 +232,7 @@ require_once 'includes/header.php';
                             <?php endif; ?>
                         </a>
                     </td>
-                    <td><span class="status-badge status-<?= strtolower(str_replace(' ', '-', $activity['customer_status'])) ?>"><?= htmlspecialchars(__($activity['customer_status'])) ?></span></td>
+                    <td><span class="status-badge status-<?= isset($activity['status_key']) ? str_replace(['_', '-'], '', $activity['status_key']) : 'unknown' ?>"><?= htmlspecialchars($activity['customer_status']) ?></span></td>
                     <td><?= htmlspecialchars($activity['action']) ?></td>
                     <td><?php echo htmlspecialchars(__($activity['contact_channel'])); ?></td>
                     <td class="datetime"><?= formatDateTimeCompact($activity['action_datetime']) ?></td>
