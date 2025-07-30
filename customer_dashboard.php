@@ -44,12 +44,14 @@ try {
         $userPerformance = getUserPerformanceStats();
         $assignmentStats = getCustomersByAssignment();
         $allUsers = getAllUsers();
+        $statusOverview = getCustomerStatusOverview($userId, $showAll);
     } else {
         // Regular user dashboard data
         $customerStats = getDashboardCustomerStats($currentUserId, false);
         $customerData = getDashboardCustomers(10, $currentUserId, false, 'recent');
         $upcomingFollowups = getDashboardFollowups(5, $currentUserId, false);
         $recentActivities = getDashboardActivities(5, $currentUserId, false);
+        $statusOverview = getCustomerStatusOverview($currentUserId, false);
     }
 } catch (Exception $e) {
     die("Error loading dashboard data: " . $e->getMessage());
@@ -148,6 +150,25 @@ require_once 'includes/header.php';
                 </div>
             </div>
             <?php endif; ?>
+        </div>
+
+        <!-- Customer Status Overview Card -->
+        <div class="dashboard-card">
+            <h2><?php echo __('status_overview'); ?></h2>
+            <div class="status-overview">
+                <?php if (!empty($statusOverview)): ?>
+                    <?php foreach ($statusOverview as $status): ?>
+                    <div class="status-item">
+                        <span class="status-badge status-<?= str_replace(['_', '-'], '', $status['status_key']) ?>">
+                            <?= htmlspecialchars($status['status_name']) ?>
+                        </span>
+                        <span class="status-count"><?= $status['count'] ?></span>
+                    </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <p class="no-data"><?php echo __('no_customers_found'); ?></p>
+                <?php endif; ?>
+            </div>
         </div>
 
         <?php if ($isAdmin && !empty($userPerformance) && $showAll): ?>

@@ -808,6 +808,13 @@ body.dark-mode .status-prospect,
   color: var(--warning);
 }
 
+/* Lead status */
+body.dark-mode .status-lead,
+.status-lead {
+  background-color: var(--info-light);
+  color: var(--info);
+}
+
 /* Qualified status */
 body.dark-mode .status-qualified,
 .status-qualified {
@@ -829,6 +836,24 @@ body.dark-mode .status-new-customer,
 .status-new-customer,
 body.dark-mode .status-newcustomer,
 .status-newcustomer {
+  background-color: var(--success-light);
+  color: var(--success);
+}
+
+/* Active Customer status */
+body.dark-mode .status-active-customer,
+.status-active-customer,
+body.dark-mode .status-activecustomer,
+.status-activecustomer {
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+/* Active Customer status */
+body.dark-mode .status-active-customer,
+.status-active-customer,
+body.dark-mode .status-activecustomer,
+.status-activecustomer {
   background-color: var(--success-light);
   color: var(--success);
 }
@@ -3021,4 +3046,55 @@ body.dark-mode .channel-stat-card .stat-subtitle {
     }
 }
 
+/* Status Overview Styles */
+.status-overview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
 
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.status-item:last-child {
+    border-bottom: none;
+}
+
+.status-count {
+    font-weight: 600;
+    font-size: 1.125rem;
+    color: var(--gray-800);
+    background: var(--gray-100);
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-sm);
+    min-width: 2.5rem;
+    text-align: center;
+}
+
+.no-data {
+    text-align: center;
+    color: var(--gray-500);
+    font-style: italic;
+    padding: 1rem 0;
+}
+
+@media (max-width: 768px) {
+    .status-overview {
+        gap: 0.5rem;
+    }
+    
+    .status-item {
+        padding: 0.375rem 0;
+    }
+    
+    .status-count {
+        font-size: 1rem;
+        min-width: 2rem;
+        padding: 0.125rem 0.5rem;
+    }
+}

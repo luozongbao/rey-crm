@@ -1,6 +1,8 @@
 <?php 
 require_once 'includes/functions.php';
 
+requireLogin();
+
 $action = $_GET['action'] ?? 'add';
 $customer_id = $_GET['id'] ?? 0;
 $isViewMode = $action === 'view';
@@ -41,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
         'contact_phone' => $_POST['contact_phone'] ?? null,
         'contact_email' => $_POST['contact_email'] ?? null,
         'website' => $_POST['website'] ?? null,
-        'status' => $_POST['status'] ?? 'Prospect',
+        'status_key' => $_POST['status'] ?? 'prospect', // Use status_key instead of status
         'notes' => $_POST['notes'] ?? null
     ];
     
@@ -156,11 +158,12 @@ require_once 'includes/header.php';
                     <select id="status" name="status" <?php echo $isViewMode ? 'disabled' : ''; ?>>
                         <?php
                         $statusOptions = getCustomerStatusOptions();
-                        foreach ($statusOptions as $statusOption):
-                            $selected = ($customer && $customer['status'] == $statusOption) ? 'selected' : '';
+                        $currentStatusKey = $customer ? ($customer['status_key'] ?? 'prospect') : 'prospect';
+                        foreach ($statusOptions as $statusKey => $statusName):
+                            $selected = ($currentStatusKey == $statusKey) ? 'selected' : '';
                         ?>
-                            <option value="<?php echo htmlspecialchars($statusOption); ?>" <?php echo $selected; ?>>
-                                <?php echo __($statusOption); ?>
+                            <option value="<?php echo htmlspecialchars($statusKey); ?>" <?php echo $selected; ?>>
+                                <?php echo htmlspecialchars($statusName); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -345,6 +348,29 @@ require_once 'includes/header.php';
                     <?php endforeach; ?>
                 </tbody>
             </table>
+        </div>
+        
+        <!-- Status Management Section -->
+        <div class="section">
+            <div class="section-header">
+                <h2><?php echo __('customer_status'); ?></h2>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <?php 
+                    // Include status change form
+                    $current_locale = $_SESSION['locale'] ?? 'en';
+                    include 'includes/customer_status_change_form.php'; 
+                    ?>
+                </div>
+                <div class="col-md-6">
+                    <?php 
+                    // Include status timeline
+                    include 'includes/customer_status_timeline.php'; 
+                    ?>
+                </div>
+            </div>
         </div>
         
         <div class="section">
