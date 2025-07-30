@@ -4,7 +4,7 @@ require_once 'includes/functions.php';
 requireLogin();
 
 $action = $_GET['action'] ?? 'add';
-$customer_id = $_GET['id'] ?? 0;
+$customer_id = (int)($_GET['id'] ?? 0);
 $isViewMode = $action === 'view';
 $isEditMode = $action === 'edit';
 
@@ -117,7 +117,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
 
 $customer = ($action == 'edit' || $action == 'view') ? getCustomerById($customer_id) : null;
 $contact_persons = $customer_id ? getContactPersons($customer_id) : [];
-$action_history = $customer_id ? getActionHistory($customer_id) : [];
+
+// Get action history with error handling
+$action_history = [];
+if ($customer_id) {
+    try {
+        $action_history = getActionHistory($customer_id);
+    } catch (Exception $e) {
+        error_log("Error getting action history: " . $e->getMessage());
+        $action_history = [];
+    }
+}
 
 require_once 'includes/header.php';
 ?>
@@ -312,7 +322,7 @@ require_once 'includes/header.php';
         </form>
 
         
-        <?php if ($customer_id): ?>
+        <?php if ($customer_id && ($action === 'edit' || $action === 'view')): ?>
         <div class="section">
             <div class="section-header">
                 <h2><?php echo __('contact_persons'); ?></h2>
@@ -349,35 +359,46 @@ require_once 'includes/header.php';
                 </tbody>
             </table>
         </div>
+        <?php endif; ?>
         
-        <!-- Status Management Section -->
+        <!-- Status Timeline Section (View Only) -->
+        <?php if ($customer_id && ($action === 'edit' || $action === 'view')): ?>
         <div class="section">
             <div class="section-header">
-                <h2><?php echo __('customer_status'); ?></h2>
+                <h2><?php echo __('status_timeline'); ?></h2>
             </div>
             
-            <div class="row">
-                <div class="col-md-6">
-                    <?php 
-                    // Include status change form
-                    $current_locale = $_SESSION['locale'] ?? 'en';
-                    include 'includes/customer_status_change_form.php'; 
-                    ?>
-                </div>
-                <div class="col-md-6">
-                    <?php 
-                    // Include status timeline
+            <div class="status-timeline-wrapper">
+                <?php 
+                // Set required variables for status timeline
+                $current_locale = getCurrentLanguage();
+                $messages = [
+                    'status_timeline' => __('status_timeline'),
+                    'no_status_history' => __('no_status_history'),
+                    'status_changed_from_to' => __('status_changed_from_to'),
+                    'status_changed_by' => __('changed_by'),
+                    'status_changed_from' => __('from'),
+                    'status_changed_to' => __('to'),
+                    'by_user' => __('by'),
+                    'reason' => __('reason')
+                ];
+                // Include status timeline (view only)
+                if ($customer_id) {
                     include 'includes/customer_status_timeline.php'; 
-                    ?>
-                </div>
+                }
+                ?>
             </div>
         </div>
+        <?php endif; ?>
         
+        <?php if ($customer_id && ($action === 'edit' || $action === 'view')): ?>
         <div class="section">
             <div class="section-header">
                 <h2><?php echo __('action_history'); ?></h2>
                 <a href="history_form.php?action=add&customer_id=<?php echo $customer_id; ?>&source_action=<?php echo $action; ?>" class="btn"><?php echo __('add_action'); ?></a>
             </div>
+            
+            <?php if (!empty($action_history)): ?>
             <table class="compact-table">
                 <thead>
                     <tr>
@@ -404,6 +425,11 @@ require_once 'includes/header.php';
                     <?php endforeach; ?>
                 </tbody>
             </table>
+            <?php else: ?>
+            <div class="empty-state">
+                <p><?php echo __('no_activity'); ?></p>
+            </div>
+            <?php endif; ?>
         </div>
         <?php endif; ?>
     </div>
@@ -610,6 +636,21 @@ if (assignmentSelect && unassignBtn) {
     display: flex;
     align-items: center;
     gap: 5px;
+}
+
+/* Status timeline wrapper styles */
+.status-timeline-wrapper {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin-top: 0.5rem;
+}
+
+.status-timeline-wrapper h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #495057;
 }
 
 @media (max-width: 768px) {

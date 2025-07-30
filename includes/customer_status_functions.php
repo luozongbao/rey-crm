@@ -187,9 +187,9 @@ function getCustomerStatusTimeline($customer_id, $locale = 'en') {
                 csh.notes,
                 u.username as changed_by_username,
                 from_status.name as from_status_name,
-                from_status.status_key as from_status_key,
+                cs_from.status_key as from_status_key,
                 to_status.name as to_status_name,
-                to_status.status_key as to_status_key
+                cs_to.status_key as to_status_key
             FROM customer_status_history csh
             LEFT JOIN users u ON csh.changed_by = u.user_id
             LEFT JOIN customer_statuses cs_from ON csh.from_status_id = cs_from.id

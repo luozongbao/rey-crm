@@ -217,8 +217,12 @@ require_once 'includes/header.php';
                         <?php echo isset($customer['status_name']) ? htmlspecialchars($customer['status_name']) : __('unknown_status'); ?>
                     </span></td>
                     <td>
-                        <a href="customer_form.php?action=view&id=<?php echo $customer['customer_id']; ?>" class="btn"><?php echo __('view'); ?></a>
-                        <a href="customer_form.php?action=edit&id=<?php echo $customer['customer_id']; ?>" class="btn"><?php echo __('edit'); ?></a>
+                        <?php if (canEditCustomer($customer['customer_id'])): ?>
+                            <a href="customer_form.php?action=view&id=<?php echo $customer['customer_id']; ?>" class="btn"><?php echo __('view'); ?></a>
+                            <a href="customer_form.php?action=edit&id=<?php echo $customer['customer_id']; ?>" class="btn"><?php echo __('edit'); ?></a>
+                        <?php else: ?>
+                            <span class="text-muted"><?php echo __('no_permission'); ?></span>
+                        <?php endif; ?>
                     </td>
                 </tr>
                 <?php endforeach; ?>
