@@ -198,14 +198,17 @@ CREATE TABLE IF NOT EXISTS email_projects (
 -- Table for Sent Email History
 CREATE TABLE IF NOT EXISTS sent_email_history (
     email_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL,
     sent_datetime DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     to_email VARCHAR(255) NOT NULL,
     cc VARCHAR(255),
     project_id INT,
     subject VARCHAR(255),
     attachments TEXT, -- JSON or comma-separated file locations
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_user_id (user_id),
     FOREIGN KEY (project_id) REFERENCES email_projects(project_id) ON DELETE SET NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
 -- Security tables for Phase 1 implementation

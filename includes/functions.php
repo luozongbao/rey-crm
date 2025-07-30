@@ -3912,6 +3912,150 @@ function addSystemAction($customer_id, $action_description, $user_id = null, $no
 }
 
 /**
+ * Check if user can view email history record
+ * @param int $email_id Email history record ID
+ * @param int|null $user_id User ID to check (defaults to current session user)
+ * @return bool Whether user can view the email record
+ */
+function canViewEmailHistory($email_id, $user_id = null) {
+    global $pdo;
+    
+    // Admin can view all email history
+    if (isAdmin()) {
+        return true;
+    }
+    
+    // Use current session user if not specified
+    if ($user_id === null) {
+        $user_id = $_SESSION['user_id'] ?? null;
+    }
+    
+    if (!$user_id) {
+        return false;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("SELECT user_id FROM sent_email_history WHERE email_id = ?");
+        $stmt->execute([$email_id]);
+        $email_record = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        // If record doesn't exist, deny access
+        if (!$email_record) {
+            return false;
+        }
+        
+        // User can only view their own emails
+        return $email_record['user_id'] == $user_id;
+    } catch (PDOException $e) {
+        logError("Error checking email history access: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Get email history with proper access control
+ * @param array $filters Filters array (search, page, limit, etc.)
+ * @param int|null $user_id User ID (defaults to current session user, admin can override)
+ * @return array Email history results with pagination info
+ */
+function getEmailHistoryWithAccess($filters = [], $user_id = null) {
+    global $pdo;
+    
+    $search = $filters['search'] ?? '';
+    $page = max(1, (int)($filters['page'] ?? 1));
+    $limit = (int)($filters['limit'] ?? getItemsPerPage());
+    $offset = ($page - 1) * $limit;
+    
+    // Access control
+    $user_condition = '';
+    $user_params = [];
+    
+    if (!isAdmin()) {
+        // Non-admin users can only see their own emails
+        $user_id = $_SESSION['user_id'];
+        $user_condition = "AND h.user_id = ?";
+        $user_params = [$user_id];
+    } elseif ($user_id && $user_id !== 'all') {
+        // Admin viewing specific user's emails
+        $user_condition = "AND h.user_id = ?";
+        $user_params = [$user_id];
+    }
+    // If admin and no specific user_id, show all emails
+    
+    // Build search condition
+    $search_condition = '';
+    $search_params = [];
+    
+    if (!empty($search)) {
+        $search_condition = "WHERE (h.to_email LIKE ? OR h.cc LIKE ? OR p.project_name LIKE ? OR h.subject LIKE ? OR u.username LIKE ?)";
+        $search_params = ["%$search%", "%$search%", "%$search%", "%$search%", "%$search%"];
+        
+        if (!empty($user_condition)) {
+            $search_condition = $search_condition . " " . $user_condition;
+            $search_params = array_merge($search_params, $user_params);
+        }
+    } else if (!empty($user_condition)) {
+        $search_condition = "WHERE " . substr($user_condition, 4); // Remove "AND " prefix
+        $search_params = $user_params;
+    }
+    
+    try {
+        // Get total count
+        $count_query = "
+            SELECT COUNT(*) as total 
+            FROM sent_email_history h 
+            LEFT JOIN email_projects p ON h.project_id = p.project_id 
+            LEFT JOIN users u ON h.user_id = u.user_id
+            $search_condition
+        ";
+        $stmt = $pdo->prepare($count_query);
+        $stmt->execute($search_params);
+        $total_count = $stmt->fetch()['total'];
+        $total_pages = ceil($total_count / $limit);
+        
+        // Get email history records
+        $query = "
+            SELECT h.*, p.project_name, u.username as sent_by_username
+            FROM sent_email_history h 
+            LEFT JOIN email_projects p ON h.project_id = p.project_id 
+            LEFT JOIN users u ON h.user_id = u.user_id
+            $search_condition
+            ORDER BY h.sent_datetime DESC 
+            LIMIT ? OFFSET ?
+        ";
+        $params = array_merge($search_params, [$limit, $offset]);
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($params);
+        $email_history = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return [
+            'success' => true,
+            'data' => $email_history,
+            'pagination' => [
+                'current_page' => $page,
+                'total_pages' => $total_pages,
+                'total_count' => $total_count,
+                'limit' => $limit
+            ]
+        ];
+        
+    } catch (PDOException $e) {
+        logError("Error getting email history: " . $e->getMessage());
+        return [
+            'success' => false,
+            'error' => 'Database error occurred',
+            'data' => [],
+            'pagination' => [
+                'current_page' => 1,
+                'total_pages' => 0,
+                'total_count' => 0,
+                'limit' => $limit
+            ]
+        ];
+    }
+}
+
+/**
  * Get customer status overview statistics for dashboard
  */
 function getCustomerStatusOverview($user_id = null, $show_all = false) {

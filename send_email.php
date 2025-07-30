@@ -158,8 +158,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {
             // Save to email history
             $stmt = $pdo->prepare("
                 INSERT INTO sent_email_history 
-                (sent_datetime, to_email, cc, project_id, subject, attachments) 
-                VALUES (?, ?, ?, ?, ?, ?)
+                (sent_datetime, to_email, cc, project_id, subject, attachments, user_id) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([
                 getCurrentUTCDateTime(),  // Use UTC timestamp instead of NOW()
@@ -167,7 +167,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_email'])) {
                 implode(', ', $cc_emails),
                 $project_id,
                 $email_subject,
-                json_encode(array_map('basename', $attachments_paths))
+                json_encode(array_map('basename', $attachments_paths)),
+                $_SESSION['user_id'] ?? null  // Track who sent the email
             ]);
             
             $success_message = 'Email sent successfully!';
