@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
         'contact_phone' => $_POST['contact_phone'] ?? null,
         'contact_email' => $_POST['contact_email'] ?? null,
         'website' => $_POST['website'] ?? null,
-        'status_key' => $_POST['status'] ?? 'prospect', // Use status_key instead of status
+        'status_key' => $_POST['status'] ?? 'lead', // Use status_key instead of status
         'notes' => $_POST['notes'] ?? null
     ];
     
@@ -168,7 +168,7 @@ require_once 'includes/header.php';
                     <select id="status" name="status" <?php echo $isViewMode ? 'disabled' : ''; ?>>
                         <?php
                         $statusOptions = getCustomerStatusOptions();
-                        $currentStatusKey = $customer ? ($customer['status_key'] ?? 'prospect') : 'prospect';
+                        $currentStatusKey = $customer ? ($customer['status_key'] ?? 'lead') : 'lead';
                         foreach ($statusOptions as $statusKey => $statusName):
                             $selected = ($currentStatusKey == $statusKey) ? 'selected' : '';
                         ?>
