@@ -4156,7 +4156,6 @@ function getAllUsersStatusSummary($as_of_datetime = null) {
     global $pdo;
     
     try {
-        $whereClause = ['c.created_at <= :as_of_datetime'];
         $params = [];
         
         // Default to current time if not specified
@@ -4170,16 +4169,17 @@ function getAllUsersStatusSummary($as_of_datetime = null) {
                     u.username,
                     COALESCE(cs.status_key, 'unassigned') as status_key,
                     COALESCE(cst.name, cs.status_key, 'Unassigned') as status_name,
-                    COUNT(*) as count
+                    COUNT(c.customer_id) as count,
+                    cs.sort_order
                 FROM users u
-                LEFT JOIN customers c ON u.user_id = c.assigned_user_id
+                LEFT JOIN customers c ON u.user_id = c.assigned_user_id 
+                    AND c.created_at <= :as_of_datetime
                 LEFT JOIN customer_statuses cs ON c.status_id = cs.id
                 LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id 
                     AND cst.locale = :language
-                WHERE " . implode(' AND ', $whereClause) . "
+                WHERE u.role != 'admin'
                 GROUP BY u.user_id, u.username, cs.status_key, cst.name, cs.sort_order
-                HAVING COUNT(*) > 0
-                ORDER BY u.username ASC, cs.sort_order ASC, COUNT(*) DESC";
+                ORDER BY u.username ASC, cs.sort_order ASC, COUNT(c.customer_id) DESC";
         
         $params[':language'] = getCurrentLanguage();
         

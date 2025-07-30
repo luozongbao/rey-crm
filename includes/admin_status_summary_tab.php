@@ -75,16 +75,19 @@ $all_statuses = getCustomerStatusOptions();
                            class="form-control">
                 </div>
                 
-                <div class="form-group">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-search"></i> <?php echo __('apply_filters'); ?>
-                    </button>
-                    <a href="?tab=status_summary" class="btn btn-secondary">
-                        <i class="fas fa-times"></i> <?php echo __('clear_filters'); ?>
-                    </a>
-                    <button type="button" class="btn btn-info" onclick="setCurrentTime()">
-                        <i class="fas fa-clock"></i> <?php echo __('set_to_now'); ?>
-                    </button>
+                <div class="form-group button-group">
+                    <label>&nbsp;</label> <!-- Empty label for alignment -->
+                    <div class="button-container">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i> <?php echo __('apply_filters'); ?>
+                        </button>
+                        <a href="?tab=status_summary" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> <?php echo __('clear_filters'); ?>
+                        </a>
+                        <button type="button" class="btn btn-info" onclick="setCurrentTime()">
+                            <i class="fas fa-clock"></i> <?php echo __('set_to_now'); ?>
+                        </button>
+                    </div>
                 </div>
             </div>
         </form>
@@ -239,14 +242,49 @@ $all_statuses = getCustomerStatusOptions();
 
 .filter-form .form-row {
     display: grid;
-    grid-template-columns: 200px 200px 200px 1fr;
+    grid-template-columns: 200px 200px 250px 1fr;
     gap: 15px;
     align-items: end;
+}
+
+.filter-form .form-row .button-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: end;
+}
+
+.filter-form .form-row .button-group label {
+    visibility: hidden; /* Keeps space for label alignment */
+    margin-bottom: 5px;
+}
+
+.filter-form .form-row .button-container {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+@media (max-width: 1200px) {
+    .filter-form .form-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .filter-form .form-row .form-group {
+        width: 100%;
+    }
+    
+    .filter-form .form-row .button-container {
+        justify-content: flex-start;
+        margin-top: 10px;
+    }
 }
 
 .form-group {
     display: flex;
     flex-direction: column;
+    min-width: 0; /* Prevent flex items from overflowing */
 }
 
 .form-group label {
@@ -260,6 +298,8 @@ $all_statuses = getCustomerStatusOptions();
     border: 1px solid #ced4da;
     border-radius: 4px;
     font-size: 14px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* Single User Summary Styles */
@@ -436,6 +476,17 @@ $all_statuses = getCustomerStatusOptions();
     .users-summary-table th,
     .users-summary-table td {
         padding: 8px 4px;
+    }
+    
+    .form-group:last-child {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    
+    .form-group:last-child .btn {
+        width: 100%;
+        margin-bottom: 5px;
     }
 }
 </style>
