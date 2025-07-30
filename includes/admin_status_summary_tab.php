@@ -241,21 +241,42 @@ $all_statuses = getCustomerStatusOptions();
 }
 
 .filter-form .form-row {
-    display: grid;
-    grid-template-columns: 200px 200px 250px 1fr;
+    display: flex;
+    flex-wrap: wrap;
     gap: 15px;
     align-items: end;
+}
+
+.filter-form .form-row .form-group {
+    flex: 0 0 auto;
+    min-width: 180px;
+}
+
+.filter-form .form-row .form-group:nth-child(1) {
+    min-width: 200px;
+}
+
+.filter-form .form-row .form-group:nth-child(2) {
+    min-width: 200px;
+}
+
+.filter-form .form-row .form-group:nth-child(3) {
+    min-width: 250px;
 }
 
 .filter-form .form-row .button-group {
     display: flex;
     flex-direction: column;
     justify-content: end;
+    flex: 1 1 auto;
+    min-width: 300px;
+    margin-top: 15px;
 }
 
 .filter-form .form-row .button-group label {
     visibility: hidden; /* Keeps space for label alignment */
     margin-bottom: 5px;
+    height: 20px;
 }
 
 .filter-form .form-row .button-container {
@@ -263,16 +284,23 @@ $all_statuses = getCustomerStatusOptions();
     gap: 10px;
     flex-wrap: wrap;
     align-items: center;
+    width: 100%;
 }
 
 @media (max-width: 1200px) {
     .filter-form .form-row {
-        grid-template-columns: 1fr;
-        gap: 10px;
+        flex-direction: column;
+        gap: 15px;
     }
     
     .filter-form .form-row .form-group {
         width: 100%;
+        min-width: unset;
+    }
+    
+    .filter-form .form-row .button-group {
+        min-width: unset;
+        margin-top: 0;
     }
     
     .filter-form .form-row .button-container {
@@ -461,8 +489,19 @@ $all_statuses = getCustomerStatusOptions();
 /* Responsive Design */
 @media (max-width: 768px) {
     .filter-form .form-row {
-        grid-template-columns: 1fr;
-        gap: 10px;
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .filter-form .form-row .form-group {
+        width: 100%;
+        min-width: unset;
+    }
+    
+    .filter-form .form-row .button-group {
+        min-width: unset;
+        margin-top: 0;
+        order: 4; /* Place buttons last */
     }
     
     .status-summary-grid {
@@ -478,15 +517,27 @@ $all_statuses = getCustomerStatusOptions();
         padding: 8px 4px;
     }
     
-    .form-group:last-child {
+    .filter-form .form-row .button-container {
         flex-direction: column;
-        align-items: stretch;
+        width: 100%;
         gap: 8px;
     }
     
-    .form-group:last-child .btn {
+    .filter-form .form-row .button-container .btn {
         width: 100%;
-        margin-bottom: 5px;
+        margin-bottom: 0;
+    }
+}
+
+@media (max-width: 992px) and (min-width: 769px) {
+    .filter-form .form-row {
+        flex-wrap: wrap;
+    }
+    
+    .filter-form .form-row .button-group {
+        flex-basis: 100%;
+        margin-top: 15px;
+        order: 4;
     }
 }
 </style>

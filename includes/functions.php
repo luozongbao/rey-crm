@@ -4163,52 +4163,62 @@ function getAllUsersStatusSummary($as_of_datetime = null) {
             $as_of_datetime = date('Y-m-d H:i:s');
         }
         $params[':as_of_datetime'] = $as_of_datetime;
-        
-        $sql = "SELECT 
-                    u.user_id,
-                    u.username,
-                    COALESCE(cs.status_key, 'unassigned') as status_key,
-                    COALESCE(cst.name, cs.status_key, 'Unassigned') as status_name,
-                    COUNT(c.customer_id) as count,
-                    cs.sort_order
-                FROM users u
-                LEFT JOIN customers c ON u.user_id = c.assigned_user_id 
-                    AND c.created_at <= :as_of_datetime
-                LEFT JOIN customer_statuses cs ON c.status_id = cs.id
-                LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id 
-                    AND cst.locale = :language
-                WHERE u.role != 'admin'
-                GROUP BY u.user_id, u.username, cs.status_key, cst.name, cs.sort_order
-                ORDER BY u.username ASC, cs.sort_order ASC, COUNT(c.customer_id) DESC";
-        
         $params[':language'] = getCurrentLanguage();
         
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
+        // First, get all non-admin users
+        $sql_users = "SELECT user_id, username FROM users WHERE role != 'admin' ORDER BY username ASC";
+        $stmt_users = $pdo->prepare($sql_users);
+        $stmt_users->execute();
+        $all_users = $stmt_users->fetchAll(PDO::FETCH_ASSOC);
         
-        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Group by user
-        $grouped = [];
-        foreach ($result as $row) {
-            $user_id = $row['user_id'];
-            if (!isset($grouped[$user_id])) {
-                $grouped[$user_id] = [
-                    'user_id' => $user_id,
-                    'username' => $row['username'],
-                    'statuses' => [],
-                    'total_customers' => 0
-                ];
-            }
-            $grouped[$user_id]['statuses'][] = [
-                'status_key' => $row['status_key'],
-                'status_name' => $row['status_name'],
-                'count' => (int)$row['count']
+        // For each user, get their status summary
+        $result = [];
+        foreach ($all_users as $user) {
+            $user_summary = [
+                'user_id' => $user['user_id'],
+                'username' => $user['username'],
+                'statuses' => [],
+                'total_customers' => 0
             ];
-            $grouped[$user_id]['total_customers'] += (int)$row['count'];
+            
+            // Get status summary for this user
+            $sql_status = "SELECT 
+                            COALESCE(cs.status_key, 'unassigned') as status_key,
+                            COALESCE(cst.name, cs.status_key, 'Unassigned') as status_name,
+                            COUNT(c.customer_id) as count,
+                            COALESCE(cs.sort_order, 999) as sort_order
+                        FROM customers c
+                        LEFT JOIN customer_statuses cs ON c.status_id = cs.id
+                        LEFT JOIN customer_status_translations cst ON cs.id = cst.status_id 
+                            AND cst.locale = :language
+                        WHERE c.assigned_user_id = :user_id 
+                            AND c.created_at <= :as_of_datetime
+                        GROUP BY cs.status_key, cst.name, cs.sort_order
+                        ORDER BY cs.sort_order ASC, COUNT(c.customer_id) DESC";
+            
+            $params_status = [
+                ':user_id' => $user['user_id'],
+                ':as_of_datetime' => $as_of_datetime,
+                ':language' => getCurrentLanguage()
+            ];
+            
+            $stmt_status = $pdo->prepare($sql_status);
+            $stmt_status->execute($params_status);
+            $status_results = $stmt_status->fetchAll(PDO::FETCH_ASSOC);
+            
+            foreach ($status_results as $status) {
+                $user_summary['statuses'][] = [
+                    'status_key' => $status['status_key'],
+                    'status_name' => $status['status_name'],
+                    'count' => (int)$status['count']
+                ];
+                $user_summary['total_customers'] += (int)$status['count'];
+            }
+            
+            $result[] = $user_summary;
         }
         
-        return array_values($grouped);
+        return $result;
     } catch (PDOException $e) {
         logError("Error getting all users status summary: " . $e->getMessage());
         return [];
