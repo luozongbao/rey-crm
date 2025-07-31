@@ -460,7 +460,11 @@ function addCustomer($data) {
     require_once __DIR__ . '/customer_status_functions.php';
     
     try {
-        $pdo->beginTransaction();
+        // Check if we're already in a transaction
+        $in_transaction = $pdo->inTransaction();
+        if (!$in_transaction) {
+            $pdo->beginTransaction();
+        }
         
         // Get status_id from status_key
         $status_key = $data['status_key'] ?? 'prospect';
@@ -503,13 +507,27 @@ function addCustomer($data) {
                                   (customer_id, from_status_id, to_status_id, changed_by, changed_at, notes) 
                                   VALUES (?, NULL, ?, ?, NOW(), 'Initial customer creation')");
             $stmt->execute([$customer_id, $status['id'], $created_by_user_id]);
+            
+            // Only commit if we started the transaction
+            if (!$in_transaction) {
+                $pdo->commit();
+            }
+            
+            // Return customer ID on success
+            return $customer_id;
         }
         
-        $pdo->commit();
-        return $success;
+        // Only commit if we started the transaction
+        if (!$in_transaction) {
+            $pdo->commit();
+        }
+        return false;
         
     } catch (Exception $e) {
-        $pdo->rollBack();
+        // Only rollback if we started the transaction
+        if (!$in_transaction) {
+            $pdo->rollBack();
+        }
         error_log("Error adding customer: " . $e->getMessage());
         return false;
     }
@@ -551,7 +569,7 @@ function updateCustomer($id, $data) {
         }
         
         // Check if assigned_user_id is provided and user has permission to assign
-        $updateAssignment = isset($data['assigned_user_id']) && canAssignCustomer($id);
+        $updateAssignment = array_key_exists('assigned_user_id', $data) && canAssignCustomer($id);
         
         // Build the SQL query based on what needs to be updated
         $sql = "UPDATE customers SET 
@@ -614,7 +632,21 @@ function updateCustomer($id, $data) {
         
     } catch (Exception $e) {
         $pdo->rollBack();
+        $error_msg = $e->getMessage();
+        
+        // Provide more user-friendly error messages for common issues
+        if (strpos($error_msg, 'Invalid status transition') !== false) {
+            $error_msg = "Status change not allowed. Cannot change from '{$current_customer['status_key']}' to '{$data['status_key']}'.";
+        } elseif (strpos($error_msg, 'Invalid status key') !== false) {
+            $error_msg = "Invalid customer status selected. Please choose a valid status.";
+        }
+        
         logError("Error updating customer ID $id: " . $e->getMessage() . " | Data: " . print_r($data, true));
+        
+        // Store the error message in a global variable so it can be accessed by the calling code
+        global $updateCustomerError;
+        $updateCustomerError = $error_msg;
+        
         return false;
     }
 }
