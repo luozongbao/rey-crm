@@ -569,7 +569,7 @@ function updateCustomer($id, $data) {
         }
         
         // Check if assigned_user_id is provided and user has permission to assign
-        $updateAssignment = isset($data['assigned_user_id']) && canAssignCustomer($id);
+        $updateAssignment = array_key_exists('assigned_user_id', $data) && canAssignCustomer($id);
         
         // Build the SQL query based on what needs to be updated
         $sql = "UPDATE customers SET 
