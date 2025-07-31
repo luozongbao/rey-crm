@@ -116,9 +116,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
                     header("Location: customers.php?restore=1");
                     exit;
                 } else {
+                    // Get specific error message from updateCustomer if available
+                    global $updateCustomerError;
+                    if (!empty($updateCustomerError)) {
+                        $error_message = $updateCustomerError;
+                    } else {
+                        $error_message = "Error updating customer. Please check the form data and try again.";
+                    }
+                    
                     // Log detailed error information
                     logError("Customer update failed - Customer ID: $customer_id, Data: " . print_r($data, true));
-                    $error_message = "Error updating customer. Please check the form data and try again.";
                 }
             }
         } catch (PDOException $e) {

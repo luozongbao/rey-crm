@@ -287,15 +287,20 @@ function getCustomersByStatus($status_key, $assigned_user_id = null, $limit = nu
  * @return bool True if transition is allowed
  */
 function isValidStatusTransition($from_status_key, $to_status_key) {
-    // Define allowed status transitions based on business rules
+    // Allow same status (no change)
+    if ($from_status_key === $to_status_key) {
+        return true;
+    }
+    
+    // Define more flexible status transitions based on business rules
     $allowed_transitions = [
-        'lead' => ['prospect', 'qualified', 'not_qualified'], // Lead can move to any initial status
-        'prospect' => ['qualified', 'not_qualified', 'lead'], 
-        'qualified' => ['new_customer', 'lost_customer', 'not_qualified'],
-        'not_qualified' => ['prospect', 'qualified', 'lead'], // Allow re-qualification
-        'new_customer' => ['active_customer', 'lost_customer'],
-        'active_customer' => ['lost_customer'],
-        'lost_customer' => ['lead', 'prospect', 'qualified'] // Allow re-engagement
+        'lead' => ['prospect', 'qualified', 'not_qualified', 'new_customer', 'active_customer', 'lost_customer'],
+        'prospect' => ['qualified', 'not_qualified', 'lead', 'new_customer', 'active_customer', 'lost_customer'], 
+        'qualified' => ['new_customer', 'active_customer', 'lost_customer', 'not_qualified', 'prospect', 'lead'],
+        'not_qualified' => ['prospect', 'qualified', 'lead', 'new_customer', 'active_customer', 'lost_customer'],
+        'new_customer' => ['active_customer', 'lost_customer', 'prospect', 'qualified', 'lead'],
+        'active_customer' => ['lost_customer', 'new_customer', 'prospect', 'qualified', 'lead'],
+        'lost_customer' => ['lead', 'prospect', 'qualified', 'new_customer', 'active_customer']
     ];
     
     // If no restrictions defined for the status, allow any transition

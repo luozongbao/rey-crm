@@ -632,7 +632,21 @@ function updateCustomer($id, $data) {
         
     } catch (Exception $e) {
         $pdo->rollBack();
+        $error_msg = $e->getMessage();
+        
+        // Provide more user-friendly error messages for common issues
+        if (strpos($error_msg, 'Invalid status transition') !== false) {
+            $error_msg = "Status change not allowed. Cannot change from '{$current_customer['status_key']}' to '{$data['status_key']}'.";
+        } elseif (strpos($error_msg, 'Invalid status key') !== false) {
+            $error_msg = "Invalid customer status selected. Please choose a valid status.";
+        }
+        
         logError("Error updating customer ID $id: " . $e->getMessage() . " | Data: " . print_r($data, true));
+        
+        // Store the error message in a global variable so it can be accessed by the calling code
+        global $updateCustomerError;
+        $updateCustomerError = $error_msg;
+        
         return false;
     }
 }
