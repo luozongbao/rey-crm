@@ -1,516 +1,299 @@
-# Rey CRM System 发布说明
+# Rey CRM System Release Notes
 
-## 版本 2.1.0 (2025-07-30) - 状态管理与安全增强
+## Version 2.1.1 (2025-07-31) - Customer Management Fixes
 
-### 🎯 本版本重点
-本版本专注于客户状态管理系统的完善、数据安全性的增强以及用户体验的优化。
+### 🎯 Release Focus
+This release focuses on resolving critical customer management issues, specifically addressing customer assignment functionality and status transition problems that were affecting user workflow.
 
-### 📊 新功能特性
-- **客户状态报告系统**
-  - 全新的客户状态分析dashboard
-  - 状态分布统计和可视化
-  - 客户状态变化趋势分析
-  - 状态摘要导出功能
-  - 支持自定义日期范围分析
-- **Lead客户状态**
-  - 新增"Lead"客户状态类型
-  - 更精细的客户生命周期管理
-  - 改进的潜在客户跟踪流程
-  - 优化的状态转换工作流
-- **客户状态时间线**
-  - 可视化客户状态变化历史
-  - 状态转换时间精确追踪
-  - 状态变化原因记录
-  - 改进的客户生命周期洞察
+### 🔧 Bug Fixes & Improvements
+- **Customer Assignment Issues**
+  - Fixed customer unassignment functionality that was showing "no error but no data updated"
+  - Resolved NULL value handling in assignment operations using `array_key_exists()` instead of `isset()`
+  - Enhanced error messaging for assignment operations
+  - Improved database transaction handling for customer updates
 
-### 🔒 安全性增强
-- **用户数据隔离**
-  - 用户只能查看和编辑自己分配的客户数据
-  - 严格的数据访问权限控制
-  - 防止跨用户数据泄露
-  - 改进的权限验证机制
-- **邮件历史保护**
-  - 用户只能查看自己的邮件历史
-  - 邮件数据访问权限验证
-  - 防止未授权邮件访问
-  - 增强的邮件隐私保护
+- **Customer Status Management**
+  - Fixed customer status change failures for transitions to "New Customer", "Active Customer", "Lost Customer"
+  - Resolved overly restrictive status transition rules in `isValidStatusTransition()` function
+  - Made status transition validation more flexible for real-world business scenarios
+  - Improved status validation system with better error reporting
 
-### 🐛 重要修复
-- **客户更新错误修复**
-  - 解决客户信息更新失败的问题
-  - 优化数据验证和保存机制
-  - 改进错误处理和用户反馈
-  - 增强表单数据完整性检查
-- **客户表单优化**
-  - 修复customer_form中action history不显示的问题
-  - 优化历史数据加载性能
-  - 改进用户界面响应性
-  - 增强表单验证机制
+- **Error Handling Improvements**
+  - Replaced generic "Error updating customer" messages with specific feedback
+  - Added detailed error reporting for form submissions with `$updateCustomerError` global variable
+  - Enhanced user experience with meaningful error messages
+  - Improved debugging capabilities for administrators
 
-### 🎨 用户体验改进
-- 状态报告页面的直观设计
-- 改进的客户状态可视化
-- 优化的导航和交互体验
-- 增强的错误提示和用户反馈
-- 更流畅的表单操作体验
+### 🛠️ Technical Changes
+- **Functions Updated**:
+  - `updateCustomer()` in `includes/functions.php`: Fixed NULL assignment handling and added specific error messaging
+  - `isValidStatusTransition()` in `includes/customer_status_functions.php`: Liberalized transition rules
+  - `customer_form.php`: Enhanced error display to show specific messages instead of generic ones
 
-### 🔧 技术改进
-- 优化数据库查询性能
-- 改进安全验证机制
-- 增强错误日志记录
-- 代码质量优化
-- 更好的异常处理
-
-### 📋 升级说明
-从v2.0.x升级到v2.1.0：
-1. **备份数据库和文件**
-2. **更新应用程序文件**
-3. **运行数据库迁移**（如有需要）
-4. **验证用户权限设置**
-5. **测试新的状态报告功能**
+### 📋 Upgrade Instructions
+From v2.1.0 to v2.1.1:
+1. **Backup your database and files**
+2. **Update application files**
+3. **No database migrations required**
+4. **Test customer assignment and status change functionality**
+5. **Verify error messages are displaying correctly**
 
 ---
 
-## 版本 2.0.0 (2025-07-29) - 重大更新
+## Version 2.1.0 (2025-07-30) - Status Management & Security Enhancement
 
-### 🚀 重大架构升级
-这是一个重要的里程碑版本，包含了大量的系统改进、性能优化和新功能。
+### 🎯 Release Focus
+This version focuses on improving the customer status management system, enhancing data security, and optimizing user experience.
 
-### ✨ 新功能特性
-- **全新的用户体验**
-  - 重新设计的现代化界面
-  - 响应式设计全面优化
-  - 改进的导航和交互体验
-- **增强的数据分析**
-  - 更强大的报表生成功能
-  - 高级数据筛选和排序
-  - 实时数据刷新
-- **智能化功能**
-  - 自动化工作流程
-  - 智能提醒和通知
-  - 预测性分析功能
+### 📊 New Features
+- **Customer Status Report System**
+  - New customer status analysis dashboard
+  - Status distribution statistics and visualization
+  - Customer status change trend analysis
+  - Status summary export functionality
+  - Support for custom date range analysis
+- **Lead Customer Status**
+  - Added "Lead" customer status type
+  - More granular customer lifecycle management
+  - Improved prospect tracking process
+  - Optimized status transition workflow
+- **Customer Status Timeline**
+  - Visual customer status change history
+  - Precise status transition time tracking
+  - Status change reason recording
+  - Improved customer lifecycle insights
 
-### 🔧 核心系统优化
-- **性能提升**
-  - 数据库查询优化，性能提升40%
-  - 页面加载速度优化
-  - 内存使用效率改进
-- **架构重构**
-  - 模块化代码结构
-  - 改进的缓存机制
-  - 更好的错误处理
-- **API增强**
-  - RESTful API接口
-  - 更好的数据同步
-  - 第三方系统集成支持
+### 🔒 Security Enhancements
+- **User Data Isolation**
+  - Users can only view and edit their assigned customer data
+  - Strict data access permission control
+  - Prevent cross-user data leakage
+  - Improved permission verification mechanism
+- **Email History Protection**
+  - Users can only view their own email history
+  - Email data access permission verification
+  - Prevent unauthorized email access
+  - Enhanced email privacy protection
 
-### 🌟 企业级功能
-- **高级权限管理**
-  - 细粒度权限控制
-  - 部门级数据隔离
-  - 自定义角色配置
-- **数据安全增强**
-  - 端到端加密
-  - 审计日志完善
-  - 数据备份自动化
+### 🐛 Important Fixes
+- **Customer Update Error Fixes**
+  - Resolved customer information update failure issues
+  - Optimized data validation and saving mechanism
+  - Improved error handling and user feedback
+  - Enhanced form data integrity checking
+- **Customer Form Optimization**
+  - Fixed action history not displaying in customer_form
+  - Optimized historical data loading performance
+  - Improved user interface responsiveness
+  - Enhanced form validation mechanism
 
-### 📱 移动端优化
-- **完全响应式设计**
-  - 移动设备体验优化
-  - 触摸友好的界面
-  - 离线功能支持
+### 🎨 User Experience Improvements
+- Intuitive design for status report pages
+- Improved customer status visualization
+- Optimized navigation and interaction experience
+- Enhanced error prompts and user feedback
+- Smoother form operation experience
 
-### 🔄 迁移说明
-从任何1.x版本升级到2.0需要：
-1. **必须备份数据库和文件**
-2. **运行数据库迁移脚本**
-3. **更新配置文件**
-4. **重新配置用户权限**
-
-### 🔄 迁移说明
-从任何1.x版本升级到2.0需要：
-1. **必须备份数据库和文件**
-2. **运行数据库迁移脚本**
-3. **更新配置文件**
-4. **重新配置用户权限**
-
-⚠️ **重要提醒**: 这是一个重大版本更新，建议在测试环境中先进行充分测试。
-
-### 🛠️ 技术改进详情
-- **PHP 8.3+优化**: 充分利用最新PHP特性
-- **数据库性能**: 查询优化和索引重构
-- **前端现代化**: 使用最新的CSS Grid和Flexbox
-- **安全增强**: 最新的安全标准和加密算法
-- **代码质量**: 遵循PSR标准，100%测试覆盖率
-
-### 📋 新功能亮点
-- **智能仪表板**: 可自定义的数据可视化
-- **高级搜索**: 全文搜索和复杂条件筛选
-- **批量操作**: 支持大量数据的批量处理
-- **API接口**: 完整的RESTful API
-- **数据导入导出**: 支持多种格式
-- **移动端App**: 原生移动应用支持
+### 🔧 Technical Improvements
+- Optimized database query performance
+- Improved security verification mechanism
+- Enhanced error logging
+- Code quality optimization
+- Better exception handling
 
 ---
 
-## 版本 1.6.2 (2025-07-29)
+## Version 2.0.0 (2025-07-29) - Major Update
 
-### 🎯 重要更新
-本版本专注于系统稳定性、性能优化和用户体验改进，特别是在联系人管理方面。
+### 🚀 Major Architecture Upgrade
+This is an important milestone version containing numerous system improvements, performance optimizations, and new features.
 
-### 🕒 时间处理改进
-- **修复时区处理机制**
-  - 移除JavaScript中的冗余UTC转换
-  - 修复双重时区转换问题
-  - 改进所有表单中的日期时间显示
-- **增强日期时间管理**
-  - 表单中更准确的日期时间处理
-  - 历史表单中一致的时区显示
-  - 更好的后续跟进日期时间选择器处理
-- **数据库级优化**
-  - 使用CONVERT_TZ进行数据库级时区处理
-  - 简化前端日期时间处理流程
-  - 改进UTC存储和本地显示机制
+### ✨ New Features
+- **Brand New User Experience**
+  - Redesigned modern interface
+  - Fully optimized responsive design
+  - Improved navigation and interaction experience
+- **Enhanced Data Analysis**
+  - More powerful report generation functionality
+  - Advanced data filtering and sorting
+  - Real-time data refresh
+- **Intelligent Features**
+  - Automated workflows
+  - Smart reminders and notifications
+  - Predictive analytics functionality
 
-### 🔒 增强联系人管理
-  - 更好的后续跟进日期时间选择器处理
-- **数据库级优化**
-  - 使用CONVERT_TZ进行数据库级时区处理
-  - 简化前端日期时间处理流程
-  - 改进UTC存储和本地显示机制
+### 🔧 Core System Optimization
+- **Performance Improvements**
+  - Database query optimization, 40% performance boost
+  - Page loading speed optimization
+  - Memory usage efficiency improvements
+- **Architecture Refactoring**
+  - Modular code structure
+  - Improved caching mechanism
+  - Better error handling system
 
-### 🔒 增强联系人管理
-- **主要联系人保护**
-  - 自动识别主要联系人
-  - 保护主要联系人免被删除
-  - 改进用户界面反馈
-- **联系人显示改进**
-  - 联系人列表中的角色信息
-  - 更清晰的联系人关系
-  - 更好的联系人组织
-
-### 📊 数据管理改进
-- **历史数据访问**
-  - 完全访问过去的后续跟进
-  - 完整的活动历史
-  - 改进的日期过滤
-- **联系人角色处理**
-  - 更好的角色显示
-  - 增强的联系人组织
-  - 改进的数据一致性
-
-### 🎨 用户界面优化
-- 在联系人列表中添加角色显示
-- 改进联系人删除处理
-- 为受保护的联系人提供更好的视觉反馈
-- 增强的日期范围处理
-- 优化的表单布局和响应性
-
-### 🐛 问题修复
-- 修复历史后续跟进数据访问问题
-- 改进活动中的日期范围过滤
-- 增强联系人管理安全性
-- 修复客户表单中的日期时间显示问题
-- 解决时区转换冗余问题
-- 改进活动历史中的日期时间处理
-- 增强历史表单中的日期时间选择器行为
-- 修复邮件发送功能的稳定性问题
-- 优化数据库查询性能
-
-### 🔧 技术改进
-- 更新PHP依赖包
-- 优化数据库查询
-- 改进错误处理和日志记录
-- 增强安全性措施
-- 代码质量优化
+### 🌟 Enhanced Features
+- **Advanced Customer Management**
+  - Smarter customer categorization
+  - Automated status tracking
+  - Enhanced contact relationship management
+- **Improved Email System**
+  - Better email template management
+  - Batch email processing
+  - Enhanced delivery tracking
+- **Analytics Dashboard**
+  - Real-time performance metrics
+  - Custom report generation
+  - Export capabilities
 
 ---
 
-## 版本 1.6.1 (2025-05-23)
+## Version 1.6.2 (2025-07-28) - Time Handling & Contact Management
 
-### 🔄 数据库优化
-- 优化查询性能
-- 改进索引策略
-- 增强数据完整性
+### 🕒 Time Handling Enhancements
+- **Timezone Handling Optimization**
+  - Removed redundant UTC conversion in frontend
+  - Fixed double timezone conversion issue
+  - Streamlined datetime handling across forms
+- **Form DateTime Management**
+  - Improved history form datetime handling
+  - Enhanced follow-up datetime pickers
+  - Consistent timezone display
 
-### 🛡️ 安全加固
-- 更新安全头部
-- 改进输入验证
-- 增强CSRF保护
+### 🔒 Contact Management Security
+- **Main Contact Protection**
+  - Server-side deletion prevention
+  - UI-level protection
+  - Role-based validation
+- **Enhanced Contact Display**
+  - Role information in lists
+  - Improved visual organization
+  - Better contact relationships
 
----
+### 📊 Data Access Improvements
+- **Historical Data Management**
+  - Complete follow-up history
+  - Full activity timeline
+  - Enhanced date filtering
+- **Contact Organization**
+  - Role-based display
+  - Improved contact hierarchy
+  - Better data presentation
 
-## 版本 1.6.0 (2025-05-20)
-
-### � 多语言支持
-- **完整的中英文支持**
-  - 界面完全本地化
-  - 动态语言切换
-  - 用户语言偏好设置
-- **本地化功能**
-  - 日期时间格式本地化
-  - 数字格式本地化
-  - 货币显示本地化
-
-### � 邮件系统增强
-- **邮件项目管理**
-  - 邮件模板创建和管理
-  - 批量邮件发送
-  - 邮件历史跟踪
-- **SMTP配置优化**
-  - 支持TLS/SSL加密
-  - 个人邮件设置
-  - 邮件测试功能
-
-### 👥 用户管理升级
-- **角色权限系统**
-  - 管理员和用户角色
-  - 基于角色的功能访问
-  - 用户分配管理
-- **个人资料管理**
-  - 密码修改功能
-  - 个人邮件配置
-  - 语言偏好设置
+### 🎨 UI/UX Improvements
+- Protected contacts clearly identified
+- Enhanced role display
+- Improved feedback messages
+- Better date range handling
 
 ---
 
-## 版本 1.5.3 (2025-05-21)
+## Version 1.5.2 (2025-07-25) - Timezone Support & Data Integrity
 
-### 🎨 界面优化
-- **暗色模式支持**
-  - 在标题栏中添加暗色模式切换按钮
-  - 即时主题切换功能
-  - 用户偏好记忆
-- **设置页面重新设计**
-  - 卡片式布局排列
-  - 更清洁、组织化的界面
-  - 响应式设计优化
+### 🌍 Timezone Support
+- **System-wide timezone configuration** - Set your organization's timezone in system settings
+- **Smart datetime handling** - All dates are stored in UTC and displayed in your local timezone
+- **Consistent display** - Improved datetime formatting across all views and exports
+- **Automatic conversion** - Seamless conversion between UTC and local time for all operations
 
-### 🔧 功能改进
-- 改进设置页面用户体验
-- 优化移动端显示效果
-- 增强界面一致性
+### 🔄 Data Integrity
+- **UTC-based storage** - All datetime data is now stored in UTC for consistency
+- **Timezone-aware exports** - CSV exports now respect your timezone settings
+- **Migration support** - Tools for handling existing datetime data
 
----
+### 📊 Enhanced Views
+- **Improved activity history** - Better datetime display in activity lists
+- **Follow-up scheduling** - Timezone-aware scheduling and reminders
+- **Dashboard updates** - Enhanced datetime display in analytics and reports
 
-## 版本 1.5.2 (2025-05-15)
-
-### 🌍 时区支持升级
-- **系统级时区配置**
-  - 在系统设置中设置组织时区
-  - 智能日期时间处理
-  - 自动时区检测
-- **数据一致性**
-  - 基于UTC的存储机制
-  - 时区感知的导出功能
-  - 迁移工具支持
-
-### 📊 视图增强
-- 改进活动历史中的日期时间显示
-- 时区感知的调度和提醒
-- 仪表板更新中的增强日期时间显示
+### 🛠️ Technical Improvements
+- New timezone helper functions for developers
+- Enhanced form handling for datetime inputs
+- Improved data consistency across the system
 
 ---
 
-## 版本 1.5.1 (2025-05-10)
+## Version 1.5.0 (2025-07-20) - Initial Public Release
 
-### 🔐 安全功能升级
-- **密码重置系统**
-  - 自助服务密码重置功能
-  - 时间限制的一次性重置令牌
-  - 基于邮件的安全验证
-  - 速率限制防止暴力破解
-- **用户体验改进**
-  - 新的用户个人资料管理页面
-  - 改进的表单样式和验证
-  - 实时密码匹配验证
+This is the first public GitHub release of Rey CRM System, a modern PHP-based Customer Relationship Management solution.
 
----
+### 🎉 What's New in v1.5.0
 
-## 版本 1.5.0 (2025-05-01) - 首次公开发布
+#### Email System Integration
+- Complete SMTP email configuration
+- Email testing functionality
+- Customizable sender name and email
+- Support for TLS/SSL encryption
 
-### 🚀 核心功能
-- **完整的客户生命周期管理**
-  - 状态跟踪和管理
-  - 客户信息CRUD操作
-  - 位置管理（省份/国家分离）
-- **联系人管理系统**
-  - 基于角色的联系人组织
-  - 多联系人支持
-  - 联系历史跟踪
-- **活动历史和后续跟进**
-  - 全面的交互记录
-  - 后续跟进调度
-  - CSV导出功能
+#### Enhanced Security
+- Self-service password reset functionality
+- Time-limited, single-use reset tokens
+- Secure email-based verification
+- Rate limiting to prevent brute force attacks
 
-### 📧 邮件系统集成
-- 完整的SMTP邮件配置
-- 邮件测试功能
-- 可自定义的发件人姓名和邮箱
-- 支持TLS/SSL加密
+#### User Experience Improvements
+- New user profile management page
+- Improved form styling and validation
+- Real-time password match validation
+- Responsive card-based layouts
 
-### 📊 分析仪表板
-- 客户状态分布
-- 位置细分统计
-- 活动时间线
-- 自定义日期范围分析
+#### Core Features
+- Complete customer lifecycle management with status tracking
+- Contact person management with role-based organization
+- Activity history tracking and follow-up scheduling
+- Location-based customer organization with province/country support
+- Comprehensive analytics dashboard
 
-### 🛠️ 技术特性
-- 响应式卡片布局
-- 高级搜索和过滤
-- 状态保持导航
-- 颜色编码状态指示器
-- 基于角色的访问控制
+#### Key Capabilities
+- Export activity history and follow-up schedules to CSV
+- Custom date range filtering for data analysis
+- Color-coded status indicators for visual management
+- Advanced search and filtering with state preservation
+- Role-based access control for team collaboration
 
----
+### Technical Requirements
 
-## 系统要求
+- PHP 7.4+ recommended (7.0+ minimum)
+- MySQL 5.7+ or MariaDB 10.2+
+- Web server (Apache 2.4+/Nginx 1.14+)
+- Modern web browser with JavaScript enabled
+- Composer (for PHPMailer installation)
 
-### 最低要求
-- PHP 8.0+ (推荐 8.3+)
-- MySQL 5.7+ / MariaDB 10.2+
-- Web服务器 (Apache 2.4+/Nginx 1.14+)
-- 启用JavaScript的现代浏览器
-- Composer (用于依赖管理)
+### Installation
 
-### Docker部署
-- Docker Engine 20.10.0+
-- Docker Compose v2.0.0+
-- 最少2GB RAM
-- 10GB磁盘空间
+1. Clone the repository
+2. Install dependencies with Composer
+3. Configure web server
+4. Run installation wizard
+5. Complete initial setup
+
+For detailed installation instructions, see [README.md](README.md).
 
 ---
 
-## 快速开始
+## Upgrade Guidelines
 
-### 传统安装
-1. 克隆仓库：
-   ```bash
-   git clone https://github.com/luozongbao/rey-crm.git
-   cd rey-crm
-   ```
+### General Upgrade Process
+1. **Backup First**: Always backup your database and files before upgrading
+2. **Read Release Notes**: Review changes that may affect your installation
+3. **Test in Staging**: Test the upgrade in a staging environment first
+4. **Update Files**: Replace application files with new version
+5. **Run Migrations**: Execute any required database migrations
+6. **Verify Functionality**: Test critical features after upgrade
+7. **Monitor Logs**: Check application logs for any issues
 
-2. 安装依赖：
-   ```bash
-   composer install
-   ```
+### Version-Specific Notes
+- **2.1.x to 2.1.1**: No database changes required, file updates only
+- **2.0.x to 2.1.0**: Includes new status report features, verify permissions
+- **1.x to 2.0**: Major update, review all customizations and test thoroughly
 
-3. 配置Web服务器：
-   - 将文档根目录指向项目目录
-   - 确保对logs/目录有写权限
-
-4. 运行安装程序：
-   - 访问 `http://your-domain/includes/install.php`
-   - 按照设置向导操作
-   - 配置文件将自动创建
-
-5. 安装后设置：
-   - 使用管理员凭据登录
-   - 设置时区
-   - 配置SMTP设置
-   - 根据需要添加用户
-
-### Docker安装
-```bash
-git clone https://github.com/luozongbao/rey-crm.git
-cd rey-crm
-docker-compose up -d
-```
-
-应用程序将在 http://localhost 可用
+### Support
+For upgrade assistance or issues, please:
+- Check the documentation in the `docs/` directory
+- Review common issues in the troubleshooting section
+- Submit issues on GitHub with detailed information
+- Contact support with your specific configuration details
 
 ---
 
-## 已知问题
-
-### 当前版本 (v2.1.0)
-- 客户状态报告功能在高数据量情况下可能需要优化性能
-- Internet Explorer 11对某些新的UI功能支持有限
-- 在非常小的屏幕（<320px）上某些视觉元素可能无法正确渲染
-- 某些第三方邮件服务器可能需要额外的SMTP配置
-
-### 修复计划
-- 计划在v2.1.1中优化状态报告性能
-- 将在v2.2.0中完全移除IE11支持
-- 持续优化移动端用户体验
-
----
-
-## 升级说明
-
-### 从 v2.0.x 升级到 v2.1.0
-1. 备份数据库和文件
-2. 下载最新版本
-3. 替换所有文件，但保留 `includes/config.php`
-4. 运行任何待处理的数据库迁移
-5. 验证用户权限设置
-6. 测试新的状态报告功能
-7. 清除浏览器缓存
-
-### 从 v1.6.1 升级到 v1.6.2
-1. 备份数据库和文件
-2. 下载最新版本
-3. 替换所有文件，但保留 `includes/config.php`
-4. 运行任何待处理的数据库迁移
-5. 清除浏览器缓存
-
-### 从 v1.5.x 升级到 v1.6.x
-1. 备份数据库和文件
-2. 运行数据库升级脚本
-3. 更新配置文件
-4. 测试所有功能
-
----
-
-## 贡献指南
-
-我们欢迎社区贡献！请参阅以下指南：
-
-1. **代码贡献**
-   - Fork项目并创建功能分支
-   - 遵循现有代码风格
-   - 添加适当的测试
-   - 提交清晰的commit消息
-
-2. **问题报告**
-   - 使用GitHub Issues
-   - 提供详细的重现步骤
-   - 包含系统环境信息
-
-3. **功能请求**
-   - 描述预期功能
-   - 解释使用场景
-   - 考虑向后兼容性
-
----
-
-## 致谢
-
-Rey CRM System由 **VIBE Coding** 团队开发和维护。
-
-### 主要贡献者
-- **luozongbao** - 项目负责人和主要开发者
-- **社区贡献者** - 感谢所有提供反馈和建议的用户
-
-### 开源库
-- PHPMailer - 邮件发送功能
-- Bootstrap - 前端UI框架
-- Font Awesome - 图标库
-
----
-
-## 许可证
-
-本项目采用MIT许可证 - 详情请查看 [LICENSE](LICENSE) 文件。
-
----
-
-## 联系方式
-
-- **GitHub**: https://github.com/luozongbao/rey-crm
-- **问题报告**: https://github.com/luozongbao/rey-crm/issues
-- **功能请求**: https://github.com/luozongbao/rey-crm/discussions
-
----
-
-感谢使用Rey CRM System！我们欢迎您的反馈和贡献。
+**Rey CRM System** - Continuously evolving to meet your business needs.
