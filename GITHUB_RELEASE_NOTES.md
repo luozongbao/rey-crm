@@ -1,6 +1,22 @@
-# Rey CRM System v1.6.2
+# Rey CRM System v2.1.1
 
 ## Major Updates in This Release
+
+### 🔧 Customer Management Fixes
+- **Customer Assignment Issues**
+  - Fixed customer unassignment functionality 
+  - Resolved "no error but no data updated" issue
+  - Improved NULL value handling in assignment operations
+  - Enhanced error messaging for assignment operations
+- **Customer Status Management**
+  - Fixed customer status change failures
+  - Resolved restrictive status transition rules
+  - Enabled transitions to "New Customer", "Active Customer", "Lost Customer"
+  - Improved status validation system
+- **Error Handling Improvements**
+  - Replaced generic error messages with specific feedback
+  - Added detailed error reporting for form submissions
+  - Enhanced user experience with meaningful error messages
 
 ### 🕒 Time Handling Enhancements
 - **Timezone Handling Optimization**
