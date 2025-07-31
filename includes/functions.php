@@ -460,7 +460,11 @@ function addCustomer($data) {
     require_once __DIR__ . '/customer_status_functions.php';
     
     try {
-        $pdo->beginTransaction();
+        // Check if we're already in a transaction
+        $in_transaction = $pdo->inTransaction();
+        if (!$in_transaction) {
+            $pdo->beginTransaction();
+        }
         
         // Get status_id from status_key
         $status_key = $data['status_key'] ?? 'prospect';
@@ -503,13 +507,27 @@ function addCustomer($data) {
                                   (customer_id, from_status_id, to_status_id, changed_by, changed_at, notes) 
                                   VALUES (?, NULL, ?, ?, NOW(), 'Initial customer creation')");
             $stmt->execute([$customer_id, $status['id'], $created_by_user_id]);
+            
+            // Only commit if we started the transaction
+            if (!$in_transaction) {
+                $pdo->commit();
+            }
+            
+            // Return customer ID on success
+            return $customer_id;
         }
         
-        $pdo->commit();
-        return $success;
+        // Only commit if we started the transaction
+        if (!$in_transaction) {
+            $pdo->commit();
+        }
+        return false;
         
     } catch (Exception $e) {
-        $pdo->rollBack();
+        // Only rollback if we started the transaction
+        if (!$in_transaction) {
+            $pdo->rollBack();
+        }
         error_log("Error adding customer: " . $e->getMessage());
         return false;
     }

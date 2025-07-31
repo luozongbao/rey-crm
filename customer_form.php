@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
         'status_key' => $_POST['status'] ?? 'lead', // Use status_key instead of status
         'notes' => $_POST['notes'] ?? null
     ];
-    
+
     // Add assignment field if user can assign and field is present
     if (isset($_POST['assigned_user_id']) && canAssignCustomer($customer_id)) {
         // Convert empty string to NULL for database
@@ -83,9 +83,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($action == 'add' || $action == 'edi
                 $pdo->beginTransaction();
                 
                 // Use the addCustomer function which handles assignment
-                if (addCustomer($data)) {
-                    $customer_id = $pdo->lastInsertId();
-                    
+                $customer_id = addCustomer($data);
+                if ($customer_id) {
                     // Create main contact
                     $mainContact = [
                         'customer_id' => $customer_id,
